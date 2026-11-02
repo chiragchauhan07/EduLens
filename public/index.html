@@ -3,500 +3,963 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>EduLens — Student Learning Intelligence & Analytics</title>
+  <title>EduLens — Learning Intelligence Prototype</title>
+  <link rel="icon" href="https://img.icons8.com/fluency/96/graduation-cap.png" />
+  <!-- Google Fonts matching Streamlit -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Source+Sans+Pro:ital,wght@0,300;0,400;0,600;0,700;1,400&family=Source+Code+Pro:wght@400;600&display=swap" rel="stylesheet" />
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Chart.js CDN -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <!-- Lucide Icons CDN -->
-  <script src="https://unpkg.com/lucide@latest"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Source Sans Pro"', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
+            mono: ['"Source Code Pro"', 'monospace'],
+          },
+          colors: {
+            stRed: '#FF4B4B',
+            stRedHover: '#E03C3C',
+            stDark: '#0E1117',
+            stSidebar: '#F0F2F6',
+            stBg: '#FFFFFF',
+            stCard: '#F8FAFC',
+          }
+        }
+      }
+    }
+  </script>
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-    body { font-family: 'Inter', sans-serif; }
-    .tab-active { border-bottom: 2px solid #2563EB; color: #2563EB; font-weight: 600; }
+    body { font-family: 'Source Sans Pro', sans-serif; background-color: #FFFFFF; color: #31333F; }
+    .main-title { font-size: 2.2rem; font-weight: 700; color: #1E293B; margin-bottom: 0.2rem; line-height: 1.2; }
+    .subtitle { font-size: 1.05rem; color: #64748B; margin-bottom: 1.5rem; }
+    .metric-card {
+      background-color: #F8FAFC;
+      border: 1px solid #E2E8F0;
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 12px;
+    }
+    .badge-understood {
+      background-color: #DEF7EC;
+      color: #03543F;
+      padding: 6px 14px;
+      border-radius: 6px;
+      font-weight: 600;
+      display: inline-block;
+    }
+    .badge-partial {
+      background-color: #FEF08A;
+      color: #713F12;
+      padding: 6px 14px;
+      border-radius: 6px;
+      font-weight: 600;
+      display: inline-block;
+    }
+    .badge-confused {
+      background-color: #FDE8E8;
+      color: #9B1C1C;
+      padding: 6px 14px;
+      border-radius: 6px;
+      font-weight: 600;
+      display: inline-block;
+    }
+    .chat-bubble {
+      background-color: #F1F5F9;
+      border-left: 4px solid #3B82F6;
+      padding: 10px 14px;
+      border-radius: 4px;
+      margin-bottom: 8px;
+      font-size: 0.95rem;
+    }
+    .st-info-box {
+      background-color: #EBF8FF;
+      border: 1px solid #BEE3F8;
+      border-left: 4px solid #3182CE;
+      border-radius: 6px;
+      padding: 12px 16px;
+      color: #2B6CB0;
+      font-size: 0.9rem;
+    }
+    .st-progress-fill {
+      height: 8px;
+      border-radius: 4px;
+      transition: width 0.4s ease;
+    }
   </style>
 </head>
-<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
+<body class="min-h-screen flex flex-col md:flex-row bg-white">
 
-  <!-- TOP HEADER -->
-  <header class="bg-white border-b border-slate-200 sticky top-0 z-50 shadow-sm">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-      <div class="flex items-center space-x-3">
-        <div class="w-10 h-10 rounded-lg bg-blue-600 text-white flex items-center justify-center font-bold text-xl shadow">
-          🎓
-        </div>
-        <div>
-          <div class="flex items-center space-x-2">
-            <span class="text-xl font-bold tracking-tight text-slate-900">EduLens</span>
-            <span class="bg-blue-100 text-blue-700 text-xs px-2 py-0.5 rounded-full font-semibold">Vercel Ready</span>
-          </div>
-          <p class="text-xs text-slate-500">Student Learning Intelligence & Performance Analytics</p>
-        </div>
-      </div>
-      <div class="flex items-center space-x-4">
-        <div id="apiStatus" class="flex items-center space-x-1.5 text-xs font-medium text-amber-600 bg-amber-50 px-2.5 py-1 rounded-full border border-amber-200">
-          <span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
-          <span>Checking API...</span>
-        </div>
-        <a href="https://github.com/chiragchauhan07/EduLens" target="_blank" rel="noopener noreferrer" class="text-slate-600 hover:text-slate-900 transition flex items-center space-x-1 text-sm font-medium">
-          <i data-lucide="github" class="w-4 h-4"></i>
-          <span>GitHub</span>
-        </a>
-      </div>
-    </div>
-  </header>
-
-  <!-- NAVIGATION TABS -->
-  <nav class="bg-white border-b border-slate-200 shadow-xs">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex space-x-8">
-      <button onclick="switchTab('analyzer')" id="tab-analyzer" class="py-3 px-2 text-sm text-slate-600 hover:text-slate-900 transition tab-active flex items-center space-x-2">
-        <i data-lucide="sparkles" class="w-4 h-4"></i>
-        <span>Student Performance Analyzer</span>
-      </button>
-      <button onclick="switchTab('topics')" id="tab-topics" class="py-3 px-2 text-sm text-slate-600 hover:text-slate-900 transition flex items-center space-x-2">
-        <i data-lucide="bar-chart-3" class="w-4 h-4"></i>
-        <span>Topic-Wise Performance</span>
-      </button>
-      <button onclick="switchTab('model')" id="tab-model" class="py-3 px-2 text-sm text-slate-600 hover:text-slate-900 transition flex items-center space-x-2">
-        <i data-lucide="cpu" class="w-4 h-4"></i>
-        <span>Model & Architecture</span>
-      </button>
-    </div>
-  </nav>
-
-  <!-- MAIN CONTAINER -->
-  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1 w-full">
-
-    <!-- ────────────────────────────────────────────────────────────────── -->
-    <!-- TAB 1: STUDENT PERFORMANCE ANALYZER -->
-    <!-- ────────────────────────────────────────────────────────────────── -->
-    <div id="view-analyzer" class="space-y-6">
+  <!-- ───────────────────────────────────────────────────────────────────────────── -->
+  <!-- STREAMLIT-IDENTICAL SIDEBAR -->
+  <!-- ───────────────────────────────────────────────────────────────────────────── -->
+  <aside class="w-full md:w-72 bg-stSidebar border-r border-slate-200 p-6 flex flex-col justify-between shrink-0">
+    <div class="space-y-6">
       
-      <!-- Notice banner -->
-      <div class="bg-blue-50 border border-blue-200 rounded-xl p-4 flex items-start space-x-3 text-sm text-blue-900">
-        <i data-lucide="info" class="w-5 h-5 text-blue-600 shrink-0 mt-0.5"></i>
-        <div>
-          <span class="font-semibold">Explainable Pedagogical Inference:</span> Paste student conversation dialogue below or select a verified test scenario to evaluate demonstrated understanding in real-time using our trained Multinomial Logistic Regression model.
+      <!-- Logo & Title -->
+      <div class="space-y-2">
+        <img src="https://img.icons8.com/fluency/96/graduation-cap.png" alt="EduLens Logo" class="w-16 h-16 drop-shadow-sm" />
+        <h1 class="text-2xl font-bold text-slate-900 tracking-tight">EduLens ML</h1>
+        <p class="text-xs text-slate-500 font-medium">Student Learning Intelligence Prototype</p>
+      </div>
+
+      <!-- Navigation Radio -->
+      <div class="space-y-2 pt-2">
+        <label class="text-xs font-bold uppercase tracking-wider text-slate-500">Navigation</label>
+        <div class="space-y-1">
+          <label class="flex items-center space-x-3 p-2 rounded-lg cursor-pointer hover:bg-slate-200/60 transition" onclick="switchPage('analyzer')">
+            <input type="radio" name="pageNav" id="nav-analyzer" value="analyzer" checked class="text-stRed focus:ring-stRed h-4 w-4" />
+            <span class="text-sm font-semibold text-slate-800">Student Performance Analyzer</span>
+          </label>
+          <label class="flex items-center space-x-3 p-2 rounded-lg cursor-pointer hover:bg-slate-200/60 transition" onclick="switchPage('topics')">
+            <input type="radio" name="pageNav" id="nav-topics" value="topics" class="text-stRed focus:ring-stRed h-4 w-4" />
+            <span class="text-sm font-semibold text-slate-800">Topic-Wise Performance</span>
+          </label>
+          <label class="flex items-center space-x-3 p-2 rounded-lg cursor-pointer hover:bg-slate-200/60 transition" onclick="switchPage('model')">
+            <input type="radio" name="pageNav" id="nav-model" value="model" class="text-stRed focus:ring-stRed h-4 w-4" />
+            <span class="text-sm font-semibold text-slate-800">Model Information</span>
+          </label>
         </div>
       </div>
 
-      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <!-- Divider -->
+      <hr class="border-slate-300" />
+
+      <!-- Core Principle Info Box -->
+      <div class="st-info-box space-y-1.5">
+        <p class="font-bold text-xs uppercase tracking-wider text-blue-900">Core Principle:</p>
+        <p class="text-xs leading-relaxed text-blue-800">
+          EduLens does not tutor students. It analyzes student-LLM conversations to estimate learning understanding through conversation-derived NLP evidence.
+        </p>
+      </div>
+
+    </div>
+
+    <!-- Sidebar Footer / API Status -->
+    <div class="pt-6 border-t border-slate-200 space-y-2 text-xs text-slate-500">
+      <div class="flex items-center justify-between">
+        <span class="font-medium">Backend API:</span>
+        <span id="apiStatusBadge" class="inline-flex items-center space-x-1 font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+          <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+          <span>Online</span>
+        </span>
+      </div>
+      <div class="flex items-center justify-between">
+        <span class="font-medium">Vercel Status:</span>
+        <span class="text-slate-700 font-semibold">Active</span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ───────────────────────────────────────────────────────────────────────────── -->
+  <!-- MAIN STREAMLIT APP VIEW CONTAINER -->
+  <!-- ───────────────────────────────────────────────────────────────────────────── -->
+  <main class="flex-1 p-6 md:p-10 max-w-5xl mx-auto w-full space-y-8">
+
+    <!-- ───────────────────────────────────────────────────────────────────────── -->
+    <!-- PAGE 1: STUDENT PERFORMANCE ANALYZER -->
+    <!-- ───────────────────────────────────────────────────────────────────────── -->
+    <section id="page-analyzer" class="space-y-6">
+      
+      <div>
+        <div class="main-title">Student Performance Analyzer</div>
+        <div class="subtitle">Evaluate a student-LLM learning conversation to predict demonstrated understanding level using trained machine learning.</div>
+      </div>
+
+      <!-- Input Source Radio -->
+      <div class="space-y-2">
+        <label class="text-sm font-semibold text-slate-800">Select Input Source:</label>
+        <div class="flex flex-wrap gap-4 text-sm">
+          <label class="inline-flex items-center space-x-2 cursor-pointer">
+            <input type="radio" name="inputMode" value="curated" checked onchange="handleInputModeChange()" class="text-stRed focus:ring-stRed h-4 w-4" />
+            <span>Curated Sample Conversations</span>
+          </label>
+          <label class="inline-flex items-center space-x-2 cursor-pointer">
+            <input type="radio" name="inputMode" value="upload" onchange="handleInputModeChange()" class="text-stRed focus:ring-stRed h-4 w-4" />
+            <span>Upload JSON File</span>
+          </label>
+          <label class="inline-flex items-center space-x-2 cursor-pointer">
+            <input type="radio" name="inputMode" value="paste" onchange="handleInputModeChange()" class="text-stRed focus:ring-stRed h-4 w-4" />
+            <span>Paste Custom Conversation Text</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Mode 1: Curated Samples -->
+      <div id="section-curated" class="space-y-2">
+        <label class="text-xs font-semibold uppercase tracking-wider text-slate-600">Choose a sample conversation from verified dataset:</label>
+        <select id="sampleSelect" onchange="loadSelectedSample()" class="w-full text-sm border border-slate-300 rounded-md p-2.5 bg-white shadow-xs focus:ring-2 focus:ring-stRed focus:outline-none">
+          <option value="0">Sample 1 (C++ Pointers — Struggling/Confused)</option>
+          <option value="1">Sample 2 (DAA Binary Search — Mastered/Understood)</option>
+          <option value="2">Sample 3 (OS Virtual Memory — Emerging/Partial)</option>
+          <option value="3">Sample 4 (DSA Graph BFS — Mastered/Understood)</option>
+          <option value="4">Sample 5 (ML Gradient Descent — Confused)</option>
+        </select>
+      </div>
+
+      <!-- Mode 2: Upload JSON -->
+      <div id="section-upload" class="space-y-2 hidden">
+        <label class="text-xs font-semibold uppercase tracking-wider text-slate-600">Upload a JSON conversation session:</label>
+        <input type="file" id="jsonFileInput" accept=".json" onchange="handleJsonUpload(event)" class="w-full text-sm border border-slate-300 rounded-md p-2 bg-slate-50 cursor-pointer" />
+      </div>
+
+      <!-- Mode 3: Paste Custom Text -->
+      <div id="section-paste" class="space-y-4 hidden">
+        <div>
+          <label class="text-xs font-semibold uppercase tracking-wider text-slate-600">Student utterances (one message per line):</label>
+          <textarea id="customTextarea" rows="5" class="w-full text-sm font-mono border border-slate-300 rounded-md p-3 focus:ring-2 focus:ring-stRed focus:outline-none" placeholder="Can you explain how quicksort partition works?&#10;I'm a bit confused about why we pick the last element as pivot.&#10;Oh wait, so elements smaller go left and larger go right? Got it, that makes sense now!"></textarea>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="text-xs text-slate-500 font-semibold">Subject (Optional):</label>
+            <input type="text" id="customSubject" value="Algorithms" class="w-full text-sm border border-slate-300 rounded-md p-2 focus:ring-1 focus:ring-stRed" />
+          </div>
+          <div>
+            <label class="text-xs text-slate-500 font-semibold">Topic (Optional):</label>
+            <input type="text" id="customTopic" value="Quicksort Partitioning" class="w-full text-sm border border-slate-300 rounded-md p-2 focus:ring-1 focus:ring-stRed" />
+          </div>
+        </div>
+      </div>
+
+      <!-- Conversation Metadata & Messages -->
+      <div class="space-y-4 pt-2">
+        <h2 class="text-lg font-bold text-slate-900">Conversation Metadata & Messages</h2>
         
-        <!-- Left Column: Input Form -->
-        <div class="lg:col-span-6 bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-4">
-          <div class="flex items-center justify-between">
-            <h2 class="text-base font-semibold text-slate-900 flex items-center space-x-2">
-              <i data-lucide="message-square" class="w-4 h-4 text-blue-600"></i>
-              <span>Student Dialogue Input</span>
-            </h2>
-            <span class="text-xs text-slate-400">Student utterances only</span>
+        <!-- 4 Metric Cards -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div class="metric-card">
+            <div class="text-xs text-slate-500 font-medium">Chat ID</div>
+            <div id="metaChatId" class="text-base font-bold text-slate-800 truncate">CHAT_0001</div>
           </div>
-
-          <!-- Preset selector -->
-          <div>
-            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">Load Preset Conversation</label>
-            <select id="presetSelect" onchange="loadPreset()" class="w-full text-sm border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 focus:outline-none bg-slate-50">
-              <option value="">-- Choose a benchmark scenario --</option>
-              <option value="confused">Confused / Struggling: Recursion Base Cases (DSA)</option>
-              <option value="partial">Partial Understanding: SQL Group By & Having (DBMS)</option>
-              <option value="understood">Understood / Mastery: BST Inorder Traversal (DSA)</option>
-            </select>
+          <div class="metric-card">
+            <div class="text-xs text-slate-500 font-medium">Subject</div>
+            <div id="metaSubject" class="text-base font-bold text-slate-800 truncate">C++</div>
           </div>
-
-          <!-- Text area -->
-          <div>
-            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">Student Utterances (one turn per line)</label>
-            <textarea id="chatInput" rows="7" class="w-full text-sm border border-slate-300 rounded-lg p-3 font-mono focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="I really don't understand how this works...&#10;Can you explain again? I am stuck."></textarea>
+          <div class="metric-card">
+            <div class="text-xs text-slate-500 font-medium">Topic</div>
+            <div id="metaTopic" class="text-base font-bold text-slate-800 truncate">Pointers</div>
           </div>
-
-          <!-- Actions -->
-          <div class="flex items-center justify-between pt-2">
-            <button onclick="clearInput()" class="text-xs text-slate-500 hover:text-slate-800 transition">Clear Input</button>
-            <button onclick="runInference()" id="predictBtn" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-lg text-sm font-semibold flex items-center space-x-2 shadow transition">
-              <i data-lucide="play" class="w-4 h-4"></i>
-              <span>Analyze Understanding</span>
-            </button>
+          <div class="metric-card">
+            <div class="text-xs text-slate-500 font-medium">Student Persona</div>
+            <div id="metaPersona" class="text-base font-bold text-slate-800 truncate">Struggling</div>
           </div>
         </div>
 
-        <!-- Right Column: Results Card -->
-        <div class="lg:col-span-6 space-y-4">
+        <!-- Collapsible Transcript Expander -->
+        <details open class="border border-slate-200 rounded-lg overflow-hidden bg-white shadow-xs">
+          <summary class="p-3 bg-slate-50 font-semibold text-sm text-slate-700 cursor-pointer select-none hover:bg-slate-100 flex items-center justify-between">
+            <span>Inspect Student Message Transcript</span>
+            <span class="text-xs text-slate-400">Click to collapse</span>
+          </summary>
+          <div id="chatBubblesContainer" class="p-4 space-y-2">
+            <!-- Dynamically populated -->
+          </div>
+        </details>
+      </div>
+
+      <!-- Streamlit Primary Red Action Button -->
+      <div class="pt-2">
+        <button onclick="analyzeSession()" id="analyzeBtn" class="w-full bg-stRed hover:bg-stRedHover text-white py-3 px-6 rounded-md font-bold text-base shadow-sm transition flex items-center justify-center space-x-2">
+          <span>🔍 Analyze Learning Session</span>
+        </button>
+      </div>
+
+      <!-- Analysis & ML Prediction Results Section (Hidden until analyzed) -->
+      <div id="analysisResults" class="space-y-6 pt-4 border-t border-slate-200">
+        
+        <h2 class="text-xl font-bold text-slate-900">Analysis & ML Prediction Results</h2>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
           
-          <div id="resultsCard" class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-5">
-            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
-              <h2 class="text-base font-semibold text-slate-900 flex items-center space-x-2">
-                <i data-lucide="check-circle" class="w-4 h-4 text-emerald-600"></i>
-                <span>Model Evaluation Result</span>
-              </h2>
-              <span id="predConfidence" class="text-xs font-semibold px-2.5 py-1 rounded-full bg-slate-100 text-slate-600">Awaiting input</span>
-            </div>
-
-            <!-- Predicted Badge & Feedback -->
-            <div id="badgeContainer" class="p-4 rounded-xl border bg-slate-50 border-slate-200">
-              <div class="flex items-center space-x-2 mb-2">
-                <span id="predictedBadge" class="text-sm font-bold px-3 py-1 rounded-md bg-slate-200 text-slate-700">Ready to Analyze</span>
-              </div>
-              <p id="feedbackText" class="text-sm text-slate-600">Select a preset or input student dialogue, then click Analyze Understanding.</p>
-            </div>
-
-            <!-- Class Probabilities Distribution -->
+          <!-- Outcome Column -->
+          <div class="space-y-4">
+            <h3 class="text-base font-bold text-slate-800">Predicted Learning Outcome</h3>
             <div>
-              <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500 mb-3">Predicted Class Probabilities</h3>
-              <div class="space-y-2 text-sm">
-                <div>
-                  <div class="flex justify-between text-xs mb-1">
-                    <span class="font-medium text-emerald-800">Understood (Mastery)</span>
-                    <span id="probUnderstood" class="font-semibold text-slate-700">0.0%</span>
-                  </div>
-                  <div class="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
-                    <div id="barUnderstood" class="bg-emerald-500 h-2 rounded-full transition-all duration-500" style="width: 0%"></div>
-                  </div>
+              <span id="resBadge" class="badge-confused text-lg">Confused (Instructional Intervention Needed)</span>
+            </div>
+            
+            <div class="metric-card inline-block min-w-[200px]">
+              <div class="text-xs text-slate-500 font-medium">Model Confidence</div>
+              <div id="resConfidence" class="text-2xl font-bold text-slate-900">95.1%</div>
+            </div>
+
+            <div id="groundTruthRow" class="text-xs text-slate-500 font-medium">
+              Dataset Ground Truth: <strong id="resGroundTruth" class="text-slate-800">confused</strong> (<span id="resMatchStatus" class="text-emerald-600 font-semibold">✅ Match</span>)
+            </div>
+
+            <div class="space-y-1">
+              <h4 class="text-xs font-bold uppercase tracking-wider text-slate-500">Pedagogical Recommendation:</h4>
+              <div id="resFeedback" class="st-info-box">
+                The student expressed significant doubt, repeated questions, or struggled to apply the core concepts. Recommend 1-on-1 human tutor review or foundational review.
+              </div>
+            </div>
+          </div>
+
+          <!-- Class Probabilities Column -->
+          <div class="space-y-4">
+            <h3 class="text-base font-bold text-slate-800">Model Class Probabilities</h3>
+            
+            <div class="space-y-3 text-sm">
+              <div>
+                <div class="flex justify-between text-xs mb-1">
+                  <span class="font-bold text-emerald-800">Understood:</span>
+                  <code id="probValUnderstood" class="font-mono bg-slate-100 px-1 py-0.5 rounded text-slate-700">0.2%</code>
                 </div>
-                <div>
-                  <div class="flex justify-between text-xs mb-1">
-                    <span class="font-medium text-amber-800">Partial Understanding</span>
-                    <span id="probPartial" class="font-semibold text-slate-700">0.0%</span>
-                  </div>
-                  <div class="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
-                    <div id="barPartial" class="bg-amber-400 h-2 rounded-full transition-all duration-500" style="width: 0%"></div>
-                  </div>
+                <div class="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
+                  <div id="probBarUnderstood" class="bg-emerald-500 h-2.5 rounded-full st-progress-fill" style="width: 0.2%;"></div>
                 </div>
-                <div>
-                  <div class="flex justify-between text-xs mb-1">
-                    <span class="font-medium text-rose-800">Confused (Needs Review)</span>
-                    <span id="probConfused" class="font-semibold text-slate-700">0.0%</span>
-                  </div>
-                  <div class="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
-                    <div id="barConfused" class="bg-rose-500 h-2 rounded-full transition-all duration-500" style="width: 0%"></div>
-                  </div>
+              </div>
+
+              <div>
+                <div class="flex justify-between text-xs mb-1">
+                  <span class="font-bold text-amber-800">Partial:</span>
+                  <code id="probValPartial" class="font-mono bg-slate-100 px-1 py-0.5 rounded text-slate-700">4.7%</code>
+                </div>
+                <div class="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
+                  <div id="probBarPartial" class="bg-amber-400 h-2.5 rounded-full st-progress-fill" style="width: 4.7%;"></div>
+                </div>
+              </div>
+
+              <div>
+                <div class="flex justify-between text-xs mb-1">
+                  <span class="font-bold text-rose-800">Confused:</span>
+                  <code id="probValConfused" class="font-mono bg-slate-100 px-1 py-0.5 rounded text-slate-700">95.1%</code>
+                </div>
+                <div class="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
+                  <div id="probBarConfused" class="bg-rose-500 h-2.5 rounded-full st-progress-fill" style="width: 95.1%;"></div>
                 </div>
               </div>
             </div>
+          </div>
 
-            <!-- Extracted Conversational Signals -->
-            <div class="border-t border-slate-100 pt-4">
-              <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500 mb-3">Extracted Conversational Signals</h3>
-              <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
-                <div class="p-2.5 rounded-lg bg-slate-50 border border-slate-200">
-                  <div class="text-xs text-slate-500">Student Turns</div>
-                  <div id="sigTurns" class="text-lg font-bold text-slate-800">-</div>
-                </div>
-                <div class="p-2.5 rounded-lg bg-slate-50 border border-slate-200">
-                  <div class="text-xs text-slate-500">Total Words</div>
-                  <div id="sigWords" class="text-lg font-bold text-slate-800">-</div>
-                </div>
-                <div class="p-2.5 rounded-lg bg-slate-50 border border-slate-200">
-                  <div class="text-xs text-slate-500">Questions</div>
-                  <div id="sigQuestions" class="text-lg font-bold text-slate-800">-</div>
-                </div>
-                <div class="p-2.5 rounded-lg bg-slate-50 border border-slate-200">
-                  <div class="text-xs text-slate-500">Confusion Hits</div>
-                  <div id="sigConfusion" class="text-lg font-bold text-slate-800">-</div>
-                </div>
-              </div>
+        </div>
+
+        <!-- Extracted Conversational Evidence Signals (8 Metric Cards) -->
+        <div class="space-y-3 pt-2">
+          <h3 class="text-base font-bold text-slate-800">Extracted Conversational Evidence Signals</h3>
+          
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div class="metric-card text-center">
+              <div class="text-xs text-slate-500 font-medium">Student Turns</div>
+              <div id="sigTurns" class="text-xl font-bold text-slate-800">5</div>
             </div>
-
+            <div class="metric-card text-center">
+              <div class="text-xs text-slate-500 font-medium">Total Words</div>
+              <div id="sigWords" class="text-xl font-bold text-slate-800">68</div>
+            </div>
+            <div class="metric-card text-center">
+              <div class="text-xs text-slate-500 font-medium">Avg Words / Turn</div>
+              <div id="sigAvgTurn" class="text-xl font-bold text-slate-800">13.6</div>
+            </div>
+            <div class="metric-card text-center">
+              <div class="text-xs text-slate-500 font-medium">Questions Asked</div>
+              <div id="sigQuestions" class="text-xl font-bold text-slate-800">4</div>
+            </div>
           </div>
+
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div class="metric-card text-center">
+              <div class="text-xs text-slate-500 font-medium">Confusion Signals</div>
+              <div id="sigConfusion" class="text-xl font-bold text-slate-800">3</div>
+            </div>
+            <div class="metric-card text-center">
+              <div class="text-xs text-slate-500 font-medium">Clarification Requests</div>
+              <div id="sigClarify" class="text-xl font-bold text-slate-800">2</div>
+            </div>
+            <div class="metric-card text-center">
+              <div class="text-xs text-slate-500 font-medium">Comprehension Signals</div>
+              <div id="sigUnderstood" class="text-xl font-bold text-slate-800">0</div>
+            </div>
+            <div class="metric-card text-center">
+              <div class="text-xs text-slate-500 font-medium">Technical/Code Tokens</div>
+              <div id="sigCode" class="text-xl font-bold text-slate-800">1</div>
+            </div>
+          </div>
+
         </div>
 
       </div>
-    </div>
 
-    <!-- ────────────────────────────────────────────────────────────────── -->
-    <!-- TAB 2: TOPIC-WISE PERFORMANCE -->
-    <!-- ────────────────────────────────────────────────────────────────── -->
-    <div id="view-topics" class="space-y-6 hidden">
-      <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-4">
-        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div>
-            <h2 class="text-lg font-bold text-slate-900">Curriculum Topic Mastery & Diagnostic Analytics</h2>
-            <p class="text-xs text-slate-500">Aggregated student comprehension rates across 11 Computer Science subjects (430 sessions)</p>
-          </div>
-          <div class="w-full sm:w-64">
-            <input type="text" id="topicSearch" onkeyup="filterTopics()" placeholder="Filter by subject or topic..." class="w-full text-xs border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 focus:outline-none" />
-          </div>
-        </div>
+    </section>
 
-        <div class="overflow-x-auto">
-          <table class="w-full text-left text-xs text-slate-600 border-collapse">
-            <thead class="bg-slate-50 uppercase text-slate-500 font-semibold border-y border-slate-200">
-              <tr>
-                <th class="py-3 px-3">Subject</th>
-                <th class="py-3 px-3">Topic</th>
-                <th class="py-3 px-3 text-center">Sessions</th>
-                <th class="py-3 px-3 text-center">Avg Turns</th>
-                <th class="py-3 px-3 text-center">Mastery Rate</th>
-                <th class="py-3 px-3 text-center">Partial Rate</th>
-                <th class="py-3 px-3 text-center">Confusion Rate</th>
-              </tr>
-            </thead>
-            <tbody id="topicTableBody" class="divide-y divide-slate-100">
-              <tr>
-                <td colspan="7" class="py-8 text-center text-slate-400">Loading topic analytics...</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-
-    <!-- ────────────────────────────────────────────────────────────────── -->
-    <!-- TAB 3: MODEL & ARCHITECTURE -->
-    <!-- ────────────────────────────────────────────────────────────────── -->
-    <div id="view-model" class="space-y-6 hidden">
+    <!-- ───────────────────────────────────────────────────────────────────────── -->
+    <!-- PAGE 2: TOPIC-WISE PERFORMANCE -->
+    <!-- ───────────────────────────────────────────────────────────────────────── -->
+    <section id="page-topics" class="space-y-6 hidden">
       
-      <!-- Metric Highlights Cards -->
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
-          <div class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Test Accuracy</div>
-          <div class="text-2xl font-bold text-blue-600 mt-1">96.51%</div>
-          <div class="text-xs text-slate-400 mt-0.5">vs. 45.35% baseline</div>
+      <div>
+        <div class="main-title">Topic-Wise Performance Intelligence</div>
+        <div class="subtitle">Curriculum-level aggregation of student understanding and confusion patterns across verified academic topics.</div>
+      </div>
+
+      <!-- 3 Summary Metrics -->
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div class="metric-card">
+          <div class="text-xs text-slate-500 font-medium">Total Unique Topics</div>
+          <div class="text-3xl font-bold text-slate-900 mt-1">45</div>
         </div>
-        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
-          <div class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Macro F1-Score</div>
-          <div class="text-2xl font-bold text-emerald-600 mt-1">0.9577</div>
-          <div class="text-xs text-slate-400 mt-0.5">Weighted F1: 0.9647</div>
+        <div class="metric-card">
+          <div class="text-xs text-slate-500 font-medium">Total Sessions Analyzed</div>
+          <div class="text-3xl font-bold text-slate-900 mt-1">430</div>
         </div>
-        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
-          <div class="text-xs font-semibold text-slate-500 uppercase tracking-wider">5-Fold CV Score</div>
-          <div class="text-2xl font-bold text-purple-600 mt-1">91.88%</div>
-          <div class="text-xs text-slate-400 mt-0.5">± 4.26% std. dev.</div>
-        </div>
-        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
-          <div class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total Features</div>
-          <div class="text-2xl font-bold text-slate-800 mt-1">108</div>
-          <div class="text-xs text-slate-400 mt-0.5">8 signals + 100 n-grams</div>
+        <div class="metric-card">
+          <div class="text-xs text-slate-500 font-medium">Curriculum Average Mastery</div>
+          <div class="text-3xl font-bold text-emerald-600 mt-1">44.7%</div>
         </div>
       </div>
 
-      <!-- Model Details & Confusion Matrix -->
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-4">
-          <h3 class="text-base font-bold text-slate-900">Architecture & Preprocessing Contract</h3>
-          <ul class="space-y-2 text-xs text-slate-600">
-            <li class="flex items-start space-x-2">
-              <i data-lucide="check" class="w-4 h-4 text-emerald-600 shrink-0 mt-0.5"></i>
-              <span><strong>Primary Classifier:</strong> Multinomial Logistic Regression with balanced class weighting (<code class="bg-slate-100 px-1 py-0.5 rounded text-slate-700">C=1.0, max_iter=1000</code>).</span>
-            </li>
-            <li class="flex items-start space-x-2">
-              <i data-lucide="check" class="w-4 h-4 text-emerald-600 shrink-0 mt-0.5"></i>
-              <span><strong>No Data Leakage:</strong> Preprocessing and TF-IDF transformers fitted strictly on training data inside a Scikit-learn <code class="bg-slate-100 px-1 py-0.5 rounded text-slate-700">Pipeline</code>.</span>
-            </li>
-            <li class="flex items-start space-x-2">
-              <i data-lucide="check" class="w-4 h-4 text-emerald-600 shrink-0 mt-0.5"></i>
-              <span><strong>Exclusively Student Signals:</strong> AI/Teacher utterances are excluded to evaluate only student articulation.</span>
-            </li>
-            <li class="flex items-start space-x-2">
-              <i data-lucide="check" class="w-4 h-4 text-emerald-600 shrink-0 mt-0.5"></i>
-              <span><strong>Sub-Millisecond Inference:</strong> Runs in < 2ms without requiring expensive or nondeterministic LLM calls for classification.</span>
-            </li>
-          </ul>
+      <!-- Search & Filter -->
+      <div class="flex items-center justify-between gap-4">
+        <h2 class="text-lg font-bold text-slate-900">Topic Aggregation Table</h2>
+        <input type="text" id="topicSearchInput" onkeyup="filterTopicTable()" placeholder="Search topics or subjects..." class="text-xs border border-slate-300 rounded-md p-2 w-64 focus:ring-1 focus:ring-stRed" />
+      </div>
+
+      <!-- Table -->
+      <div class="border border-slate-200 rounded-lg overflow-x-auto shadow-xs">
+        <table class="w-full text-left text-xs text-slate-700">
+          <thead class="bg-slate-100 uppercase text-slate-600 font-semibold border-b border-slate-200">
+            <tr>
+              <th class="py-2.5 px-3">Subject</th>
+              <th class="py-2.5 px-3">Topic</th>
+              <th class="py-2.5 px-3 text-center">Sessions</th>
+              <th class="py-2.5 px-3 text-center">% Understood</th>
+              <th class="py-2.5 px-3 text-center">% Partial</th>
+              <th class="py-2.5 px-3 text-center">% Confused</th>
+              <th class="py-2.5 px-3 text-center">Avg Turns</th>
+            </tr>
+          </thead>
+          <tbody id="topicsTableBody" class="divide-y divide-slate-100">
+            <!-- Populated via JS -->
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Topic Drill-Down Section -->
+      <hr class="border-slate-200" />
+      
+      <div class="space-y-4">
+        <h2 class="text-lg font-bold text-slate-900">Topic Drill-Down</h2>
+        <div class="space-y-1">
+          <label class="text-xs font-semibold text-slate-600">Select a topic to inspect session distribution and confusion hotspots:</label>
+          <select id="drillTopicSelect" onchange="renderTopicDrilldown()" class="w-full text-sm border border-slate-300 rounded-md p-2.5 bg-white">
+            <!-- Populated via JS -->
+          </select>
         </div>
 
-        <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-4">
-          <h3 class="text-base font-bold text-slate-900">Held-Out Confusion Matrix (86 Sessions)</h3>
-          <div class="overflow-x-auto text-xs">
-            <table class="w-full text-center border-collapse">
-              <thead>
-                <tr class="bg-slate-50 text-slate-500 font-semibold border-b">
-                  <th class="py-2 px-3 text-left">Actual \ Predicted</th>
-                  <th class="py-2 px-3 text-rose-700">Confused</th>
-                  <th class="py-2 px-3 text-amber-700">Partial</th>
-                  <th class="py-2 px-3 text-emerald-700">Understood</th>
-                </tr>
-              </thead>
-              <tbody class="divide-y divide-slate-100 font-mono">
-                <tr>
-                  <td class="py-2 px-3 font-semibold text-left font-sans text-slate-700">Confused (16)</td>
-                  <td class="py-2 px-3 bg-rose-50 font-bold text-rose-800">14</td>
-                  <td class="py-2 px-3 text-slate-600">2</td>
-                  <td class="py-2 px-3 text-slate-400">0</td>
-                </tr>
-                <tr>
-                  <td class="py-2 px-3 font-semibold text-left font-sans text-slate-700">Partial (31)</td>
-                  <td class="py-2 px-3 text-slate-400">0</td>
-                  <td class="py-2 px-3 bg-amber-50 font-bold text-amber-800">30</td>
-                  <td class="py-2 px-3 text-slate-600">1</td>
-                </tr>
-                <tr>
-                  <td class="py-2 px-3 font-semibold text-left font-sans text-slate-700">Understood (39)</td>
-                  <td class="py-2 px-3 text-slate-400">0</td>
-                  <td class="py-2 px-3 text-slate-400">0</td>
-                  <td class="py-2 px-3 bg-emerald-50 font-bold text-emerald-800">39</td>
-                </tr>
-              </tbody>
-            </table>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
+          
+          <!-- Left: Distribution progress bars -->
+          <div class="space-y-3">
+            <h3 class="text-sm font-bold text-slate-800" id="drillTopicHeading">Distribution for: Pointers</h3>
+            <div id="drillBarsContainer" class="space-y-3 text-xs">
+              <!-- Dynamically populated -->
+            </div>
           </div>
-          <p class="text-xs text-slate-400 text-center">83 of 86 test samples classified correctly (96.51% accuracy)</p>
+
+          <!-- Right: Individual sessions list -->
+          <div class="space-y-2">
+            <h3 class="text-sm font-bold text-slate-800">Sample Sessions in this Topic</h3>
+            <div id="drillSessionsList" class="space-y-2 text-xs">
+              <!-- Dynamically populated -->
+            </div>
+          </div>
+
+        </div>
+
+        <div class="st-info-box">
+          <strong class="font-semibold">Methodological Note on Topic Aggregation:</strong><br />
+          The sessions shown above represent distinct learning interactions from the verified dataset. They illustrate topic difficulty patterns across learners. Real student longitudinal growth tracking requires persisted student user IDs across multiple learning dates.
         </div>
       </div>
 
-    </div>
+    </section>
+
+    <!-- ───────────────────────────────────────────────────────────────────────── -->
+    <!-- PAGE 3: MODEL INFORMATION & VIVA GUIDE -->
+    <!-- ───────────────────────────────────────────────────────────────────────── -->
+    <section id="page-model" class="space-y-6 hidden">
+      
+      <div>
+        <div class="main-title">Model Architecture & Evaluation</div>
+        <div class="subtitle">Transparent technical documentation, baseline comparison, and viva explanation reference.</div>
+      </div>
+
+      <!-- 4 Summary Metrics -->
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <div class="metric-card">
+          <div class="text-xs text-slate-500 font-medium">Model Architecture</div>
+          <div class="text-xl font-bold text-slate-900 mt-1">LogisticRegression</div>
+        </div>
+        <div class="metric-card">
+          <div class="text-xs text-slate-500 font-medium">Target Variable</div>
+          <div class="text-xl font-bold text-slate-900 mt-1">final_understanding</div>
+        </div>
+        <div class="metric-card">
+          <div class="text-xs text-slate-500 font-medium">Test Accuracy</div>
+          <div class="text-xl font-bold text-emerald-600 mt-1">96.51%</div>
+        </div>
+        <div class="metric-card">
+          <div class="text-xs text-slate-500 font-medium">Majority Baseline</div>
+          <div class="text-xl font-bold text-slate-600 mt-1">45.35%</div>
+        </div>
+      </div>
+
+      <hr class="border-slate-200" />
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+        
+        <!-- Left: Architecture & Features -->
+        <div class="space-y-6 text-sm text-slate-700">
+          <div>
+            <h3 class="text-base font-bold text-slate-900 mb-2">1. Problem Formulation</h3>
+            <p class="leading-relaxed text-xs text-slate-600">
+              EduLens formulates learning outcome prediction as a <strong>supervised 3-class classification</strong> task:
+            </p>
+            <ul class="list-disc pl-5 text-xs text-slate-600 space-y-1 mt-1">
+              <li><strong>Input:</strong> Student utterances extracted from a learning conversation with an LLM.</li>
+              <li><strong>Output:</strong> Predicted understanding level (<code class="bg-slate-100 px-1 py-0.5 rounded text-slate-800">understood</code>, <code class="bg-slate-100 px-1 py-0.5 rounded text-slate-800">partial</code>, <code class="bg-slate-100 px-1 py-0.5 rounded text-slate-800">confused</code>).</li>
+              <li><strong>Target Selection Rationale:</strong> Categorical understanding directly represents Bloom's cognitive progression without imposing arbitrary numerical conversions or fabricated quiz formulas.</li>
+            </ul>
+          </div>
+
+          <div>
+            <h3 class="text-base font-bold text-slate-900 mb-2">2. Feature Engineering Pipeline</h3>
+            <p class="text-xs text-slate-600 leading-relaxed mb-2">
+              The model relies on a leakage-free Scikit-Learn <code class="bg-slate-100 px-1 py-0.5 rounded text-slate-800">ColumnTransformer</code>:
+            </p>
+            <ol class="list-decimal pl-5 text-xs text-slate-600 space-y-1">
+              <li><strong>TF-IDF Vocabulary Vectorizer (100 features):</strong> Unigrams and bigrams capturing conceptual mastery vs. hesitation terms.</li>
+              <li><strong>Dense Conversational Signals (8 features):</strong> Scaled via <code class="bg-slate-100 px-1 py-0.5 rounded text-slate-800">StandardScaler</code>:
+                <ul class="list-disc pl-4 space-y-0.5 mt-1">
+                  <li>Turn count & total words</li>
+                  <li>Average words per turn</li>
+                  <li>Question marks count</li>
+                  <li>Confusion phrase markers</li>
+                  <li>Clarification request markers</li>
+                  <li>Understanding affirmation markers</li>
+                  <li>Technical / code syntax indicators</li>
+                </ul>
+              </li>
+            </ol>
+            <p class="text-xs font-semibold text-emerald-700 mt-2">
+              ✓ Leakage Prevention: Excludes sentiment and post-session quiz data.
+            </p>
+          </div>
+        </div>
+
+        <!-- Right: Results & Cross Validation -->
+        <div class="space-y-6 text-sm text-slate-700">
+          <div>
+            <h3 class="text-base font-bold text-slate-900 mb-2">3. Rigorous Evaluation Results</h3>
+            <div class="border border-slate-200 rounded-md overflow-hidden">
+              <table class="w-full text-left text-xs">
+                <thead class="bg-slate-100 font-semibold text-slate-600 border-b">
+                  <tr>
+                    <th class="py-2 px-3">Metric</th>
+                    <th class="py-2 px-3">Primary Model (Logistic Reg)</th>
+                    <th class="py-2 px-3">Baseline (Dummy Majority)</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                  <tr>
+                    <td class="py-1.5 px-3 font-medium">Accuracy</td>
+                    <td class="py-1.5 px-3 font-bold text-emerald-700">0.9651 (96.51%)</td>
+                    <td class="py-1.5 px-3 text-slate-400">0.4535 (45.35%)</td>
+                  </tr>
+                  <tr>
+                    <td class="py-1.5 px-3 font-medium">Macro Precision</td>
+                    <td class="py-1.5 px-3 font-semibold text-slate-800">0.9708</td>
+                    <td class="py-1.5 px-3 text-slate-400">—</td>
+                  </tr>
+                  <tr>
+                    <td class="py-1.5 px-3 font-medium">Macro Recall</td>
+                    <td class="py-1.5 px-3 font-semibold text-slate-800">0.9476</td>
+                    <td class="py-1.5 px-3 text-slate-400">—</td>
+                  </tr>
+                  <tr>
+                    <td class="py-1.5 px-3 font-medium">Macro F1-Score</td>
+                    <td class="py-1.5 px-3 font-bold text-emerald-700">0.9577</td>
+                    <td class="py-1.5 px-3 text-slate-400">0.2080</td>
+                  </tr>
+                  <tr>
+                    <td class="py-1.5 px-3 font-medium">Weighted F1-Score</td>
+                    <td class="py-1.5 px-3 font-semibold text-slate-800">0.9647</td>
+                    <td class="py-1.5 px-3 text-slate-400">—</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div>
+            <h3 class="text-base font-bold text-slate-900 mb-2">4. 5-Fold Stratified Cross-Validation</h3>
+            <ul class="text-xs text-slate-600 space-y-1">
+              <li><strong>Mean CV Accuracy:</strong> <code class="font-mono bg-slate-100 px-1 py-0.5 rounded text-slate-800">0.9188 (+/- 0.0426)</code></li>
+              <li><strong>Mean CV Macro F1:</strong> <code class="font-mono bg-slate-100 px-1 py-0.5 rounded text-slate-800">0.9031 (+/- 0.0506)</code></li>
+            </ul>
+          </div>
+
+          <div>
+            <h3 class="text-base font-bold text-slate-900 mb-2">5. Important Honest Limitations</h3>
+            <ul class="text-xs text-slate-600 space-y-1.5">
+              <li>⚠️ <strong>Synthetic Dataset:</strong> 430 training sessions were synthesized with Claude using realistic pedagogical prompts rather than recorded classroom audio.</li>
+              <li>⚠️ <strong>CS Domain Concentration:</strong> Focuses on university Computer Science subjects; generalization to non-STEM subjects has not been evaluated.</li>
+              <li>⚠️ <strong>Independent Sessions:</strong> Current dataset represents independent sessions. Longitudinal growth curves require tracking user IDs across multi-week milestones.</li>
+            </ul>
+          </div>
+
+        </div>
+
+      </div>
+
+    </section>
 
   </main>
 
-  <!-- FOOTER -->
-  <footer class="bg-white border-t border-slate-200 py-6 text-center text-xs text-slate-400">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-2">
-      <div>EduLens — Open Student Learning Intelligence Platform</div>
-      <div>Engineered by Chirag Chauhan & EduLens Contributors • MIT Licensed</div>
-    </div>
-  </footer>
-
-  <!-- SCRIPT LOGIC -->
+  <!-- ───────────────────────────────────────────────────────────────────────────── -->
+  <!-- CLIENT LOGIC & DATASET CACHE -->
+  <!-- ───────────────────────────────────────────────────────────────────────────── -->
   <script>
-    lucide.createIcons();
+    // 5 Curated Sample Conversations matching Streamlit prototype exactly
+    const SAMPLE_CHOREOGRAPHY = [
+      {
+        chatId: "CHAT_0001",
+        subject: "C++",
+        topic: "Pointers",
+        persona: "Struggling",
+        groundTruth: "confused",
+        messages: [
+          "explain pointers and references in C++ the way it is asked in university exams please ?",
+          "can you show a quick dry run for this snippet ? i get confused tracing values .",
+          "wait , why did the value change here ? what is happening with the address ? i am lost .",
+          "is there a simpler way to remember this rule for midterms ? please repeat .",
+          "thank you , will revise this again before the lab test tomorrow !"
+        ]
+      },
+      {
+        chatId: "CHAT_0009",
+        subject: "DAA",
+        topic: "Divide and Conquer: Binary Search",
+        persona: "Confident",
+        groundTruth: "understood",
+        messages: [
+          "can we go through binary search algorithm in DAA ?",
+          "what is the recurrence relation and best / worst case time complexity ?",
+          "so T(n) = T(n/2) + O(1) gives O(log n) using Master Theorem Case 2, right?",
+          "got it! When array is already sorted, mid = low + (high - low) / 2 prevents integer overflow.",
+          "understood completely, that makes sense now! thank you!"
+        ]
+      },
+      {
+        chatId: "CHAT_0026",
+        subject: "OS",
+        topic: "Virtual Memory and Paging",
+        persona: "Curious",
+        groundTruth: "partial",
+        messages: [
+          "how does page table translation work in virtual memory ?",
+          "what causes a page fault and how does the OS handle it ?",
+          "so the TLB is like a hardware cache for page table entries, right?",
+          "can you give another example of inverted page tables? I understand regular paging but inverted is still unclear.",
+          "okay that clarifies some doubts, will practice numerical problems on this."
+        ]
+      },
+      {
+        chatId: "CHAT_0051",
+        subject: "DSA",
+        topic: "Graph Traversal: BFS",
+        persona: "High-Achiever",
+        groundTruth: "understood",
+        messages: [
+          "explain BFS algorithm on graphs using adjacency list.",
+          "why do we use a queue for BFS instead of a stack ?",
+          "got it, queue ensures level-by-level traversal while stack would give DFS.",
+          "in C++: queue<int> q; visited[src] = true; q.push(src); while(!q.empty())...",
+          "makes total sense now! time complexity is O(V + E). Thank you!"
+        ]
+      },
+      {
+        chatId: "CHAT_0096",
+        subject: "ML",
+        topic: "Gradient Descent Optimization",
+        persona: "Struggling",
+        groundTruth: "confused",
+        messages: [
+          "how does gradient descent update weights in linear regression ?",
+          "i am confused about learning rate alpha. What happens if it is too large or too small ?",
+          "what is the difference between batch, stochastic, and mini-batch GD ? i am totally mixed up.",
+          "why does my cost function diverge to infinity ? i don't understand what went wrong.",
+          "can you explain again from scratch with simple numbers ? I am completely stuck."
+        ]
+      }
+    ];
 
-    let allTopics = [];
+    let currentSession = null;
+    let allTopicsData = [];
 
-    // Tab switcher
-    function switchTab(tab) {
-      ['analyzer', 'topics', 'model'].forEach(t => {
-        document.getElementById(`view-${t}`).classList.add('hidden');
-        document.getElementById(`tab-${t}`).classList.remove('tab-active');
+    // Switch Navigation Pages
+    function switchPage(pageKey) {
+      ['analyzer', 'topics', 'model'].forEach(p => {
+        document.getElementById(`page-${p}`).classList.add('hidden');
+        document.getElementById(`nav-${p}`).checked = (p === pageKey);
       });
-      document.getElementById(`view-${tab}`).classList.remove('hidden');
-      document.getElementById(`tab-${tab}`).classList.add('tab-active');
-      if (tab === 'topics' && allTopics.length === 0) {
+      document.getElementById(`page-${pageKey}`).classList.remove('hidden');
+
+      if (pageKey === 'topics' && allTopicsData.length === 0) {
         fetchTopics();
       }
     }
 
-    // Health check
-    async function checkHealth() {
-      const el = document.getElementById('apiStatus');
-      try {
-        const res = await fetch('/api/health');
-        if (res.ok) {
-          el.className = 'flex items-center space-x-1.5 text-xs font-medium text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200';
-          el.innerHTML = '<span class="w-2 h-2 rounded-full bg-emerald-500"></span><span>API Online</span>';
-        } else {
-          throw new Error();
+    // Input mode handler
+    function handleInputModeChange() {
+      const mode = document.querySelector('input[name="inputMode"]:checked').value;
+      document.getElementById('section-curated').classList.toggle('hidden', mode !== 'curated');
+      document.getElementById('section-upload').classList.toggle('hidden', mode !== 'upload');
+      document.getElementById('section-paste').classList.toggle('hidden', mode !== 'paste');
+
+      if (mode === 'curated') {
+        loadSelectedSample();
+      } else if (mode === 'paste') {
+        loadCustomPasteSession();
+      }
+    }
+
+    // Load sample from dropdown
+    function loadSelectedSample() {
+      const idx = parseInt(document.getElementById('sampleSelect').value, 10);
+      const sample = SAMPLE_CHOREOGRAPHY[idx] || SAMPLE_CHOREOGRAPHY[0];
+      currentSession = {
+        chatId: sample.chatId,
+        subject: sample.subject,
+        topic: sample.topic,
+        persona: sample.persona,
+        groundTruth: sample.groundTruth,
+        messages: sample.messages
+      };
+      renderSessionPreview();
+    }
+
+    // Load custom paste
+    function loadCustomPasteSession() {
+      const text = document.getElementById('customTextarea').value;
+      const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+      currentSession = {
+        chatId: "CUSTOM_INPUT",
+        subject: document.getElementById('customSubject').value || "Algorithms",
+        topic: document.getElementById('customTopic').value || "Custom Topic",
+        persona: "Interactive User",
+        groundTruth: null,
+        messages: lines
+      };
+      renderSessionPreview();
+    }
+
+    // Handle JSON file upload
+    function handleJsonUpload(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(evt) {
+        try {
+          let data = JSON.parse(evt.target.result);
+          if (Array.isArray(data) && data.length > 0) data = data[0];
+          
+          let msgs = [];
+          if (data.turns && Array.isArray(data.turns)) {
+            msgs = data.turns.map(t => t.student_message || '').filter(Boolean);
+          } else if (data.messages && Array.isArray(data.messages)) {
+            msgs = data.messages.map(m => m.student_message || '').filter(Boolean);
+          }
+
+          currentSession = {
+            chatId: data.chat_id || "UPLOADED_SESSION",
+            subject: data.subject || "Uploaded Subject",
+            topic: data.topic || "Uploaded Topic",
+            persona: data.student_persona || "custom",
+            groundTruth: data.final_understanding || null,
+            messages: msgs
+          };
+          renderSessionPreview();
+        } catch (err) {
+          alert("Error parsing JSON file: " + err.message);
         }
-      } catch (err) {
-        el.className = 'flex items-center space-x-1.5 text-xs font-medium text-rose-600 bg-rose-50 px-2.5 py-1 rounded-full border border-rose-200';
-        el.innerHTML = '<span class="w-2 h-2 rounded-full bg-rose-500"></span><span>API Offline</span>';
+      };
+      reader.readAsText(file);
+    }
+
+    // Render metadata & bubbles
+    function renderSessionPreview() {
+      if (!currentSession) return;
+      document.getElementById('metaChatId').innerText = currentSession.chatId;
+      document.getElementById('metaSubject').innerText = currentSession.subject;
+      document.getElementById('metaTopic').innerText = currentSession.topic;
+      document.getElementById('metaPersona').innerText = currentSession.persona;
+
+      const container = document.getElementById('chatBubblesContainer');
+      container.innerHTML = currentSession.messages.map((msg, i) => `
+        <div class="chat-bubble">
+          <strong class="text-slate-900">Turn ${i + 1} (Student):</strong> ${escapeHtml(msg)}
+        </div>
+      `).join('');
+
+      // Reset analysis results view
+      document.getElementById('analysisResults').classList.add('hidden');
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.innerText = text;
+      return div.innerHTML;
+    }
+
+    // Call API with fallback to both /api/predict and /predict
+    async function callApi(endpoint, options = {}) {
+      const urls = [
+        endpoint.startsWith('/api') ? endpoint : `/api${endpoint}`,
+        endpoint.replace(/^\/api/, '')
+      ];
+
+      let lastError = null;
+      for (const url of urls) {
+        try {
+          const res = await fetch(url, options);
+          if (res.ok) {
+            return await res.json();
+          } else if (res.status === 404) {
+            continue; // Try next URL format
+          } else {
+            const errJson = await res.json().catch(() => ({}));
+            throw new Error(errJson.detail || `Server error (${res.status})`);
+          }
+        } catch (err) {
+          lastError = err;
+        }
       }
-    }
-    checkHealth();
-
-    // Preset loader
-    const PRESETS = {
-      confused: "I really don't understand how this recursive function unwinds.\nI am completely stuck and confused. What does base case mean? Why does my code crash?\nWait what? Can you explain again step by step? I am totally lost.",
-      partial: "So WHERE filters rows before aggregation, right?\nCan you give another example of when to use HAVING instead of WHERE?\nI think I get the basic idea, but how does it behave with null values?",
-      understood: "Inorder traversal visits left subtree, root node, then right subtree.\nFor a BST, an inorder traversal always produces keys in strictly ascending sorted order. That makes sense!\nGot it! In C++, void inorder(Node* root) { if (!root) return; inorder(root->left); cout << root->val; inorder(root->right); } clear now, thank you!"
-    };
-
-    function loadPreset() {
-      const val = document.getElementById('presetSelect').value;
-      if (val && PRESETS[val]) {
-        document.getElementById('chatInput').value = PRESETS[val];
-      }
+      throw lastError || new Error(`Failed to reach ${endpoint}`);
     }
 
-    function clearInput() {
-      document.getElementById('chatInput').value = '';
-      document.getElementById('presetSelect').value = '';
-    }
-
-    // Run inference
-    async function runInference() {
-      const text = document.getElementById('chatInput').value.trim();
-      if (!text) {
-        alert('Please enter student dialogue utterances or select a preset.');
+    // Analyze Session Button
+    async function analyzeSession() {
+      if (!currentSession || currentSession.messages.length === 0) {
+        alert("Please provide student messages to analyze.");
         return;
       }
 
-      const btn = document.getElementById('predictBtn');
+      const btn = document.getElementById('analyzeBtn');
       btn.disabled = true;
-      btn.innerHTML = '<span>Analyzing...</span>';
+      btn.innerHTML = '<span>⏳ Extracting NLP features and running model inference...</span>';
 
       try {
-        const res = await fetch('/api/predict', {
+        const payload = {
+          conversation: {
+            student_messages: currentSession.messages,
+            turns: currentSession.messages.map(m => ({ student_message: m }))
+          }
+        };
+
+        const result = await callApi('/api/predict', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ text })
+          body: JSON.stringify(payload)
         });
-        const data = await res.json();
 
-        if (res.ok) {
-          renderPrediction(data);
-        } else {
-          alert('Error: ' + (data.detail || 'Failed to analyze conversation.'));
-        }
+        displayAnalysisResult(result);
       } catch (err) {
-        alert('Inference request failed: ' + err.message);
+        alert("Analysis failed: " + err.message);
       } finally {
         btn.disabled = false;
-        btn.innerHTML = '<i data-lucide="play" class="w-4 h-4"></i><span>Analyze Understanding</span>';
-        lucide.createIcons();
+        btn.innerHTML = '<span>🔍 Analyze Learning Session</span>';
       }
     }
 
-    function renderPrediction(data) {
-      const badge = document.getElementById('predictedBadge');
-      const conf = document.getElementById('predConfidence');
-      const feedback = document.getElementById('feedbackText');
-      const container = document.getElementById('badgeContainer');
+    // Render result
+    function displayAnalysisResult(res) {
+      document.getElementById('analysisResults').classList.remove('hidden');
 
-      const cls = data.predicted_class || 'unknown';
-      const pct = (data.confidence * 100).toFixed(1);
+      const predClass = res.predicted_class || 'confused';
+      const badge = document.getElementById('resBadge');
+      badge.className = `badge-${predClass} text-lg`;
+      badge.innerText = res.display_name || predClass;
 
-      conf.innerText = `Confidence: ${pct}%`;
+      const confPct = ((res.confidence || 0) * 100).toFixed(1);
+      document.getElementById('resConfidence').innerText = `${confPct}%`;
 
-      if (cls === 'understood') {
-        badge.className = 'text-sm font-bold px-3 py-1 rounded-md bg-emerald-100 text-emerald-800';
-        badge.innerText = 'Understood (High Conceptual Mastery)';
-        container.className = 'p-4 rounded-xl border bg-emerald-50 border-emerald-200';
-      } else if (cls === 'partial') {
-        badge.className = 'text-sm font-bold px-3 py-1 rounded-md bg-amber-100 text-amber-800';
-        badge.innerText = 'Partial Understanding (Emerging Comprehension)';
-        container.className = 'p-4 rounded-xl border bg-amber-50 border-amber-200';
+      // Ground truth
+      const gtRow = document.getElementById('groundTruthRow');
+      if (currentSession.groundTruth) {
+        gtRow.classList.remove('hidden');
+        document.getElementById('resGroundTruth').innerText = currentSession.groundTruth;
+        const isMatch = currentSession.groundTruth === predClass;
+        document.getElementById('resMatchStatus').innerText = isMatch ? '✅ Match' : '⚠️ Mismatch';
+        document.getElementById('resMatchStatus').className = isMatch ? 'text-emerald-600 font-semibold' : 'text-amber-600 font-semibold';
       } else {
-        badge.className = 'text-sm font-bold px-3 py-1 rounded-md bg-rose-100 text-rose-800';
-        badge.innerText = 'Confused (Instructional Intervention Needed)';
-        container.className = 'p-4 rounded-xl border bg-rose-50 border-rose-200';
+        gtRow.classList.add('hidden');
       }
 
-      feedback.innerText = data.pedagogical_feedback || '';
+      // Feedback
+      document.getElementById('resFeedback').innerText = res.pedagogical_feedback || '';
 
       // Probabilities
-      const probs = data.probabilities || {};
+      const probs = res.probabilities || {};
       const u = ((probs.understood || 0) * 100).toFixed(1);
       const p = ((probs.partial || 0) * 100).toFixed(1);
       const c = ((probs.confused || 0) * 100).toFixed(1);
 
-      document.getElementById('probUnderstood').innerText = `${u}%`;
-      document.getElementById('barUnderstood').style.width = `${u}%`;
+      document.getElementById('probValUnderstood').innerText = `${u}%`;
+      document.getElementById('probBarUnderstood').style.width = `${u}%`;
 
-      document.getElementById('probPartial').innerText = `${p}%`;
-      document.getElementById('barPartial').style.width = `${p}%`;
+      document.getElementById('probValPartial').innerText = `${p}%`;
+      document.getElementById('probBarPartial').style.width = `${p}%`;
 
-      document.getElementById('probConfused').innerText = `${c}%`;
-      document.getElementById('barConfused').style.width = `${c}%`;
+      document.getElementById('probValConfused').innerText = `${c}%`;
+      document.getElementById('probBarConfused').style.width = `${c}%`;
 
-      // Conversational signals
-      const sigs = data.conversational_signals || {};
-      document.getElementById('sigTurns').innerText = sigs.num_turns ?? 0;
-      document.getElementById('sigWords').innerText = sigs.total_words ?? 0;
-      document.getElementById('sigQuestions').innerText = sigs.question_count ?? 0;
-      document.getElementById('sigConfusion').innerText = sigs.confusion_markers ?? 0;
+      // Signals
+      const sig = res.conversational_signals || {};
+      document.getElementById('sigTurns').innerText = sig.num_turns ?? 0;
+      document.getElementById('sigWords').innerText = sig.total_words ?? 0;
+      document.getElementById('sigAvgTurn').innerText = (sig.avg_turn_length ?? 0).toFixed(1);
+      document.getElementById('sigQuestions').innerText = sig.question_count ?? 0;
+      document.getElementById('sigConfusion').innerText = sig.confusion_markers ?? 0;
+      document.getElementById('sigClarify').innerText = sig.clarification_markers ?? 0;
+      document.getElementById('sigUnderstood').innerText = sig.understanding_markers ?? 0;
+      document.getElementById('sigCode').innerText = sig.code_indicators ?? 0;
+
+      // Scroll smoothly to results
+      document.getElementById('analysisResults').scrollIntoView({ behavior: 'smooth' });
     }
 
-    // Topics fetch & filter
-    async function fetchTopics() {
+    // Health check on load
+    async function checkApiHealth() {
+      const badge = document.getElementById('apiStatusBadge');
       try {
-        const res = await fetch('/api/topics');
-        const data = await res.json();
-        allTopics = data.topics || [];
-        renderTopics(allTopics);
+        const data = await callApi('/api/health');
+        if (data && data.status === 'healthy') {
+          badge.className = 'inline-flex items-center space-x-1 font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200';
+          badge.innerHTML = '<span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span><span>Online</span>';
+        }
       } catch (err) {
-        document.getElementById('topicTableBody').innerHTML = '<tr><td colspan="7" class="py-4 text-center text-rose-500">Failed to load topic analytics.</td></tr>';
+        badge.className = 'inline-flex items-center space-x-1 font-semibold text-rose-600 bg-rose-50 px-2 py-0.5 rounded border border-rose-200';
+        badge.innerHTML = '<span class="w-2 h-2 rounded-full bg-rose-500"></span><span>Offline</span>';
       }
     }
 
-    function renderTopics(topics) {
-      const tbody = document.getElementById('topicTableBody');
+    // Topic Analytics Page
+    async function fetchTopics() {
+      try {
+        const data = await callApi('/api/topics');
+        allTopicsData = data.topics || [];
+        renderTopicsTable(allTopicsData);
+        populateDrilldownSelect(allTopicsData);
+      } catch (err) {
+        document.getElementById('topicsTableBody').innerHTML = '<tr><td colspan="7" class="py-4 text-center text-rose-500">Failed to load topics.</td></tr>';
+      }
+    }
+
+    function renderTopicsTable(topics) {
+      const tbody = document.getElementById('topicsTableBody');
       if (topics.length === 0) {
         tbody.innerHTML = '<tr><td colspan="7" class="py-4 text-center text-slate-400">No matching topics found.</td></tr>';
         return;
@@ -505,24 +968,78 @@
       tbody.innerHTML = topics.map(t => `
         <tr class="hover:bg-slate-50 transition border-b border-slate-100">
           <td class="py-2.5 px-3 font-semibold text-slate-800">${t.subject}</td>
-          <td class="py-2.5 px-3 text-slate-700">${t.topic}</td>
-          <td class="py-2.5 px-3 text-center">${t.total_sessions}</td>
-          <td class="py-2.5 px-3 text-center">${t.avg_turns}</td>
-          <td class="py-2.5 px-3 text-center font-semibold text-emerald-600">${t.mastery_rate}%</td>
+          <td class="py-2.5 px-3 text-slate-700 font-medium">${t.topic}</td>
+          <td class="py-2.5 px-3 text-center text-slate-600">${t.total_sessions}</td>
+          <td class="py-2.5 px-3 text-center font-bold text-emerald-600">${t.mastery_rate}%</td>
           <td class="py-2.5 px-3 text-center font-semibold text-amber-600">${t.partial_rate}%</td>
           <td class="py-2.5 px-3 text-center font-semibold text-rose-600">${t.confusion_rate}%</td>
+          <td class="py-2.5 px-3 text-center text-slate-500">${t.avg_turns}</td>
         </tr>
       `).join('');
     }
 
-    function filterTopics() {
-      const query = document.getElementById('topicSearch').value.toLowerCase();
-      const filtered = allTopics.filter(t => 
+    function filterTopicTable() {
+      const query = document.getElementById('topicSearchInput').value.toLowerCase();
+      const filtered = allTopicsData.filter(t => 
         t.subject.toLowerCase().includes(query) || 
         t.topic.toLowerCase().includes(query)
       );
-      renderTopics(filtered);
+      renderTopicsTable(filtered);
     }
+
+    function populateDrilldownSelect(topics) {
+      const sel = document.getElementById('drillTopicSelect');
+      sel.innerHTML = topics.map(t => `<option value="${t.topic}">${t.subject}: ${t.topic}</option>`).join('');
+      renderTopicDrilldown();
+    }
+
+    function renderTopicDrilldown() {
+      const sel = document.getElementById('drillTopicSelect');
+      const topicName = sel.value;
+      const topic = allTopicsData.find(t => t.topic === topicName);
+      if (!topic) return;
+
+      document.getElementById('drillTopicHeading').innerText = `Distribution for: ${topic.topic}`;
+
+      const bars = document.getElementById('drillBarsContainer');
+      bars.innerHTML = `
+        <div>
+          <div class="flex justify-between mb-1"><span class="font-bold text-emerald-800">Understood:</span><span>${topic.understood_count} sessions (${topic.mastery_rate}%)</span></div>
+          <div class="w-full bg-slate-100 h-2 rounded-full overflow-hidden"><div class="bg-emerald-500 h-2 rounded-full" style="width: ${topic.mastery_rate}%"></div></div>
+        </div>
+        <div>
+          <div class="flex justify-between mb-1"><span class="font-bold text-amber-800">Partial:</span><span>${topic.partial_count} sessions (${topic.partial_rate}%)</span></div>
+          <div class="w-full bg-slate-100 h-2 rounded-full overflow-hidden"><div class="bg-amber-400 h-2 rounded-full" style="width: ${topic.partial_rate}%"></div></div>
+        </div>
+        <div>
+          <div class="flex justify-between mb-1"><span class="font-bold text-rose-800">Confused:</span><span>${topic.confused_count} sessions (${topic.confusion_rate}%)</span></div>
+          <div class="w-full bg-slate-100 h-2 rounded-full overflow-hidden"><div class="bg-rose-500 h-2 rounded-full" style="width: ${topic.confusion_rate}%"></div></div>
+        </div>
+      `;
+
+      const list = document.getElementById('drillSessionsList');
+      if (topic.sessions && topic.sessions.length > 0) {
+        list.innerHTML = topic.sessions.map(s => `
+          <details class="border border-slate-200 rounded p-2 bg-slate-50">
+            <summary class="font-semibold text-slate-800 cursor-pointer">
+              ${s.chat_id} — Outcome: <span class="uppercase font-bold ${s.outcome === 'understood' ? 'text-emerald-700' : (s.outcome === 'partial' ? 'text-amber-700' : 'text-rose-700')}">${s.outcome}</span> (${s.turns} turns)
+            </summary>
+            <div class="pt-2 text-slate-600 text-xs">
+              <p class="text-slate-400 mb-1">Student: ${s.student_id} | Persona: ${s.persona}</p>
+              <p class="font-mono bg-white p-1.5 rounded border border-slate-100">${escapeHtml(s.preview)}</p>
+            </div>
+          </details>
+        `).join('');
+      } else {
+        list.innerHTML = '<p class="text-slate-400 text-xs">No sample sessions recorded.</p>';
+      }
+    }
+
+    // Initialize on page load
+    window.addEventListener('DOMContentLoaded', () => {
+      loadSelectedSample();
+      checkApiHealth();
+    });
   </script>
 </body>
 </html>

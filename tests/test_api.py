@@ -44,3 +44,4 @@ def test_api_predict():
     assert data["predicted_class"] in {"confused", "partial", "understood"}
     assert "probabilities" in data
     assert "confidence" in data
+

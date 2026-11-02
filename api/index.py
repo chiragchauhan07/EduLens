@@ -2,7 +2,8 @@
 api/index.py — Vercel Serverless API entrypoint for EduLens.
 
 Exposes RESTful endpoints for real-time model inference, topic performance analytics,
-dataset inspection, and model metadata.
+dataset inspection, and model metadata. Supports both root and /api prefixed routes
+to ensure full compatibility with Vercel serverless ASGI routing.
 """
 
 import json
@@ -15,7 +16,7 @@ ROOT_DIR = Path(__file__).resolve().parent.parent
 if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
-from fastapi import FastAPI, HTTPException
+from fastapi import APIRouter, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
@@ -41,6 +42,7 @@ app.add_middleware(
 _predictor: Optional[EduLensPredictor] = None
 _cached_topics: Optional[List[Dict[str, Any]]] = None
 _cached_eval: Optional[Dict[str, Any]] = None
+_cached_raw_dataset: Optional[List[Dict[str, Any]]] = None
 
 
 def get_predictor() -> EduLensPredictor:
@@ -49,6 +51,18 @@ def get_predictor() -> EduLensPredictor:
         model_path = ROOT_DIR / "models" / "trained_model.joblib"
         _predictor = EduLensPredictor(model_path=model_path)
     return _predictor
+
+
+def get_raw_dataset() -> List[Dict[str, Any]]:
+    global _cached_raw_dataset
+    if _cached_raw_dataset is None:
+        dataset_path = ROOT_DIR / "data" / "raw" / "edulens_chats_dataset.json"
+        if dataset_path.exists():
+            with open(dataset_path, "r", encoding="utf-8") as f:
+                _cached_raw_dataset = json.load(f)
+        else:
+            _cached_raw_dataset = []
+    return _cached_raw_dataset
 
 
 class PredictRequest(BaseModel):
@@ -61,48 +75,90 @@ class PredictRequest(BaseModel):
 
 SAMPLE_CONVERSATIONS = [
     {
-        "id": "sample-confused",
-        "title": "Recursion & Base Cases (Struggling)",
-        "subject": "DSA",
-        "topic": "Recursion",
+        "id": "sample-0",
+        "title": "Sample 1 (C++ Pointers — Struggling/Confused)",
+        "subject": "C++",
+        "topic": "Pointers",
         "expected": "confused",
+        "dataset_index": 0,
         "messages": [
-            "I really don't understand how this recursive function unwinds.",
-            "I am completely stuck and confused. What does base case mean? Why does my code crash?",
-            "Wait what? Can you explain again step by step? I am totally lost.",
+            "explain pointers and references in C++ the way it is asked in university exams please ?",
+            "can you show a quick dry run for this snippet ? i get confused tracing values .",
+            "wait , why did the value change here ? what is happening with the address ? i am lost .",
+            "is there a simpler way to remember this rule for midterms ? please repeat .",
+            "thank you , will revise this again before the lab test tomorrow !",
         ],
     },
     {
-        "id": "sample-partial",
-        "title": "SQL Group By & Having (Partial)",
-        "subject": "DBMS",
-        "topic": "SQL Queries",
-        "expected": "partial",
-        "messages": [
-            "So WHERE filters rows before aggregation, right?",
-            "Can you give another example of when to use HAVING instead of WHERE?",
-            "I think I get the basic idea, but how does it behave with null values?",
-        ],
-    },
-    {
-        "id": "sample-understood",
-        "title": "Binary Search Tree Inorder Traversal (Mastery)",
-        "subject": "DSA",
-        "topic": "Binary Search Trees",
+        "id": "sample-8",
+        "title": "Sample 2 (DAA Binary Search — Mastered/Understood)",
+        "subject": "DAA",
+        "topic": "Divide and Conquer: Binary Search",
         "expected": "understood",
+        "dataset_index": 8,
         "messages": [
-            "Inorder traversal visits left subtree, root node, then right subtree.",
-            "For a BST, an inorder traversal always produces keys in strictly ascending sorted order. That makes sense!",
-            "Got it! In C++, void inorder(Node* root) { if (!root) return; inorder(root->left); cout << root->val; inorder(root->right); } clear now, thank you!",
+            "can we go through binary search algorithm in DAA ?",
+            "what is the recurrence relation and best / worst case time complexity ?",
+            "so T(n) = T(n/2) + O(1) gives O(log n) using Master Theorem Case 2, right?",
+            "got it! When array is already sorted, mid = low + (high - low) / 2 prevents integer overflow.",
+            "understood completely, that makes sense now! thank you!",
+        ],
+    },
+    {
+        "id": "sample-25",
+        "title": "Sample 3 (OS Virtual Memory — Emerging/Partial)",
+        "subject": "OS",
+        "topic": "Virtual Memory and Paging",
+        "expected": "partial",
+        "dataset_index": 25,
+        "messages": [
+            "how does page table translation work in virtual memory ?",
+            "what causes a page fault and how does the OS handle it ?",
+            "so the TLB is like a hardware cache for page table entries, right?",
+            "can you give another example of inverted page tables? I understand regular paging but inverted is still unclear.",
+            "okay that clarifies some doubts, will practice numerical problems on this.",
+        ],
+    },
+    {
+        "id": "sample-50",
+        "title": "Sample 4 (DSA Graph BFS — Mastered/Understood)",
+        "subject": "DSA",
+        "topic": "Graph Traversal: BFS",
+        "expected": "understood",
+        "dataset_index": 50,
+        "messages": [
+            "explain BFS algorithm on graphs using adjacency list.",
+            "why do we use a queue for BFS instead of a stack ?",
+            "got it, queue ensures level-by-level traversal while stack would give DFS.",
+            "in C++: queue<int> q; visited[src] = true; q.push(src); while(!q.empty())...",
+            "makes total sense now! time complexity is O(V + E). Thank you!",
+        ],
+    },
+    {
+        "id": "sample-95",
+        "title": "Sample 5 (ML Gradient Descent — Confused)",
+        "subject": "ML",
+        "topic": "Gradient Descent Optimization",
+        "expected": "confused",
+        "dataset_index": 95,
+        "messages": [
+            "how does gradient descent update weights in linear regression ?",
+            "i am confused about learning rate alpha. What happens if it is too large or too small ?",
+            "what is the difference between batch, stochastic, and mini-batch GD ? i am totally mixed up.",
+            "why does my cost function diverge to infinity ? i don't understand what went wrong.",
+            "can you explain again from scratch with simple numbers ? I am completely stuck.",
         ],
     },
 ]
 
+# Create API router
+router = APIRouter()
 
-@app.get("/api")
-@app.get("/api/health")
-def health_check():
-    """Health check and API metadata endpoint."""
+
+@router.get("/")
+@router.get("/health")
+def health_check(request: Request):
+    """Health check endpoint."""
     return {
         "status": "healthy",
         "service": "EduLens API",
@@ -111,7 +167,7 @@ def health_check():
     }
 
 
-@app.post("/api/predict")
+@router.post("/predict")
 def predict_understanding(req: PredictRequest):
     """
     Evaluates student dialogue and returns predicted comprehension level,
@@ -129,27 +185,24 @@ def predict_understanding(req: PredictRequest):
         raise HTTPException(status_code=500, detail=f"Prediction failed: {str(e)}")
 
 
-@app.get("/api/samples")
+@router.get("/samples")
 def get_samples():
-    """Returns pre-built sample learning dialogues for testing."""
+    """Returns pre-built sample learning dialogues matching Streamlit choices."""
     return {"samples": SAMPLE_CONVERSATIONS}
 
 
-@app.get("/api/topics")
+@router.get("/topics")
 def get_topic_analytics():
     """Returns curriculum-level topic mastery breakdown across CS subjects."""
     global _cached_topics
     if _cached_topics is not None:
         return {"topics": _cached_topics}
 
-    dataset_path = ROOT_DIR / "data" / "raw" / "edulens_chats_dataset.json"
-    if not dataset_path.exists():
+    records = get_raw_dataset()
+    if not records:
         return {"topics": [], "warning": "Primary dataset not found on server."}
 
     try:
-        with open(dataset_path, "r", encoding="utf-8") as f:
-            records = json.load(f)
-
         topic_stats: Dict[str, Dict[str, Any]] = {}
         for rec in records:
             subject = rec.get("subject", "General")
@@ -167,12 +220,24 @@ def get_topic_analytics():
                     "partial": 0,
                     "confused": 0,
                     "total_turns": 0,
+                    "sessions": [],
                 }
 
             topic_stats[key]["total_sessions"] += 1
             topic_stats[key]["total_turns"] += turns
             if label in topic_stats[key]:
                 topic_stats[key][label] += 1
+            
+            # Store snippet for topic drill-down
+            if len(topic_stats[key]["sessions"]) < 5:
+                topic_stats[key]["sessions"].append({
+                    "chat_id": rec.get("chat_id"),
+                    "student_id": rec.get("student_id"),
+                    "persona": rec.get("student_persona"),
+                    "outcome": label,
+                    "turns": turns,
+                    "preview": " ".join(extract_student_messages(rec))[:180] + "...",
+                })
 
         summary = []
         for item in topic_stats.values():
@@ -188,6 +253,7 @@ def get_topic_analytics():
                 "partial_rate": round((item["partial"] / n) * 100, 1) if n else 0,
                 "confusion_rate": round((item["confused"] / n) * 100, 1) if n else 0,
                 "avg_turns": round(item["total_turns"] / n, 1) if n else 0,
+                "sessions": item["sessions"],
             })
 
         summary.sort(key=lambda x: (x["subject"], x["topic"]))
@@ -197,7 +263,7 @@ def get_topic_analytics():
         raise HTTPException(status_code=500, detail=f"Failed to generate topic summary: {str(e)}")
 
 
-@app.get("/api/model-info")
+@router.get("/model-info")
 def get_model_info():
     """Returns technical model evaluation benchmarks and confusion matrix."""
     global _cached_eval
@@ -214,3 +280,8 @@ def get_model_info():
         return _cached_eval
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to load model evaluation: {str(e)}")
+
+
+# Mount router on both root and /api prefixes so any Vercel rewrite configuration works!
+app.include_router(router, prefix="")
+app.include_router(router, prefix="/api")
