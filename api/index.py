@@ -54,7 +54,7 @@ def get_predictor() -> EduLensPredictor:
             # Verify inference works
             pred.predict(["test message to verify pipeline"])
             _predictor = pred
-        except Exception as err:
+        except BaseException as err:
             print(f"Pre-trained artifact load failed ({err}), initializing model pipeline on the fly...")
             from sklearn.linear_model import LogisticRegression
             from sklearn.pipeline import Pipeline
@@ -190,7 +190,7 @@ def health_check(request: Request):
     return {
         "status": "healthy",
         "service": "EduLens API",
-        "version": "1.0.0",
+        "version": "1.0.2",
         "runtime": "Vercel Serverless Function",
     }
 
