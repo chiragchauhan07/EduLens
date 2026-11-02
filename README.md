@@ -164,6 +164,30 @@ Actual: understood               0        0          39
 
 ---
 
+## 🌐 Deploy to Vercel
+
+EduLens is fully configured for **serverless deployment on Vercel** out-of-the-box!
+
+### How It Works on Vercel
+- **Serverless API (`api/index.py`):** Fast, stateless Python functions running on Vercel Serverless Functions. Handles real-time ML inference (`/api/predict`), curriculum analytics (`/api/topics`), benchmark samples (`/api/samples`), and model health (`/api/health`).
+- **Interactive Web App (`public/index.html`):** Modern, lightweight, responsive client dashboard powered by Tailwind CSS, Chart.js, and Lucide icons.
+- **Fast & Lightweight:** Unnecessary training datasets are excluded via `.vercelignore`, making deployment zip bundles ultra-compact (< 2MB).
+
+### Deploy in 2 Steps:
+1. **Import from GitHub:**
+   - Go to [vercel.com](https://vercel.com/) and click **"Add New Project"**.
+   - Select your repository **`chiragchauhan07/EduLens`**.
+   - Vercel automatically detects `vercel.json` and `requirements.txt`.
+   - Click **Deploy**.
+
+2. **Or Deploy via Vercel CLI:**
+   ```powershell
+   npm install -g vercel
+   vercel
+   ```
+
+---
+
 ## 🛠️ Getting Started (For Team Members)
 
 ### 1. Prerequisites
