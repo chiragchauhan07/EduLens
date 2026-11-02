@@ -814,11 +814,13 @@
       return div.innerHTML;
     }
 
-    // Call API with fallback to both /api/predict and /predict
+    // Call API with fallback to both direct route and /api prefix
     async function callApi(endpoint, options = {}) {
+      const clean = endpoint.startsWith('/api') ? endpoint.slice(4) : endpoint;
+      const normalized = clean.startsWith('/') ? clean : `/${clean}`;
       const urls = [
-        endpoint.startsWith('/api') ? endpoint : `/api${endpoint}`,
-        endpoint.replace(/^\/api/, '')
+        normalized,         // e.g. /health, /predict, /topics
+        `/api${normalized}` // e.g. /api/health, /api/predict
       ];
 
       let lastError = null;

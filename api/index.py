@@ -49,7 +49,35 @@ def get_predictor() -> EduLensPredictor:
     global _predictor
     if _predictor is None:
         model_path = ROOT_DIR / "models" / "trained_model.joblib"
-        _predictor = EduLensPredictor(model_path=model_path)
+        try:
+            pred = EduLensPredictor(model_path=model_path)
+            # Verify inference works
+            pred.predict(["test message to verify pipeline"])
+            _predictor = pred
+        except Exception as err:
+            print(f"Pre-trained artifact load failed ({err}), initializing model pipeline on the fly...")
+            from sklearn.linear_model import LogisticRegression
+            from sklearn.pipeline import Pipeline
+            from ml_prototype.data_loader import load_primary_dataset
+            from ml_prototype.features import build_feature_pipeline
+
+            dataset_path = ROOT_DIR / "data" / "raw" / "edulens_chats_dataset.json"
+            df = load_primary_dataset(dataset_path)
+            X = df[["full_text", "student_messages"]]
+            y = df["final_understanding"]
+
+            pipeline = Pipeline([
+                ("preprocessor", build_feature_pipeline()),
+                ("classifier", LogisticRegression(class_weight="balanced", max_iter=1000, random_state=42, C=1.0)),
+            ])
+            pipeline.fit(X, y)
+
+            pred = EduLensPredictor.__new__(EduLensPredictor)
+            pred.model_path = model_path
+            pred.pipeline = pipeline
+            pred.classes = pipeline.classes_.tolist()
+            _predictor = pred
+
     return _predictor
 
 
