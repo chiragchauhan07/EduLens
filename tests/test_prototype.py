@@ -67,3 +67,4 @@ def test_predictor_inference():
     assert "probabilities" in result
     assert "conversational_signals" in result
     assert result["conversational_signals"]["num_turns"] == 2.0
+
