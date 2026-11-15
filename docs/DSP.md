@@ -152,7 +152,30 @@ To eliminate synthetic student persona leakage, all cross-validation and benchma
 
 ---
 
-## 7. Data Science Libraries & Dependencies
+## 7. Modular DSP Pipeline Implementation (`ml_prototype/dsp.py`)
+
+To support clean production integration with external MCP connectors and UI frontends, the DSP logic is consolidated into a dedicated, modular pipeline component in `ml_prototype/dsp.py`:
+
+### Key Capabilities:
+1. **Schema Validation (`validate_session_json`):**
+   - Verifies presence of essential conversational dialogue keys (`turns`, `messages`, `student_messages`, or multi-topic payloads).
+   - Validates turn structures, detects malformed JSON payloads, and returns descriptive error messages with missing key diagnostics.
+2. **Structural Normalization (`normalize_session_full`):**
+   - Ingests raw heterogeneous payloads (Schema v1, v2, v2.1, flat utterance arrays, or raw text blocks).
+   - Extracts separated student and teacher dialogue turns.
+   - Cleans whitespace, handles Unicode artifacts, and removes duplicate adjacent turns.
+3. **Conversational Dynamics Analysis (`extract_dsp_features`):**
+   - `student_turn_count` & `teacher_turn_count`
+   - `student_word_count` & `teacher_word_count`
+   - `student_to_teacher_word_ratio` & `turn_ratio`
+   - `turn_alternations`: Number of active speaker switches between student and instructor.
+   - `student_questions` & `teacher_questions`
+4. **Data Integrity & Group Isolation (`verify_group_isolation`):**
+   - Deterministically verifies that no `student_id` exists in both training and test partitions.
+
+---
+
+## 8. Data Science Libraries & Dependencies
 
 - **Pandas (>=2.0.0):** DataFrame normalization, aggregation, topic summary computation.
 - **NumPy (>=1.24.0):** Numerical matrix operations, feature concatenation.

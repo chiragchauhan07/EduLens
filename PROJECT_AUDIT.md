@@ -39,21 +39,43 @@ EduLens/
 │           └── README.md
 ├── ml_prototype/
 │   ├── __init__.py                  # Package init
-│   ├── dashboard.py                 # Interactive Streamlit application (3 pages: Analyzer, Topics, Model Info)
+│   ├── confidence.py                # Expressed linguistic confidence estimator (heuristic + pilot model)
+│   ├── dashboard.py                 # Interactive Streamlit app (Analyzer, Topics, Model Info, 4 Dimensions)
 │   ├── data_loader.py               # Universal conversation extractor and session normalizer
+│   ├── dsp.py                       # Modular DSP pipeline (validation, normalization, conversational dynamics)
+│   ├── explainability.py            # Global and local feature attribution engine
 │   ├── features.py                  # ConversationalFeatureExtractor (8 dense signals) + TfidfVectorizer (100 features)
+│   ├── nlp.py                       # Modular NLP pipeline (parsing, tokenization, 108-dim vector extraction)
 │   ├── predict.py                   # Real-time inference engine (EduLensPredictor class)
-│   └── train_model.py               # Model training script (LogisticRegression with 5-fold CV & test evaluation)
+│   ├── quiz_evaluator.py            # Deterministic quiz grading engine (accuracy, breakdowns)
+│   ├── scoring_engine.py            # Composite performance scoring engine (40/40/20 formula & discrepancy check)
+│   ├── train_model.py               # Model training script (LR, SVM, NB, Ridge, RF)
+│   └── unified_pipeline.py          # Unified end-to-end pipeline (EduLensUnifiedPipeline)
 ├── models/
-│   └── trained_model.joblib         # Serialized Scikit-learn Pipeline (ColumnTransformer + LogisticRegression)
+│   ├── confidence/
+│   │   └── model.joblib             # Exploratory pilot confidence model
+│   ├── quiz_regressor/
+│   │   ├── random_forest.joblib     # Secondary quiz score regressor
+│   │   └── ridge.joblib             # Secondary quiz score regressor
+│   ├── understanding/
+│   │   ├── linear_svm/model.joblib  # Calibrated Linear SVM
+│   │   ├── logistic_regression/model.joblib # Multinomial Logistic Regression
+│   │   └── naive_bayes/model.joblib # Multinomial Naive Bayes
+│   └── trained_model.joblib         # Serialized Scikit-learn Pipeline (legacy root artifact)
 ├── public/
 │   └── index.html                   # Standalone Tailwind CSS/HTML dashboard mimicking Streamlit UI
 ├── reports/
+│   ├── confidence_pilot_evaluation.json # Pilot confidence audit and model metrics
 │   ├── dataset_inspection.md        # Initial evaluation and schema analysis of datasets
-│   └── model_evaluation.json        # Test metrics, 5-fold CV scores, and confusion matrix
+│   ├── feature_ablation.json        # 6-configuration feature ablation experiment metrics
+│   ├── model_comparison.json        # Cross-model evaluation report
+│   ├── model_evaluation.json        # Test metrics, 5-fold CV scores, and confusion matrix
+│   ├── model_explainability.json    # Global weights, coefficients, and distinctive terms
+│   └── quiz_regressor_evaluation.json # Group-aware quiz regression metrics (0 student overlap)
 ├── tests/
 │   ├── __init__.py
 │   ├── test_api.py                  # FastAPI serverless test client test cases (health, samples, topics, predict)
+│   ├── test_comprehensive_suite.py  # 12-case comprehensive acceptance test suite + modular tests
 │   └── test_prototype.py            # Unit & integration tests for data loader, feature extraction, and predictor
 ├── .gitignore                       # Git ignore configuration
 ├── .vercelignore                    # Vercel deployment ignore rules
@@ -219,82 +241,56 @@ EduLens/
 ## 9. Existing Tests and Verification Results
 
 Executed `pytest tests/ -v` using Python 3.12:
-- Total tests: **25**
-- **Passed: 25**
+- Total tests: **41**
+- **Passed: 41**
 - **Failed: 0**
-- Test execution time: ~12.0 seconds.
+- Test execution time: ~2.85 seconds.
 
-Breakdown:
-- `tests/test_api.py::test_api_health`: PASSED
-- `tests/test_api.py::test_api_samples`: PASSED
-- `tests/test_api.py::test_api_topics`: PASSED
-- `tests/test_api.py::test_api_predict`: PASSED
-- `tests/test_api.py::test_api_predict_with_algorithm`: PASSED
-- `tests/test_api.py::test_api_model_info`: PASSED
-- `tests/test_api.py::test_api_model_comparison`: PASSED
-- `tests/test_api.py::test_api_quiz_model_info`: PASSED
-- `tests/test_api.py::test_api_predict_empty_fails`: PASSED
-- `tests/test_api.py::test_api_predict_with_explain`: PASSED
-- `tests/test_api.py::test_api_explainability_endpoint`: PASSED
-- `tests/test_prototype.py::test_extract_student_messages_turns`: PASSED
-- `tests/test_prototype.py::test_extract_conversation_stats`: PASSED
-- `tests/test_prototype.py::test_primary_dataset_loading`: PASSED
-- `tests/test_prototype.py::test_feature_pipeline_scalers`: PASSED
-- `tests/test_prototype.py::test_predictor_primary_inference`: PASSED
-- `tests/test_prototype.py::test_predictor_all_algorithms`: PASSED
-- `tests/test_prototype.py::test_quiz_score_regressor`: PASSED
-- `tests/test_prototype.py::test_predictor_invalid_inputs`: PASSED
-- `tests/test_prototype.py::test_zero_student_leakage_split`: PASSED
-- `tests/test_prototype.py::test_predictor_with_explainability`: PASSED
-- `tests/test_prototype.py::test_explainability_helpers`: PASSED
-- `tests/test_prototype.py::test_feature_ablation_subsets`: PASSED
-- `tests/test_prototype.py::test_quiz_group_isolation`: PASSED
-- `tests/test_prototype.py::test_all_model_artifacts_load`: PASSED
+Breakdown across test modules:
+- **API Test Suite (`tests/test_api.py` — 11 tests):**
+  - Health, samples, topics, predict, algorithm selection, model info, model comparison, quiz model info, empty payload validation, explainability flags, and explainability endpoints all PASSED.
+- **Prototype Core Suite (`tests/test_prototype.py` — 14 tests):**
+  - Data loader, turn extractors, primary dataset loading, scaler non-negativity, inference across algorithms, quiz regressors, invalid input handling, zero-student leakage group split, explainability attributions, feature ablation subsets, and artifact loading all PASSED.
+- **Comprehensive 12-Case Quality & Dimensions Suite (`tests/test_comprehensive_suite.py` — 16 tests):**
+  - Case 1: Student understands topic (`Understood` classification + score mapping) — PASSED
+  - Case 2: Student partially understands topic (`Partial` classification + score mapping) — PASSED
+  - Case 3: Student is confused (`Confused` classification + score mapping) — PASSED
+  - Case 4: Actual quiz performance (10-question deterministic grading & breakdown) — PASSED
+  - Case 5: Missing quiz responses (graceful handling, null score, awaiting status) — PASSED
+  - Case 6: Multiple topics in one session (independent multi-topic evaluation) — PASSED
+  - Case 7: Empty conversation handling (clean error / non-crash) — PASSED
+  - Case 8: Malformed JSON handling (validation failure report) — PASSED
+  - Case 9: Unknown student persona handling (persona agnostic inference) — PASSED
+  - Case 10: Unseen vocabulary stability (robust TF-IDF generalization) — PASSED
+  - Case 11: Group-aware train/test separation (0 student overlap verified) — PASSED
+  - Case 12: Missing model artifact error handling (informative runtime failure) — PASSED
+  - Modular DSP feature extraction and speaker ratio metrics — PASSED
+  - Expressed confidence estimator heuristics and linguistic indicators — PASSED
+  - Composite scoring engine 40/40/20 formula and discrepancy detection — PASSED
+  - New API endpoints (`/api/pipeline`, `/api/evaluate-quiz`, `/api/confidence`) — PASSED
 
 ---
 
 ## 10. Completed Milestones & Current Project State
 
-All foundational, evaluation, and explainability milestones have been achieved:
-1. **Understanding Multi-Model Benchmarks:** Logistic Regression, Linear SVM, and Multinomial Naive Bayes trained and evaluated under strict `StratifiedGroupKFold` on `student_id` (357 train / 73 test, 0 student overlap).
-2. **Feature Ablation Suite:** 6 distinct feature subsets evaluated (Exps A-F). Confirmed conversational signals alone achieve 75.3% accuracy (+21.9% over majority baseline) and models maintain 94.5% to 98.6% accuracy even without explicit markers AND without shortcut vocabulary.
-3. **Model Explainability Engine:** Full global coefficient analysis and instance-level attribution (`explain_instance`) implemented across all algorithms, supported in both FastAPI and Streamlit.
-4. **Group-Aware Quiz Regression:** Migrated to strict `GroupShuffleSplit` on `student_id` (1,394 train / 326 test, 0 student overlap). Ridge MAE = 7.76%, Random Forest MAE = 7.65%.
-5. **Permanent Documentation Suite:** `docs/DSP.md`, `docs/NLP.md`, `docs/ML.md`, `docs/DATASET.md` fully synchronized with verified reports and actual codebase parameters.
-6. **Dashboard & API Extensions:** Interactive model switcher, feature attribution explainability cards, and comprehensive technical documentation integrated.
+All foundational, evaluation, explainability, and multi-dimensional analytics milestones have been achieved:
+1. **Four Core Performance Dimensions:**
+   - Dimension 1: Topic Understanding (3-class ML model + calibrated probabilities + transparent 0-100 score mapping: Understood=90, Partial=60, Confused=25).
+   - Dimension 2: Actual Quiz Performance (Deterministic rule-based grading of submitted questions vs answer key; strictly separated from conversational regression).
+   - Dimension 3: Expressed Learning Confidence (Linguistic marker extraction and heuristic calibration; transparent experimental baseline).
+   - Dimension 4: Overall Topic Performance Scoring Engine (40% Understanding + 40% Actual Quiz + 20% Confidence composite formula, safe handling of missing quiz without fabricating data, divergence flags).
+2. **Modular DSP and NLP Architecture:** `ml_prototype/dsp.py` and `ml_prototype/nlp.py` cleanly decouple data preparation and feature extraction.
+3. **Unified Inference Pipeline:** `EduLensUnifiedPipeline` orchestrates full inference from raw conversational JSON to structured integration output.
+4. **Group-Aware Evaluation Across All Tasks:** Zero student leakage verified on both 3-class understanding (`StratifiedGroupKFold`, 357 train / 73 test) and quiz regression (`GroupShuffleSplit`, 1,394 train / 326 test).
+5. **Ablation & Explainability:** 6 ablation configurations evaluated, full mathematical coefficients exposed for all algorithms.
+6. **Production-Ready Test Suite:** 41 comprehensive automated tests covering all edge cases, errors, and acceptance criteria.
+7. **Documentation Synchronized:** `docs/DSP.md`, `docs/NLP.md`, `docs/ML.md`, `docs/DATASET.md`, `PROJECT_AUDIT.md`, `README.md` fully reflect the current repository.
 
 ---
 
-## 11. Implemented Architecture & Pipeline Verification
+## 11. Technical Readiness for Subsequent Integration Phases
 
-```
-Stage 1: Repository Audit (Complete — PROJECT_AUDIT.md)
-   │
-   ▼
-Stage 2: Permanent Documentation Suite (docs/DSP.md, docs/NLP.md, docs/ML.md, docs/DATASET.md)
-   │
-   ▼
-Stage 3: Data Science Pipeline & Data Preparation (scripts/prepare_dataset.py, data/processed/)
-   │
-   ▼
-Stage 4: NLP Pipeline & Conversational Signals (ml_prototype/features.py, 108 features)
-   │
-   ▼
-Stage 5: Understanding Classifier Benchmarking (Logistic Regression, Linear SVM, Naive Bayes)
-   │
-   ▼
-Stage 6: Feature Ablation Experiments (5 configurations, reports/feature_ablation.json)
-   │
-   ▼
-Stage 7: Model Explainability (ml_prototype/explainability.py, reports/model_explainability.json)
-   │
-   ▼
-Stage 8: Group-Aware Quiz Score Regression (Ridge & Random Forest, 0 student overlap)
-   │
-   ▼
-Stage 9: Streamlit Dashboard & Vercel API Integration (interactive inference, attribution, tabs)
-   │
-   ▼
-Stage 10: Automated Testing & Verification (23/23 tests passing)
-```
+The data-processing, NLP, and machine learning foundation is fully stabilized, verified, and ready for:
+1. **Phase 2 (MCP Integration):** The `EduLensUnifiedPipeline` and `/api/pipeline` endpoint provide a single, deterministic contract for MCP tools to submit conversations and receive standardized analytics.
+2. **Phase 3 (Frontend & Analytics Dashboard):** Streamlit and FastAPI backends return fully typed, documented response objects with all 4 dimensions, feature explanations, and discrepancy warnings.
 

@@ -109,6 +109,36 @@ class PredictRequest(BaseModel):
     )
 
 
+class PipelineRequest(BaseModel):
+    conversation: Optional[Union[str, List[str], Dict[str, Any]]] = Field(
+        None,
+        description="Text transcript, list of student messages, or structured session object with 'turns'/'messages'",
+    )
+    text: Optional[str] = Field(None, description="Plain text transcript of student messages")
+    quiz_submission: Optional[Dict[str, Any]] = Field(
+        None,
+        description="Optional quiz submission object with 'questions', 'answer_key', and 'student_answers'",
+    )
+    algorithm: Optional[str] = Field(
+        "logistic_regression",
+        description="Optional model algorithm: 'logistic_regression', 'naive_bayes', or 'linear_svm'",
+    )
+    explain: bool = Field(False, description="Whether to include local feature attribution drivers")
+    topic: Optional[str] = Field(None, description="Optional topic override name")
+
+
+class QuizEvaluationRequest(BaseModel):
+    questions: Optional[List[Dict[str, Any]]] = None
+    answer_key: Optional[Dict[Union[str, int], Any]] = None
+    student_answers: Optional[Dict[Union[str, int], Any]] = None
+    submission_payload: Optional[Dict[str, Any]] = None
+
+
+class ConfidenceRequest(BaseModel):
+    conversation: Optional[Union[str, List[str], Dict[str, Any]]] = None
+    text: Optional[str] = None
+
+
 SAMPLE_CONVERSATIONS = [
     {
         "id": "sample-0",
@@ -222,6 +252,73 @@ def predict_understanding(req: PredictRequest):
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Prediction failed: {str(e)}")
+
+
+@router.post("/pipeline")
+def run_unified_pipeline(req: PipelineRequest):
+    """
+    Unified learning intelligence pipeline evaluating all 4 dimensions:
+    Topic Understanding, Actual Quiz, Expressed Confidence, and Overall Topic Performance.
+    """
+    from ml_prototype.unified_pipeline import EduLensUnifiedPipeline
+
+    input_data = req.conversation if req.conversation is not None else req.text
+    if not input_data:
+        raise HTTPException(status_code=400, detail="Either 'conversation' or 'text' must be provided.")
+
+    try:
+        pipeline = EduLensUnifiedPipeline(algorithm=req.algorithm or "logistic_regression")
+        res = pipeline.process_session(
+            session_input=input_data,
+            quiz_submission=req.quiz_submission,
+            explain=req.explain,
+            topic_override=req.topic,
+        )
+        return res
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Pipeline processing failed: {str(e)}")
+
+
+@router.post("/evaluate-quiz")
+def evaluate_quiz(req: QuizEvaluationRequest):
+    """
+    Deterministically evaluates submitted student answers against an answer key.
+    Calculates correct, incorrect, unanswered, and percentage score.
+    """
+    from ml_prototype.quiz_evaluator import evaluate_quiz_submission
+
+    try:
+        res = evaluate_quiz_submission(
+            questions=req.questions,
+            answer_key=req.answer_key,
+            student_answers=req.student_answers,
+            submission_payload=req.submission_payload,
+        )
+        if "error" in res and res.get("total_questions", 0) == 0:
+            raise HTTPException(status_code=400, detail=res["error"])
+        return res
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Quiz evaluation failed: {str(e)}")
+
+
+@router.post("/confidence")
+def estimate_confidence(req: ConfidenceRequest):
+    """
+    Estimates student expressed learning confidence from conversational markers.
+    """
+    from ml_prototype.confidence import ExpressedConfidenceEstimator
+
+    input_data = req.conversation if req.conversation is not None else req.text
+    if not input_data:
+        raise HTTPException(status_code=400, detail="Either 'conversation' or 'text' must be provided.")
+
+    try:
+        estimator = ExpressedConfidenceEstimator()
+        return estimator.predict(input_data)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Confidence estimation failed: {str(e)}")
 
 
 @router.get("/samples")

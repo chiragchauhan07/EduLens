@@ -22,6 +22,8 @@ if str(ROOT_DIR) not in sys.path:
 
 from ml_prototype.data_loader import extract_student_messages, load_primary_dataset
 from ml_prototype.predict import EduLensPredictor, CLASS_METADATA
+from ml_prototype.unified_pipeline import EduLensUnifiedPipeline
+from ml_prototype.scoring_engine import UNDERSTANDING_SCORE_MAP
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -99,6 +101,12 @@ def get_predictor(algorithm: str = "logistic_regression"):
     return EduLensPredictor(algorithm=algorithm)
 
 
+@st.cache_resource
+def get_unified_pipeline(algorithm: str = "logistic_regression"):
+    """Cache the loaded unified pipeline for the given algorithm."""
+    return EduLensUnifiedPipeline(algorithm=algorithm)
+
+
 @st.cache_data
 def get_dataset():
     """Cache the loaded primary dataset."""
@@ -149,6 +157,16 @@ def get_feature_ablation():
 def get_model_explainability():
     """Load model explainability JSON report."""
     report_path = ROOT_DIR / "reports" / "model_explainability.json"
+    if report_path.exists():
+        with open(report_path, "r", encoding="utf-8") as f:
+            return json.load(f)
+    return None
+
+
+@st.cache_data
+def get_confidence_pilot_evaluation():
+    """Load confidence pilot evaluation JSON report."""
+    report_path = ROOT_DIR / "reports" / "confidence_pilot_evaluation.json"
     if report_path.exists():
         with open(report_path, "r", encoding="utf-8") as f:
             return json.load(f)
@@ -305,103 +323,238 @@ if page == "Student Performance Analyzer":
                     unsafe_allow_html=True,
                 )
 
+        with st.expander("📝 Optional Quiz Submission (Dimension 2: Actual Quiz Performance)", expanded=False):
+            st.caption(
+                "Attach an actual student quiz submission to evaluate deterministic accuracy, "
+                "calculate overall performance composite, and detect discrepancies with conversation understanding."
+            )
+            quiz_mode = st.radio(
+                "Select Quiz Attachment Mode:",
+                [
+                    "No Quiz Submission (Default — Verifies safe 'awaiting_quiz_submission' handling)",
+                    "Sample High Quiz (90% Score — 9/10 Correct)",
+                    "Sample Struggling Quiz (40% Score — 4/10 Correct)",
+                    "Custom Answers JSON",
+                ],
+                horizontal=False,
+            )
+            attached_quiz = None
+            if quiz_mode == "Sample High Quiz (90% Score — 9/10 Correct)":
+                attached_quiz = {
+                    "total_questions": 10,
+                    "questions": [
+                        {"question_id": f"q{i}", "student_answer": "A", "correct_answer": "A" if i != 10 else "B"}
+                        for i in range(1, 11)
+                    ],
+                }
+                st.success("Attached 10-question sample quiz (9 correct, 1 incorrect).")
+            elif quiz_mode == "Sample Struggling Quiz (40% Score — 4/10 Correct)":
+                attached_quiz = {
+                    "total_questions": 10,
+                    "questions": [
+                        {"question_id": f"q{i}", "student_answer": "A" if i <= 4 else "C", "correct_answer": "A"}
+                        for i in range(1, 11)
+                    ],
+                }
+                st.warning("Attached 10-question sample quiz (4 correct, 6 incorrect).")
+            elif quiz_mode == "Custom Answers JSON":
+                custom_quiz_str = st.text_area(
+                    "Quiz JSON:",
+                    value=json.dumps({
+                        "total_questions": 5,
+                        "questions": [
+                            {"question_id": "q1", "student_answer": "A", "correct_answer": "A"},
+                            {"question_id": "q2", "student_answer": "B", "correct_answer": "C"},
+                            {"question_id": "q3", "student_answer": "C", "correct_answer": "C"},
+                            {"question_id": "q4", "student_answer": "D", "correct_answer": "D"},
+                            {"question_id": "q5", "student_answer": "A", "correct_answer": "B"},
+                        ]
+                    }, indent=2),
+                    height=130,
+                )
+                try:
+                    attached_quiz = json.loads(custom_quiz_str)
+                except Exception as q_err:
+                    st.error(f"Invalid Quiz JSON: {q_err}")
+
         st.write("")
         analyze_clicked = st.button("🔍 Analyze Learning Session", type="primary", use_container_width=True)
 
         if analyze_clicked:
-            with st.spinner("Extracting NLP features and running model inference..."):
-                result = predictor.predict(current_session, explain=enable_explain)
+            payload = dict(current_session)
+            if attached_quiz:
+                payload["quiz_submission"] = attached_quiz
+
+            with st.spinner("Executing Unified EduLens Pipeline (DSP → NLP → ML → Dimensions)..."):
+                pipeline = get_unified_pipeline(selected_algo)
+                result = pipeline.process_session(payload, explain=enable_explain)
 
             st.write("---")
-            st.subheader("Analysis & ML Prediction Results")
+            st.subheader("Four Core EduLens Performance Dimensions")
 
-            pred_class = result["predicted_class"]
-            badge_class = f"badge-{pred_class}"
+            # 4 Dimension Summary Cards
+            dim_col1, dim_col2, dim_col3, dim_col4 = st.columns(4)
 
-            res_col1, res_col2 = st.columns([1, 1])
+            # Dim 1: Topic Understanding
+            with dim_col1:
+                u_data = result.get("topic_understanding", {})
+                pred_class = u_data.get("predicted_class", "unknown")
+                badge_class = f"badge-{pred_class}"
+                st.markdown("**1. Topic Understanding**")
+                st.markdown(f'<span class="{badge_class}">{pred_class.upper()}</span>', unsafe_allow_html=True)
+                st.caption(f"Score: **{u_data.get('understanding_score', 0):.0f} / 100**")
+                st.caption(f"Confidence: **{u_data.get('confidence', 0):.1%}**")
 
-            with res_col1:
-                st.markdown("#### Predicted Learning Outcome")
-                st.markdown(
-                    f'<span class="{badge_class}" style="font-size:1.25rem;">{result["display_name"]}</span>',
-                    unsafe_allow_html=True,
-                )
-                st.caption(f"Inference Model: **{selected_algo.replace('_', ' ').title()}**")
-                st.write("")
-                col_c1, col_c2 = st.columns(2)
-                col_c1.metric("Model Confidence", f"{result['confidence']:.1%}")
-                if result.get("predicted_quiz_score") is not None:
-                    col_c2.metric("Predicted Quiz Score", f"{result['predicted_quiz_score']:.1f}%")
-
-                if current_session.get("actual_ground_truth"):
-                    gt = current_session["actual_ground_truth"]
-                    match_str = "✅ Match" if gt == pred_class else "⚠️ Mismatch"
-                    st.caption(f"Dataset Ground Truth: **{gt}** ({match_str})")
-
-                st.markdown("##### Pedagogical Recommendation:")
-                st.info(result["pedagogical_feedback"])
-
-            with res_col2:
-                if selected_algo == "linear_svm" and result.get("feature_explanation", {}).get("decision_scores"):
-                    st.markdown("#### Margin Decision Scores (Linear SVM)")
-                    st.caption("Signed distance to one-vs-rest separating hyperplanes (higher = stronger class association):")
-                    for cls, score in result["feature_explanation"]["decision_scores"].items():
-                        st.write(f"**{cls.capitalize()}**: `{score:+.3f}`")
+            # Dim 2: Actual Quiz Performance
+            with dim_col2:
+                q_data = result.get("actual_quiz_performance", {})
+                st.markdown("**2. Actual Quiz Performance**")
+                if q_data.get("status") == "evaluated":
+                    score_pct = q_data.get("actual_score_percent", 0.0)
+                    st.markdown(f"### {score_pct:.1f}%")
+                    st.caption(f"Correct: **{q_data.get('correct_count', 0)} / {q_data.get('total_questions', 0)}**")
+                    st.caption("Status: `✅ Evaluated`")
                 else:
-                    st.markdown("#### Model Class Probabilities")
-                    for cls, prob in result["probabilities"].items():
-                        st.write(f"**{cls.capitalize()}**: `{prob:.1%}`")
-                        st.progress(float(prob))
+                    st.markdown("### Awaiting")
+                    st.caption("Submission pending")
+                    st.caption("Status: `⏳ Not Submitted`")
 
-            st.write("")
-            st.markdown("#### Extracted Conversational Evidence Signals")
-            sig = result["conversational_signals"]
-            sc1, sc2, sc3, sc4 = st.columns(4)
-            sc1.metric("Student Turns", int(sig.get("num_turns", 0)))
-            sc2.metric("Total Words", int(sig.get("total_words", 0)))
-            sc3.metric("Avg Words / Turn", f"{sig.get('avg_turn_length', 0):.1f}")
-            sc4.metric("Questions Asked", int(sig.get("question_count", 0)))
+            # Dim 3: Expressed Learning Confidence
+            with dim_col3:
+                c_data = result.get("learning_confidence", {})
+                conf_lvl = c_data.get("expressed_confidence_level", "unknown").upper()
+                st.markdown("**3. Expressed Confidence**")
+                st.markdown(f"### {conf_lvl}")
+                st.caption(f"Score: **{c_data.get('expressed_confidence_score', 0):.1f} / 100**")
+                st.caption("Baseline: `Linguistic Markers`")
 
-            sc5, sc6, sc7, sc8 = st.columns(4)
-            sc5.metric("Confusion Signals", int(sig.get("confusion_markers", 0)))
-            sc6.metric("Clarification Requests", int(sig.get("clarification_markers", 0)))
-            sc7.metric("Comprehension Signals", int(sig.get("understanding_markers", 0)))
-            sc8.metric("Technical/Code Tokens", int(sig.get("code_indicators", 0)))
+            # Dim 4: Overall Topic Performance
+            with dim_col4:
+                o_data = result.get("overall_topic_performance", {})
+                st.markdown("**4. Overall Performance**")
+                if o_data.get("status") == "complete":
+                    st.markdown(f"### {o_data.get('overall_performance_score', 0):.1f} / 100")
+                    st.caption(f"Category: **{o_data.get('performance_category', 'N/A')}**")
+                    st.caption("Formula: `40% U + 40% Q + 20% C`")
+                else:
+                    prov = o_data.get("provisional_conversational_score")
+                    prov_str = f"{prov:.1f}" if prov is not None else "N/A"
+                    st.markdown(f"### {prov_str}*")
+                    st.caption("*Provisional Conversational")
+                    st.caption("Status: `Awaiting Quiz`")
 
-            # Feature Attribution / Local Explainability
-            if enable_explain and result.get("feature_explanation"):
-                exp_data = result["feature_explanation"]
+            # Discrepancy Insight
+            disc = result.get("discrepancy_analysis", {})
+            if disc.get("discrepancy_detected"):
+                st.warning(f"⚠️ **Learning Discrepancy Flag:** {disc.get('details')}")
+            elif q_data.get("status") == "evaluated":
+                st.success("✅ **Performance Consistency:** Conversational understanding and actual quiz performance align closely.")
+
+            st.write("---")
+
+            # Detailed Breakdown in Tabs
+            tab_diag, tab_signals, tab_explain, tab_json = st.tabs([
+                "Pedagogy & Predictions",
+                "Conversational & Linguistic Signals",
+                "Local Attribution & Explanations",
+                "Unified Integration JSON",
+            ])
+
+            with tab_diag:
+                col_d1, col_d2 = st.columns([1, 1])
+                with col_d1:
+                    st.markdown("#### Pedagogical Recommendation")
+                    st.info(result.get("pedagogical_feedback", "No feedback available."))
+                    st.caption(f"Inference Model: **{selected_algo.replace('_', ' ').title()}**")
+                    st.write("")
+                    c_reg1, c_reg2 = st.columns(2)
+                    if result.get("predicted_quiz_score") is not None:
+                        c_reg1.metric("Predicted Quiz Expectation", f"{result['predicted_quiz_score']:.1f}%")
+                    if q_data.get("status") == "evaluated":
+                        actual_score = q_data.get("actual_score_percent", 0.0)
+                        diff = actual_score - (result.get("predicted_quiz_score") or actual_score)
+                        c_reg2.metric("Actual vs Expected Delta", f"{diff:+.1f}%")
+
+                    if current_session.get("actual_ground_truth"):
+                        gt = current_session["actual_ground_truth"]
+                        match_str = "✅ Match" if gt == pred_class else "⚠️ Mismatch"
+                        st.caption(f"Dataset Ground Truth: **{gt}** ({match_str})")
+
+                with col_d2:
+                    if selected_algo == "linear_svm" and result.get("feature_explanation", {}).get("decision_scores"):
+                        st.markdown("#### Margin Decision Scores (Linear SVM)")
+                        st.caption("Signed distance to one-vs-rest separating hyperplanes:")
+                        for cls, score in result["feature_explanation"]["decision_scores"].items():
+                            st.write(f"**{cls.capitalize()}**: `{score:+.3f}`")
+                    else:
+                        st.markdown("#### Model Class Probabilities")
+                        for cls, prob in u_data.get("probabilities", {}).items():
+                            st.write(f"**{cls.capitalize()}**: `{prob:.1%}`")
+                            st.progress(float(prob))
+
+            with tab_signals:
+                st.markdown("#### Extracted Conversational Signals (8 Dense Features)")
+                sig = result.get("conversational_signals", {})
+                sc1, sc2, sc3, sc4 = st.columns(4)
+                sc1.metric("Student Turns", int(sig.get("num_turns", 0)))
+                sc2.metric("Total Words", int(sig.get("total_words", 0)))
+                sc3.metric("Avg Words / Turn", f"{sig.get('avg_turn_length', 0):.1f}")
+                sc4.metric("Questions Asked", int(sig.get("question_count", 0)))
+
+                sc5, sc6, sc7, sc8 = st.columns(4)
+                sc5.metric("Confusion Signals", int(sig.get("confusion_markers", 0)))
+                sc6.metric("Clarification Requests", int(sig.get("clarification_markers", 0)))
+                sc7.metric("Comprehension Signals", int(sig.get("understanding_markers", 0)))
+                sc8.metric("Technical/Code Tokens", int(sig.get("code_indicators", 0)))
+
                 st.write("")
-                st.subheader("💡 Model Explainability & Local Evidence Attribution")
-                if "summary" in exp_data:
-                    st.info(f"**Attribution Summary:** {exp_data['summary']}")
+                st.markdown("#### Linguistic Confidence & Behavioral Indicators")
+                dom_m = c_data.get("dominant_markers", {})
+                mc1, mc2, mc3, mc4 = st.columns(4)
+                mc1.metric("Certainty Markers", int(dom_m.get("certainty_count", 0)))
+                mc2.metric("Uncertainty Markers", int(dom_m.get("uncertainty_count", 0)))
+                mc3.metric("Hesitations", int(dom_m.get("hesitation_count", 0)))
+                mc4.metric("Self Corrections", int(dom_m.get("self_correction_count", 0)))
 
-                exp_col1, exp_col2 = st.columns(2)
-                with exp_col1:
-                    st.markdown(f"##### 🟢 Evidence Supporting *'{pred_class.upper()}'*")
-                    pos_feats = exp_data.get("top_positive_features", [])
-                    if pos_feats:
-                        pos_df = pd.DataFrame([{
-                            "Feature": item["feature"].replace("signal_", "📊 ").replace("tfidf_", "🔤 '") + ("'" if "tfidf_" in item["feature"] else ""),
-                            "Observed Value": f"{item['value']:.2f}" if isinstance(item['value'], float) else str(item['value']),
-                            "Attribution Weight": f"{item['weight']:+.3f}",
-                        } for item in pos_feats])
-                        st.dataframe(pos_df, use_container_width=True, hide_index=True)
-                    else:
-                        st.caption("No strong positive features identified.")
+            with tab_explain:
+                if enable_explain and result.get("feature_explanation"):
+                    exp_data = result["feature_explanation"]
+                    if "summary" in exp_data:
+                        st.info(f"**Attribution Summary:** {exp_data['summary']}")
 
-                with exp_col2:
-                    st.markdown(f"##### 🔴 Opposing Evidence / Contrasting Signals")
-                    neg_feats = exp_data.get("top_negative_features", [])
-                    if neg_feats:
-                        neg_df = pd.DataFrame([{
-                            "Feature": item["feature"].replace("signal_", "📊 ").replace("tfidf_", "🔤 '") + ("'" if "tfidf_" in item["feature"] else ""),
-                            "Observed Value": f"{item['value']:.2f}" if isinstance(item['value'], float) else str(item['value']),
-                            "Attribution Weight": f"{item['weight']:+.3f}",
-                        } for item in neg_feats])
-                        st.dataframe(neg_df, use_container_width=True, hide_index=True)
-                    else:
-                        st.caption("No strong opposing features identified.")
+                    exp_col1, exp_col2 = st.columns(2)
+                    with exp_col1:
+                        st.markdown(f"##### 🟢 Evidence Supporting *'{pred_class.upper()}'*")
+                        pos_feats = exp_data.get("top_positive_features", [])
+                        if pos_feats:
+                            pos_df = pd.DataFrame([{
+                                "Feature": item["feature"].replace("signal_", "📊 ").replace("tfidf_", "🔤 '") + ("'" if "tfidf_" in item["feature"] else ""),
+                                "Observed Value": f"{item['value']:.2f}" if isinstance(item['value'], float) else str(item['value']),
+                                "Attribution Weight": f"{item['weight']:+.3f}",
+                            } for item in pos_feats])
+                            st.dataframe(pos_df, use_container_width=True, hide_index=True)
+                        else:
+                            st.caption("No strong positive features identified.")
+
+                    with exp_col2:
+                        st.markdown(f"##### 🔴 Opposing Evidence / Contrasting Signals")
+                        neg_feats = exp_data.get("top_negative_features", [])
+                        if neg_feats:
+                            neg_df = pd.DataFrame([{
+                                "Feature": item["feature"].replace("signal_", "📊 ").replace("tfidf_", "🔤 '") + ("'" if "tfidf_" in item["feature"] else ""),
+                                "Observed Value": f"{item['value']:.2f}" if isinstance(item['value'], float) else str(item['value']),
+                                "Attribution Weight": f"{item['weight']:+.3f}",
+                            } for item in neg_feats])
+                            st.dataframe(neg_df, use_container_width=True, hide_index=True)
+                        else:
+                            st.caption("No strong opposing features identified.")
+                else:
+                    st.caption("Feature attribution disabled or unavailable.")
+
+            with tab_json:
+                st.markdown("#### Full Integration Response Schema")
+                st.caption("This JSON contract is returned directly by `EduLensUnifiedPipeline` and the `/api/pipeline` endpoint:")
+                st.json(result)
 
     else:
         st.warning("Please provide a conversation containing student messages to analyze.")
@@ -724,3 +877,43 @@ elif page == "Model Information":
     st.subheader("9. Important Honest Limitations")
     for lim in eval_report.get("limitations", []):
         st.markdown(f"- ⚠️ {lim}")
+
+    # Four Dimensions & Confidence Heuristic Pilot
+    st.write("---")
+    st.subheader("10. Four Core EduLens Performance Dimensions & Unified Integration")
+    st.caption("End-to-end framework integrating qualitative conversational dialogue with deterministic quantitative assessment:")
+
+    p_col1, p_col2 = st.columns(2)
+    with p_col1:
+        st.markdown(
+            "#### Dimension Specifications\n"
+            "1. **Topic Understanding (40% Weight):**\n"
+            "   - Formulated as a 3-class ML classification (`understood`, `partial`, `confused`).\n"
+            "   - Mapped transparently to 0–100 numerical scores for downstream aggregation: "
+            "`Understood = 90`, `Partial = 60`, `Confused = 25`.\n\n"
+            "2. **Actual Quiz Performance (40% Weight):**\n"
+            "   - **Strictly deterministic** grading engine comparing student submissions against answer keys.\n"
+            "   - Distinct from quiz score regression: Regression estimates expected quiz outcome from dialogue, "
+            "whereas actual evaluation scores tangible submitted answers.\n\n"
+            "3. **Learning Confidence (20% Weight):**\n"
+            "   - Measures *expressed linguistic confidence* from conversational markers (uncertainty, certainty, hesitation, self-explanations).\n"
+            "   - Clearly designated as an experimental heuristic baseline. Does NOT claim to measure internal psychological state.\n\n"
+            "4. **Overall Topic Performance (Composite Score):**\n"
+            "   - Formula: `0.40 * Understanding + 0.40 * ActualQuiz + 0.20 * Confidence`.\n"
+            "   - Missing quiz handling: Does NOT fabricate quiz scores; returns `status: awaiting_quiz_submission` and an optional provisional score."
+        )
+
+    with p_col2:
+        st.markdown("#### Expressed Confidence Pilot Audit")
+        conf_eval = get_confidence_pilot_evaluation()
+        if conf_eval:
+            st.json(conf_eval)
+        else:
+            st.caption("Pilot evaluation report not found.")
+
+        st.info(
+            "**Dataset Gap Finding:**\n\n"
+            "Primary dataset (`430 sessions`) and supplementary sets contains 0 student confidence labels. "
+            "Schema v2.1 restricts confidence annotations strictly to turns with explicit self-expressions of certainty. "
+            "EduLens maintains honest separation between trained ML models and rule-based conversational heuristics."
+        )

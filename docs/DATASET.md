@@ -79,3 +79,22 @@ EduLens maintains an explicit separation between primary supervised training dat
      * Test Partition: 326 sessions across 8 students (18.95%).
      * Student Overlap: **0 students** (100% strict group isolation).
 
+---
+
+## 5. Student Confidence Data Gap Analysis & Findings
+
+A comprehensive audit of all available repository datasets was conducted to determine empirical support for Dimension 3 (Learning Confidence):
+
+| Dataset Path | Total Sessions | Sessions with Confidence Labels | Label Distribution | Status & Assessment |
+|---|---|---|---|---|
+| `data/raw/edulens_chats_dataset.json` | 430 | 0 (0.0%) | None | No confidence fields in Schema v1. |
+| `data/raw/edulens_chats_set1 (1).json` | 420 | 0 (0.0%) | None | No confidence fields in Schema v1. |
+| `data/raw/edulens_chats_set2 (1).json` | 430 | 0 (0.0%) | None | No confidence fields in Schema v1. |
+| `data/raw/edulens_chats_set3 (1).json` | 440 | 0 (0.0%) | None | No confidence fields in Schema v1. |
+| `data/raw/edulens_expanded_pilot_020_v2.json` | 20 | 10 (50.0%) | `unknown`: 10, `moderate`: 4, `low`: 3, `high`: 3 | Restricted strictly to explicit verbal markers in Schema v2.1. |
+
+### Methodological Decision:
+1. **No Label Fabrication:** EduLens refuses to invent synthetic confidence labels across the 430-session primary dataset.
+2. **Transparent Linguistic Heuristic Baseline:** In accordance with rigorous scientific practice, `ml_prototype/confidence.py` implements an explicit *expressed linguistic confidence estimator* grounded in conversational discourse markers (hesitations, certainty, self-corrections, confirmation checks).
+3. **Exploratory Pilot Classifier:** A baseline pilot model was trained on the 10 available pilot samples (`models/confidence/model.joblib`), achieving 90.0% train accuracy for pipeline verification, but is explicitly documented as an experimental baseline.
+

@@ -1,0 +1,13 @@
+{
+  "status": "exploratory_pilot_trained",
+  "training_samples": 10,
+  "classes": [
+    "high",
+    "low",
+    "moderate"
+  ],
+  "train_accuracy": 0.9,
+  "train_macro_f1": 0.9047619047619048,
+  "artifact_path": "C:\\Users\\LENOVO\\OneDrive\\Documents\\EduLens\\models\\confidence\\model.joblib",
+  "note": "Trained on small 10-session pilot subset. Used for interface verification only."
+}

@@ -161,3 +161,31 @@ Active non-zero TF-IDF terms in the normalized vocabulary:
   - `-1.135` from high `confusion_markers` (pushing strongly towards `confused`)
 - **Pedagogical Feedback:** *"The student expressed significant doubt, repeated questions, or struggled to apply the core concepts. Recommend 1-on-1 human tutor review or foundational review."*
 
+---
+
+## 6. Modular NLP Pipeline Implementation (`ml_prototype/nlp.py`)
+
+The NLP transformation logic is encapsulated in `ml_prototype/nlp.py` via `NLPPipeline`, exposing structured methods:
+1. `parse_session(payload)`: Isolates speaker turns across heterogeneous schema payloads.
+2. `normalize_text(text)`: Lowercasing, punctuation normalization, and whitespace cleanup.
+3. `extract_conversational_signals(messages)`: Computes the 8 dense pedagogical features.
+4. `transform_to_features(session)`: Emits the unified 108-dimensional feature vector.
+
+---
+
+## 7. Expressed Linguistic Confidence Feature Extractor (`ml_prototype/confidence.py`)
+
+In addition to understanding signals, EduLens extracts specific conversational markers to estimate **expressed learning confidence**:
+
+| Category | Regex Matches & Linguistic Evidence | Interpretation |
+|---|---|---|
+| **Uncertainty Markers** | `\b(maybe\|i guess\|not sure\|unclear\|confused\|i think\|doubt\|lost)\b` | Expressed cognitive doubt |
+| **Certainty Markers** | `\b(definitely\|clearly\|absolutely\|positive\|certain\|confident\|obviously)\b` | Expressed assertiveness & conviction |
+| **Hesitation Markers** | `\b(um+\|uh+\|erm\|hmm+\|well\b\.{2,})` | Conversational pause and cognitive hesitation |
+| **Confirmation Requests** | `(right\?\|correct\?\|is that right\|is this right\|does that mean)` | Verification and reassurance seeking |
+| **Independent Explanations** | `\b(because\|therefore\|which means\|that implies\|so when\|in this case)\b` | Conceptual elaboration and causal reasoning |
+| **Self Corrections** | `\b(wait\|oh wait\|actually\|scratch that\|i mean)\b` | Metacognitive monitoring and self-adjustment |
+| **Hint Dependencies** | `\b(give\s+me\s+a\s+hint\|need\s+a\s+hint\|can\s+you\s+help\|tell\s+me\s+the\s+answer)\b` | Scaffolding reliance |
+
+These features feed into the experimental heuristic confidence estimator producing a categorical level (`low`, `moderate`, `high`) and continuous score ($0–100$).
+

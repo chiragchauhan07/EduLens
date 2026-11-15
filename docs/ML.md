@@ -213,7 +213,110 @@ Feature importance analysis reveals the primary drivers of predicted quiz perfor
 
 ---
 
-## 8. Critical Evaluation Limitations
+## 9. Four Core EduLens Performance Dimensions
+
+EduLens structures student learning evaluation across four distinct, complementary dimensions:
+
+### Dimension 1: Topic Understanding
+- **Methodology:** Supervised 3-class ML classification (`Understood`, `Partial`, `Confused`) based on student utterances and 108 dialogue features.
+- **Continuous Mapping (0–100):**
+  - `Understood`: **90.0**
+  - `Partial`: **60.0**
+  - `Confused`: **25.0**
+- **Model Confidence:** Class probabilities derived from Logistic Regression or calibrated SVM margins.
+
+### Dimension 2: Actual Quiz Performance
+- **Methodology:** **Deterministic rule-based grading** (`ml_prototype/quiz_evaluator.py`).
+- **Input:** Student question answers evaluated against answer keys.
+- **Output:** `actual_score_percent`, `correct_count`, `incorrect_count`, `unanswered_count`, topic breakdown.
+- **Distinction from Quiz Regression:**
+  - *Actual Quiz Evaluation:* Deterministic grading of submitted student test answers.
+  - *Quiz Score Regression:* Machine learning estimation of expected quiz outcome derived solely from conversational dialogue features.
+  - When both are available, the system computes the delta between actual and expected quiz performance.
+
+### Dimension 3: Learning Confidence Estimation
+- **Methodology:** Linguistic marker extraction and heuristic calibration (`ml_prototype/confidence.py`).
+- **Markers Analyzed:** Uncertainty markers, certainty markers, hesitation markers, confirmation requests, independent explanations, self-corrections, and hint dependencies.
+- **Output:** Categorical level (`low`, `moderate`, `high`), continuous score ($0–100$), and explicit indicator frequencies.
+- **Scientific Caveat:** Explicitly labeled as an *experimental heuristic baseline* measuring expressed linguistic confidence. It does NOT claim to measure internal psychological or neurological traits.
+- **Dataset Audit Finding:** The primary dataset (430 sessions) contains zero confidence annotations. The expanded pilot dataset (20 sessions) contains only 10 labeled sessions due to strict Schema v2.1 annotation criteria.
+
+### Dimension 4: Overall Topic Performance Scoring Engine
+- **Methodology:** Weighted composite formula (`ml_prototype/scoring_engine.py`):
+  $$\text{Overall Performance} = 0.40 \times \text{Understanding} + 0.40 \times \text{Actual Quiz} + 0.20 \times \text{Confidence}$$
+- **Missing Quiz Handling:** If the student has not yet submitted a quiz, the system does **NOT** invent or fabricate a quiz score. It sets `overall_performance_score: null`, marks `status: awaiting_quiz_submission`, and provides an optional provisional conversational estimate ($0.67 \times U + 0.33 \times C$).
+- **Discrepancy Detection:** Identifies divergence between conversational understanding and actual quiz execution:
+  - *Conversational Overestimation:* Student articulated understanding in conversation ($\ge 75$) but struggled on the actual quiz ($\le 50$).
+  - *Conversational Underestimation:* Student appeared confused in conversation ($\le 50$) but excelled on the quiz ($\ge 75$).
+
+---
+
+## 10. Unified Inference Pipeline (`ml_prototype/unified_pipeline.py`)
+
+The `EduLensUnifiedPipeline` orchestrates the complete processing workflow into a single integration-ready entrypoint:
+
+```text
+Incoming JSON Payload (Session Dialogue + Optional Quiz)
+                        │
+                        ▼
+            [DSP Validation & Ingestion]
+                        │
+                        ▼
+            [NLP Parsing & Signal Extraction]
+                        │
+       ┌────────────────┼────────────────┐
+       ▼                ▼                ▼
+[Understanding ML] [Confidence Est.] [Quiz Evaluator]
+  (3-Class + Exp)   (Linguistic)      (Deterministic)
+       │                │                │
+       └────────────────┼────────────────┘
+                        ▼
+          [Scoring & Discrepancy Engine]
+                        │
+                        ▼
+          Structured Integration JSON Contract
+```
+
+### JSON Schema Contract
+```json
+{
+  "status": "success",
+  "session_metadata": { "chat_id": "...", "subject": "...", "topic": "..." },
+  "topic_understanding": {
+    "predicted_class": "understood",
+    "understanding_score": 90.0,
+    "score_scale": "0-100",
+    "confidence": 0.958,
+    "probabilities": { "understood": 0.958, "partial": 0.038, "confused": 0.004 }
+  },
+  "actual_quiz_performance": {
+    "status": "evaluated",
+    "actual_score_percent": 80.0,
+    "correct_count": 8,
+    "total_questions": 10
+  },
+  "learning_confidence": {
+    "expressed_confidence_level": "high",
+    "expressed_confidence_score": 82.5,
+    "status": "experimental_heuristic_baseline"
+  },
+  "overall_topic_performance": {
+    "overall_performance_score": 84.5,
+    "performance_category": "Mastery",
+    "formula": "0.40 * understanding_score + 0.40 * actual_quiz_percent + 0.20 * confidence_score",
+    "status": "complete"
+  },
+  "discrepancy_analysis": { "discrepancy_detected": false },
+  "predicted_quiz_score": 83.2,
+  "conversational_signals": { ... },
+  "feature_explanation": { ... },
+  "pedagogical_feedback": "..."
+}
+```
+
+---
+
+## 11. Critical Evaluation Limitations
 
 1. **Synthetic Ground Truth:** The labels in `edulens_chats_dataset.json` were synthesized using Claude with structured pedagogical persona prompts. Evaluation measures model agreement with these synthetic personas, not proven human psychometric understanding.
 2. **Domain Focus:** Evaluated on Computer Science university topics. Generalization to humanities, clinical, or qualitative domains remains unverified.

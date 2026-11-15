@@ -5,7 +5,7 @@
 [![Python](https://img.shields.io/badge/Python-3.10%2B-blue.svg)](https://www.python.org/)
 [![scikit-learn](https://img.shields.io/badge/scikit--learn-1.3%2B-orange.svg)](https://scikit-learn.org/)
 [![Streamlit](https://img.shields.io/badge/Streamlit-1.30%2B-FF4B4B.svg)](https://streamlit.io/)
-[![Tests](https://img.shields.io/badge/Tests-Passing-brightgreen.svg)](#running-tests)
+[![Tests](https://img.shields.io/badge/Tests-41%20Passing-brightgreen.svg)](#running-tests)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Status](https://img.shields.io/badge/Status-Prototype%20Delivered-success.svg)](#project-status)
 
@@ -67,18 +67,23 @@ EduLens serves as the **intelligence and analytics layer** built around the stud
 
 ## 🚀 Key Features
 
-- **🔍 Multi-Schema Session Ingestion:** Accepts conversation logs across standard formats (`turns`, `messages`, raw dialogue, or JSON files).
-- **🧪 Leakage-Free Feature Engineering:** 108 features combining 8 dense pedagogical & structural signals (turn counts, word ratios, confusion markers, clarification requests, code indicators) with 100 TF-IDF lexical n-grams.
-- **🎯 High-Precision Understanding Classifier:** Categorizes student comprehension into `understood`, `partial`, and `confused` with **95.89% test accuracy** and **0.9399 macro F1-score** on Logistic Regression, and **100.0% accuracy** on Linear SVM under strict group-aware evaluation (vs. 53.42% baseline).
-- **💡 Built-in Explainability Engine:** Decomposes predictions into mathematical feature contributions, identifying exact dialogue drivers and terminology for each class.
-- **🔬 6-Configuration Feature Ablation:** Proves dialogue structure alone carries 75.3% accuracy, and the model preserves 94.5%–98.6% accuracy even without explicit keywords.
+- **🎯 Four Core Performance Dimensions:**
+  1. *Topic Understanding:* 3-class ML classification (`Understood`, `Partial`, `Confused`) + transparent 0–100 score mapping.
+  2. *Actual Quiz Performance:* Deterministic grading comparing student answers vs answer key (distinct from conversational regression).
+  3. *Learning Confidence:* Expressed linguistic confidence estimator extracting 7 distinct conversational discourse markers.
+  4. *Overall Topic Performance:* Composite 40/40/20 scoring engine with graceful handling of missing quiz submissions and discrepancy detection.
+- **🔄 Unified Inference Pipeline:** `EduLensUnifiedPipeline` orchestrating DSP validation, NLP parsing, ML inference, and multi-dimensional scoring into one production JSON schema contract.
+- **🔍 Multi-Schema Session Ingestion:** Accepts conversation logs across standard formats (`turns`, `messages`, raw dialogue, or multi-topic JSON payloads).
+- **🧪 Leakage-Free Feature Engineering:** 108 features combining 8 dense pedagogical & structural signals with 100 TF-IDF lexical n-grams.
+- **🎯 High-Precision Understanding Classifier:** Categorizes comprehension into `understood`, `partial`, and `confused` with **95.89% accuracy** (Logistic Regression) and **100.0% accuracy** (Linear SVM) under zero-leakage group splitting.
+- **💡 Built-in Explainability Engine:** Decomposes predictions into mathematical feature contributions, identifying exact dialogue drivers for each class.
+- **🔬 6-Configuration Feature Ablation:** Proves dialogue structure alone carries 75.3% accuracy, and the model preserves 94.5%–98.6% accuracy even without explicit keywords and shortcut vocabulary.
 - **📈 Quiz Score Regressor:** Predicts post-session assessment scores (0–100%) with 7.65% MAE using zero-leakage student grouping.
 - **📊 Interactive Streamlit & Vercel Dashboards:**
-  - **Student Performance Analyzer:** Test real-time inference on sample dialogues, paste custom transcripts, or upload files with live feature attributions.
+  - **Student Performance Analyzer:** Test real-time inference, optional quiz submission evaluation, discrepancy alerts, and feature attributions.
   - **Topic-Wise Performance:** Curriculum-level mastery aggregates, confusion rates, and topic difficulty rankings.
   - **Model Architecture & Viva Guide:** Multi-model benchmarks, 6 ablation experiments, explainability tabs, and defense Q&A.
-- **⚡ Deterministic & Explainable:** Sub-millisecond inference per session with transparent probability distributions and explainable linear coefficients.
-- **🛡️ 25 Automated Unit & Integration Tests:** Powered by `pytest` ensuring 100% end-to-end pipeline reliability.
+- **🛡️ 41 Automated Unit & Integration Tests:** Powered by `pytest` ensuring 100% end-to-end pipeline reliability across all 12 acceptance cases and modules.
 
 ---
 
@@ -92,13 +97,14 @@ EduLens/
 ├── PROJECT_AUDIT.md                       # Comprehensive codebase & architecture audit
 ├── README.md                              # Main onboarding guide (this file)
 ├── api/                                   # Vercel Serverless API endpoints
-│   └── index.py                           # FastAPI application (/api/predict, /api/explainability, etc.)
+│   └── index.py                           # FastAPI application (/api/pipeline, /api/predict, /api/evaluate-quiz, etc.)
 ├── data/
 │   ├── raw/
 │   │   ├── edulens_chats_dataset.json     # Primary supervised dataset (430 sessions)
 │   │   ├── edulens_chats_set1 (1).json    # Supplementary dataset (420 sessions)
 │   │   ├── edulens_chats_set2 (1).json    # Supplementary dataset (430 sessions)
 │   │   ├── edulens_chats_set3 (1).json    # Supplementary dataset (440 sessions)
+│   │   ├── edulens_expanded_pilot_020_v2.json # Pilot schema v2.1 dataset (20 sessions)
 │   │   ├── education_dialogue/            # 47k Gemini dialogues (unlabeled)
 │   │   └── mathdial/                      # 2.8k human math tutoring dialogues
 │   └── processed/                         # Validated, leakage-free cleaned datasets
@@ -109,20 +115,25 @@ EduLens/
 │   └── DATASET.md                         # Dataset schemas & group splitting rules
 ├── ml_prototype/                          # Core Machine Learning Package
 │   ├── __init__.py                        # Package root
+│   ├── confidence.py                      # Expressed linguistic confidence estimator
+│   ├── dashboard.py                       # 3-page interactive Streamlit dashboard (4 Dimensions)
 │   ├── data_loader.py                     # Schema normalization & dataset loader
-│   ├── features.py                        # Conversational signals, TF-IDF, & ablation pipelines
+│   ├── dsp.py                             # Modular DSP pipeline (validation, speaker dynamics)
 │   ├── explainability.py                  # Model coefficients & instance attribution
-│   ├── train_model.py                     # Group-aware training, CV & artifact generation
+│   ├── features.py                        # Conversational signals, TF-IDF, & ablation pipelines
+│   ├── nlp.py                             # Modular NLP pipeline (parsing, tokenization, 108-dim)
 │   ├── predict.py                         # Multi-model inference engine with explainability
-│   └── dashboard.py                       # 3-page interactive Streamlit dashboard
+│   ├── quiz_evaluator.py                  # Deterministic quiz grading engine
+│   ├── scoring_engine.py                  # Composite scoring (40/40/20 formula & discrepancy)
+│   ├── train_model.py                     # Group-aware training, CV & artifact generation
+│   └── unified_pipeline.py                # Unified end-to-end pipeline (EduLensUnifiedPipeline)
 ├── models/                                # Versioned Model Artifacts
-│   ├── trained_model.joblib               # Primary backward-compatible pipeline artifact
-│   ├── understanding/                     # Understanding classification models
-│   │   ├── logistic_regression/           # Calibrated Logistic Regression model & metadata
-│   │   ├── linear_svm/                    # Calibrated Linear SVM model & metadata
-│   │   └── naive_bayes/                   # Multinomial Naive Bayes model & metadata
-│   └── quiz_score/                        # Quiz score regression model (Random Forest / Ridge)
+│   ├── confidence/model.joblib            # Exploratory pilot confidence model
+│   ├── quiz_regressor/                    # Quiz score regression models (Random Forest / Ridge)
+│   ├── understanding/                     # Understanding classification models (LR, SVM, NB)
+│   └── trained_model.joblib               # Primary backward-compatible pipeline artifact
 ├── reports/                               # Generated JSON & Markdown Reports
+│   ├── confidence_pilot_evaluation.json   # Pilot confidence audit and model metrics
 │   ├── feature_ablation.json              # 6-configuration feature ablation report
 │   ├── model_comparison.json              # Cross-model evaluation benchmark
 │   ├── model_evaluation.json              # Primary Logistic Regression evaluation report
@@ -135,8 +146,9 @@ EduLens/
 │   └── walkthrough_prediction.py          # Prediction trace generator
 └── tests/
     ├── __init__.py
-    ├── test_api.py                        # FastAPI endpoint test suite
-    └── test_prototype.py                  # Data loader, pipeline, model & explainability tests
+    ├── test_api.py                        # FastAPI endpoint test suite (11 tests)
+    ├── test_comprehensive_suite.py        # 12 acceptance cases & modular tests (16 tests)
+    └── test_prototype.py                  # Pipeline, model & explainability tests (14 tests)
 ```
 
 ---
