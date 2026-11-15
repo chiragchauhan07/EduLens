@@ -115,6 +115,26 @@ def get_model_evaluation():
     return None
 
 
+@st.cache_data
+def get_model_comparison():
+    """Load cross-model comparison JSON report."""
+    report_path = ROOT_DIR / "reports" / "model_comparison.json"
+    if report_path.exists():
+        with open(report_path, "r", encoding="utf-8") as f:
+            return json.load(f)
+    return None
+
+
+@st.cache_data
+def get_quiz_evaluation():
+    """Load quiz score regressor evaluation report."""
+    report_path = ROOT_DIR / "reports" / "quiz_regressor_evaluation.json"
+    if report_path.exists():
+        with open(report_path, "r", encoding="utf-8") as f:
+            return json.load(f)
+    return None
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # SIDEBAR NAVIGATION
 # ─────────────────────────────────────────────────────────────────────────────
@@ -269,7 +289,10 @@ if page == "Student Performance Analyzer":
                     unsafe_allow_html=True,
                 )
                 st.write("")
-                st.metric("Model Confidence", f"{result['confidence']:.1%}")
+                col_c1, col_c2 = st.columns(2)
+                col_c1.metric("Model Confidence", f"{result['confidence']:.1%}")
+                if result.get("predicted_quiz_score") is not None:
+                    col_c2.metric("Predicted Quiz Score", f"{result['predicted_quiz_score']:.1f}%")
 
                 if current_session.get("actual_ground_truth"):
                     gt = current_session["actual_ground_truth"]
@@ -466,13 +489,49 @@ elif page == "Model Information":
             ],
         }))
 
-        st.subheader("4. 5-Fold Stratified Cross-Validation")
+        st.subheader("4. 5-Fold Stratified Group Cross-Validation")
         st.write(
             f"- **Mean CV Accuracy:** `{m['cv_5fold_accuracy_mean']:.4f} (+/- {m['cv_5fold_accuracy_std']:.4f})`\n"
-            f"- **Mean CV Macro F1:** `{m['cv_5fold_f1_macro_mean']:.4f} (+/- {m['cv_5fold_f1_macro_std']:.4f})`"
+            f"- **Mean CV Macro F1:** `{m['cv_5fold_f1_macro_mean']:.4f} (+/- {m['cv_5fold_f1_macro_std']:.4f})`\n"
+            f"- **Split Strategy:** Group-aware splitting on `student_id` (Zero persona overlap across train and test)."
         )
 
+    # Cross-Model Benchmark Comparison Section
+    comp_report = get_model_comparison()
+    if comp_report and "models" in comp_report:
+        st.write("---")
+        st.subheader("5. Multi-Model Benchmark Comparison")
+        st.caption("Comparison across Logistic Regression, Naive Bayes, and Linear Support Vector Machine on held-out test students:")
+        
+        comp_rows = []
+        for m_key, m_data in comp_report["models"].items():
+            comp_rows.append({
+                "Algorithm": m_data["display_name"],
+                "Test Accuracy": f"{m_data['test_accuracy']:.4f}",
+                "Macro F1": f"{m_data['macro_f1']:.4f}",
+                "Macro Recall": f"{m_data['macro_recall']:.4f}",
+                "5-Fold CV Accuracy": f"{m_data['cv_accuracy_mean']:.4f} (±{m_data['cv_accuracy_std']:.4f})",
+            })
+        st.table(pd.DataFrame(comp_rows))
+
+    # Quiz Score Regressor Section
+    quiz_eval = get_quiz_evaluation()
+    if quiz_eval and "models" in quiz_eval:
+        st.write("---")
+        st.subheader("6. Secondary Model: Quiz Score Regressor")
+        st.caption(f"Trained on {quiz_eval['dataset_records']} student sessions with post-session assessment scores:")
+        
+        quiz_rows = []
+        for q_key, q_data in quiz_eval["models"].items():
+            quiz_rows.append({
+                "Regression Model": q_data["name"],
+                "Mean Absolute Error (MAE)": f"{q_data['mae']:.2f}%",
+                "Root Mean Squared Error (RMSE)": f"{q_data['rmse']:.2f}%",
+                "R² Score": f"{q_data['r2']:.4f}",
+            })
+        st.table(pd.DataFrame(quiz_rows))
+
     st.write("---")
-    st.subheader("5. Important Honest Limitations")
+    st.subheader("7. Important Honest Limitations")
     for lim in eval_report.get("limitations", []):
         st.markdown(f"- ⚠️ {lim}")

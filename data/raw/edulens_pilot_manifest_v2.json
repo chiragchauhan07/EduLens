@@ -1,0 +1,91 @@
+{
+  "manifest_version": "2.0",
+  "schema_version": "2.1",
+  "batch": "pilot_000_v2",
+  "file": "edulens_expanded_pilot_020_v2.json",
+  "data_source": "synthetic_llm",
+  "legacy_original_430": "kept separate; not merged; labels not trusted pending audit",
+  "target": {
+    "understood": 1000,
+    "partial": 1000,
+    "confused": 1000,
+    "total": 3000
+  },
+  "generated_so_far": {
+    "total": 20,
+    "per_class": {
+      "partial": 7,
+      "confused": 7,
+      "understood": 6
+    }
+  },
+  "remaining": {
+    "understood": 994,
+    "partial": 993,
+    "confused": 993,
+    "total": 2980,
+    "batches": "batch_001..029 x100, batch_030 x80"
+  },
+  "per_subject": {
+    "Python": 2,
+    "DBMS": 2,
+    "DAA": 2,
+    "ML": 2,
+    "DSA": 2,
+    "C": 1,
+    "OS": 1,
+    "NLP": 1,
+    "CN": 1,
+    "Java": 1,
+    "DL": 1,
+    "Maths": 1,
+    "C++": 1,
+    "AI": 1,
+    "DataSci": 1
+  },
+  "per_length_bucket": {
+    "medium": 10,
+    "short": 7,
+    "long": 3
+  },
+  "per_language_style": {
+    "english_casual": 9,
+    "english_standard": 5,
+    "hinglish_light": 4,
+    "hinglish_heavy": 2
+  },
+  "per_persona": {
+    "beginner": 4,
+    "terse": 2,
+    "hesitant": 2,
+    "overconfident": 2,
+    "curious": 2,
+    "exam": 2,
+    "skeptical": 2,
+    "debug": 2,
+    "explainer": 1,
+    "casual": 1
+  },
+  "per_teacher_style": {
+    "direct_corrector": 18,
+    "lenient": 2
+  },
+  "unique_chat_ids": 20,
+  "duplicate_detection": {
+    "exact_duplicate_sessions": 0,
+    "near_duplicate_pairs": 0
+  },
+  "structural_validation": {
+    "structural_pass": true,
+    "records_with_errors": 0,
+    "missing_field_count": 0,
+    "malformed_data_source_count": 0,
+    "invalid_label_count": 0
+  },
+  "semantic_screening": {
+    "warning_count": 0,
+    "kind": "heuristic"
+  },
+  "human_verified_records": 0,
+  "status": "awaiting user approval; no further batches generated"
+}

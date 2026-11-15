@@ -11,6 +11,9 @@ from typing import Any, Dict, List, Optional, Union
 import pandas as pd
 
 
+ROOT_DIR = Path(__file__).resolve().parent.parent
+
+
 def extract_student_messages(record: Dict[str, Any]) -> List[str]:
     """
     Extracts student utterances from a conversation record regardless of schema variation.
@@ -65,14 +68,22 @@ def normalize_session(record: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
-def load_primary_dataset(filepath: Union[str, Path] = "data/raw/edulens_chats_dataset.json") -> pd.DataFrame:
+def load_primary_dataset(filepath: Optional[Union[str, Path]] = None) -> pd.DataFrame:
     """
     Loads and normalizes the primary EduLens dataset with supervised learning labels.
+    If filepath is not provided, defaults to 'data/processed/edulens_clean_primary.json'
+    if available, otherwise falls back to 'data/raw/edulens_chats_dataset.json'.
     
     Returns:
         pd.DataFrame containing standardized conversation fields and target labels.
     """
-    path = Path(filepath)
+    if filepath is not None:
+        path = Path(filepath)
+    else:
+        processed_path = ROOT_DIR / "data" / "processed" / "edulens_clean_primary.json"
+        raw_path = ROOT_DIR / "data" / "raw" / "edulens_chats_dataset.json"
+        path = processed_path if processed_path.exists() else raw_path
+
     if not path.exists():
         raise FileNotFoundError(f"Primary dataset not found at {path.resolve()}")
         

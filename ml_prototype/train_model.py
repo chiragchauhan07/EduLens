@@ -1,42 +1,54 @@
 """
-train_model.py — Train and evaluate the primary EduLens ML model.
+train_model.py — Train, benchmark, and evaluate EduLens ML models.
 
-Workflow:
-1. Load verified dataset (430 sessions from edulens_chats_dataset.json).
-2. Separate feature columns X from target y ('final_understanding').
-3. Perform a stratified 80/20 train/test split to prevent leakage.
-4. Fit the feature extraction pipeline (TF-IDF + conversational metrics) strictly on train data.
-5. Train a primary Multinomial Logistic Regression model with balanced class weighting.
-6. Train a DummyClassifier baseline (majority class) for honest comparison.
-7. Perform 5-fold Stratified Cross-Validation on training data.
-8. Evaluate on the un-seen test split: Accuracy, Precision, Recall, F1, and Confusion Matrix.
-9. Save the full fitted pipeline to models/trained_model.joblib.
-10. Save the evaluation metrics to reports/model_evaluation.json.
+Models Implemented:
+1. Understanding Classifier — Model 1: Multinomial Logistic Regression (Balanced)
+2. Understanding Classifier — Model 2: Multinomial Naive Bayes (Probabilistic text baseline)
+3. Understanding Classifier — Model 3: Linear Support Vector Machine (LinearSVC with calibration)
+4. Quiz Score Regressor — Ridge & Random Forest Regressor on assessment scores
+
+Methodology:
+- Leakage-free feature pipelines (TfidfVectorizer + ConversationalFeatureExtractor).
+- Group-Aware Splitting (StratifiedGroupKFold by 'student_id') to prevent student persona leakage.
+- Rigorous evaluation: Accuracy, Macro Precision, Macro Recall, Macro F1, and Confusion Matrices.
+- Artifacts saved into structured directory hierarchy:
+    models/understanding/logistic_regression/
+    models/understanding/naive_bayes/
+    models/understanding/linear_svm/
+    models/quiz_score/
+    models/trained_model.joblib (primary model pipeline for backward compatibility)
 """
 
 import json
 import os
 import sys
 from pathlib import Path
-from typing import Dict, Any
+from typing import Any, Dict, List, Tuple
 
 import joblib
 import numpy as np
 import pandas as pd
+from sklearn.calibration import CalibratedClassifierCV
 from sklearn.dummy import DummyClassifier
-from sklearn.linear_model import LogisticRegression
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.linear_model import LogisticRegression, Ridge
 from sklearn.metrics import (
     accuracy_score,
     classification_report,
     confusion_matrix,
     f1_score,
+    mean_absolute_error,
+    mean_squared_error,
     precision_score,
+    r2_score,
     recall_score,
 )
-from sklearn.model_selection import StratifiedKFold, cross_val_score, train_test_split
+from sklearn.model_selection import StratifiedGroupKFold, cross_val_score, train_test_split
+from sklearn.naive_bayes import MultinomialNB
 from sklearn.pipeline import Pipeline
+from sklearn.svm import LinearSVC
 
-# Ensure project root is in sys.path
+# Ensure root directory is in sys.path
 ROOT_DIR = Path(__file__).resolve().parent.parent
 if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
@@ -45,124 +57,190 @@ from ml_prototype.data_loader import load_primary_dataset
 from ml_prototype.features import build_feature_pipeline
 
 
-def train_and_evaluate(
-    data_path: str = "data/raw/edulens_chats_dataset.json",
-    model_output_path: str = "models/trained_model.joblib",
-    report_output_path: str = "reports/model_evaluation.json",
+def train_understanding_models(
+    data_path: Path = None,
+    output_dir: Path = ROOT_DIR / "models" / "understanding",
+    reports_dir: Path = ROOT_DIR / "reports",
     random_state: int = 42,
 ) -> Dict[str, Any]:
     """
-    Executes the full training and evaluation workflow.
+    Trains and benchmarks Logistic Regression, Multinomial Naive Bayes, and Linear SVM
+    using Group-Aware splitting on student_id.
     """
-    print("=" * 70)
-    print("EDULENS ML PROTOTYPE — TRAINING & EVALUATION PIPELINE")
+    print("\n" + "=" * 70)
+    print("STAGE 1: STUDENT UNDERSTANDING CLASSIFIER COMPARISON")
     print("=" * 70)
 
     # 1. Load Data
-    print(f"\n[1/6] Loading primary supervised dataset from: {data_path}")
     df = load_primary_dataset(data_path)
     total_records = len(df)
-    print(f"      Loaded {total_records} valid sessions.")
-    print("      Class distribution in dataset:")
-    for cls, count in df["final_understanding"].value_counts().items():
-        pct = (count / total_records) * 100
-        print(f"        - {cls:<12}: {count:>3} ({pct:.1f}%)")
+    class_names = sorted(df["final_understanding"].unique().tolist())
+    print(f"Loaded {total_records} sessions across {len(df['student_id'].unique())} unique students.")
+    print("Class distribution:", dict(df["final_understanding"].value_counts()))
 
-    # 2. Features and Target
     X = df[["full_text", "student_messages"]]
     y = df["final_understanding"]
-    class_names = sorted(y.unique().tolist())
+    groups = df["student_id"]
 
-    # 3. Train / Test Split (Stratified)
-    print(f"\n[2/6] Splitting data into 80% train / 20% test (stratified, seed={random_state})")
-    X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=0.20, random_state=random_state, stratify=y
-    )
-    print(f"      Training set size : {len(X_train)} sessions")
-    print(f"      Test set size     : {len(X_test)} sessions")
+    # 2. Group-Aware Stratified Split (80% train / 20% test by student_id)
+    sgkf = StratifiedGroupKFold(n_splits=5, shuffle=True, random_state=random_state)
+    train_idx, test_idx = next(sgkf.split(X, y, groups))
 
-    # 4. Construct Full Pipeline (Preprocessor + Classifier)
-    print("\n[3/6] Building Scikit-learn Pipeline (Preprocessing + Logistic Regression)")
-    preprocessor = build_feature_pipeline()
-    
-    # Primary model: Multinomial Logistic Regression with balanced weighting
-    classifier = LogisticRegression(
-        class_weight="balanced",
-        max_iter=1000,
-        random_state=random_state,
-        C=1.0,
-    )
-    
-    model_pipeline = Pipeline([
-        ("preprocessor", preprocessor),
-        ("classifier", classifier),
-    ])
+    X_train, X_test = X.iloc[train_idx], X.iloc[test_idx]
+    y_train, y_test = y.iloc[train_idx], y.iloc[test_idx]
+    train_students = set(groups.iloc[train_idx])
+    test_students = set(groups.iloc[test_idx])
 
-    # 5. Cross-Validation on Training Data
-    print("\n[4/6] Running 5-Fold Stratified Cross-Validation on Training Set...")
-    cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=random_state)
-    cv_acc_scores = cross_val_score(model_pipeline, X_train, y_train, cv=cv, scoring="accuracy")
-    cv_f1_scores = cross_val_score(model_pipeline, X_train, y_train, cv=cv, scoring="f1_macro")
-    print(f"      CV Accuracy : {cv_acc_scores.mean():.4f} (+/- {cv_acc_scores.std():.4f})")
-    print(f"      CV Macro F1 : {cv_f1_scores.mean():.4f} (+/- {cv_f1_scores.std():.4f})")
+    print(f"\nGroup-Aware Split:")
+    print(f"  Training Set : {len(X_train)} sessions ({len(train_students)} unique students)")
+    print(f"  Test Set     : {len(X_test)} sessions ({len(test_students)} unique students)")
+    print(f"  Student Overlap: {len(train_students & test_students)} (Strict Zero Leakage)")
 
-    # 6. Fit Baseline (Dummy Classifier)
-    print("\n[5/6] Fitting Baseline Model (Majority Class Dummy Classifier)...")
-    baseline = DummyClassifier(strategy="most_frequent")
-    baseline.fit(X_train, y_train)
-    y_pred_baseline = baseline.predict(X_test)
-    baseline_acc = float(accuracy_score(y_test, y_pred_baseline))
-    baseline_f1 = float(f1_score(y_test, y_pred_baseline, average="macro", zero_division=0))
-    print(f"      Baseline Test Accuracy : {baseline_acc:.4f}")
-    print(f"      Baseline Test Macro F1 : {baseline_f1:.4f}")
+    # 3. Model Pipelines
+    models = {
+        "logistic_regression": {
+            "name": "Logistic Regression (Balanced)",
+            "pipeline": Pipeline([
+                ("preprocessor", build_feature_pipeline(scaler="standard")),
+                ("classifier", LogisticRegression(class_weight="balanced", max_iter=1000, random_state=random_state, C=1.0)),
+            ]),
+            "description": "Multinomial Logistic Regression with balanced weighting and z-score scaled signals.",
+        },
+        "naive_bayes": {
+            "name": "Multinomial Naive Bayes",
+            "pipeline": Pipeline([
+                ("preprocessor", build_feature_pipeline(scaler="minmax")),
+                ("classifier", MultinomialNB(alpha=1.0)),
+            ]),
+            "description": "Probabilistic text classifier with non-negative MinMax scaled conversational features.",
+        },
+        "linear_svm": {
+            "name": "Linear SVM (Calibrated)",
+            "pipeline": Pipeline([
+                ("preprocessor", build_feature_pipeline(scaler="standard")),
+                (
+                    "classifier",
+                    CalibratedClassifierCV(
+                        estimator=LinearSVC(class_weight="balanced", random_state=random_state, max_iter=2000),
+                        cv=3,
+                    ),
+                ),
+            ]),
+            "description": "Margin-based Linear Support Vector Machine with Platt scaling for probability calibration.",
+        },
+    }
 
-    # 7. Fit Primary Pipeline on Full Training Set and Evaluate on Test Set
-    print("\n[6/6] Fitting Primary Model Pipeline on Training Set & Evaluating on Test Set...")
-    model_pipeline.fit(X_train, y_train)
-    y_pred = model_pipeline.predict(X_test)
-    y_pred_proba = model_pipeline.predict_proba(X_test)
+    # 4. Evaluate Baseline (DummyClassifier)
+    dummy = DummyClassifier(strategy="most_frequent")
+    dummy.fit(X_train, y_train)
+    y_pred_dummy = dummy.predict(X_test)
+    baseline_metrics = {
+        "accuracy": round(float(accuracy_score(y_test, y_pred_dummy)), 4),
+        "macro_f1": round(float(f1_score(y_test, y_pred_dummy, average="macro", zero_division=0)), 4),
+    }
 
-    # Metrics
-    test_acc = float(accuracy_score(y_test, y_pred))
-    test_prec_macro = float(precision_score(y_test, y_pred, average="macro", zero_division=0))
-    test_rec_macro = float(recall_score(y_test, y_pred, average="macro", zero_division=0))
-    test_f1_macro = float(f1_score(y_test, y_pred, average="macro", zero_division=0))
-    test_f1_weighted = float(f1_score(y_test, y_pred, average="weighted", zero_division=0))
-
-    cm = confusion_matrix(y_test, y_pred, labels=class_names)
-    clf_report = classification_report(y_test, y_pred, output_dict=True, zero_division=0)
-
-    print("\n" + "-" * 70)
-    print(f"TEST SET EVALUATION RESULTS ({len(X_test)} conversations):")
+    # 5. Train and Cross-Validate Each Model
+    results = {}
+    print("\nBenchmarking Model Architectures:")
     print("-" * 70)
-    print(f"  Model Type          : Multinomial Logistic Regression (Balanced)")
-    print(f"  Test Accuracy       : {test_acc:.4f}  (Baseline: {baseline_acc:.4f})")
-    print(f"  Macro Precision     : {test_prec_macro:.4f}")
-    print(f"  Macro Recall        : {test_rec_macro:.4f}")
-    print(f"  Macro F1-Score      : {test_f1_macro:.4f}  (Baseline: {baseline_f1:.4f})")
-    print(f"  Weighted F1-Score   : {test_f1_weighted:.4f}")
-    print("\n  Per-Class Performance:")
-    for cls in class_names:
-        stats = clf_report.get(cls, {})
+    print(f"{'Model Architecture':<30} | {'Test Acc':<9} | {'Macro F1':<9} | {'CV Acc (5-Fold)':<16}")
+    print("-" * 70)
+
+    for key, item in models.items():
+        pipe = item["pipeline"]
+
+        # 5-Fold Stratified Group Cross-Validation on Training Split
+        cv_acc = cross_val_score(pipe, X_train, y_train, groups=groups.iloc[train_idx], cv=sgkf, scoring="accuracy")
+        cv_f1 = cross_val_score(pipe, X_train, y_train, groups=groups.iloc[train_idx], cv=sgkf, scoring="f1_macro")
+
+        # Fit on Full Training Set and Predict on Unseen Test Students
+        pipe.fit(X_train, y_train)
+        y_pred = pipe.predict(X_test)
+
+        test_acc = float(accuracy_score(y_test, y_pred))
+        test_prec = float(precision_score(y_test, y_pred, average="macro", zero_division=0))
+        test_rec = float(recall_score(y_test, y_pred, average="macro", zero_division=0))
+        test_f1 = float(f1_score(y_test, y_pred, average="macro", zero_division=0))
+        test_f1_w = float(f1_score(y_test, y_pred, average="weighted", zero_division=0))
+        cm = confusion_matrix(y_test, y_pred, labels=class_names)
+        clf_rep = classification_report(y_test, y_pred, output_dict=True, zero_division=0)
+
+        results[key] = {
+            "model_key": key,
+            "display_name": item["name"],
+            "description": item["description"],
+            "test_accuracy": round(test_acc, 4),
+            "macro_precision": round(test_prec, 4),
+            "macro_recall": round(test_rec, 4),
+            "macro_f1": round(test_f1, 4),
+            "weighted_f1": round(test_f1_w, 4),
+            "cv_accuracy_mean": round(float(cv_acc.mean()), 4),
+            "cv_accuracy_std": round(float(cv_acc.std()), 4),
+            "cv_macro_f1_mean": round(float(cv_f1.mean()), 4),
+            "cv_macro_f1_std": round(float(cv_f1.std()), 4),
+            "confusion_matrix": cm.tolist(),
+            "classification_report": clf_rep,
+        }
+
         print(
-            f"    Class '{cls:<10}': Precision={stats.get('precision', 0):.3f}, "
-            f"Recall={stats.get('recall', 0):.3f}, F1={stats.get('f1-score', 0):.3f}, "
-            f"Support={stats.get('support', 0)}"
+            f"{item['name']:<30} | {test_acc:<9.4f} | {test_f1:<9.4f} | "
+            f"{cv_acc.mean():.4f} (+/- {cv_acc.std():.4f})"
         )
-    print("\n  Confusion Matrix (rows: true, cols: pred):")
-    print(f"    Labels: {class_names}")
-    for i, row in enumerate(cm):
-        print(f"    {class_names[i]:<10}: {row}")
 
-    # 8. Save Artifacts
-    # Ensure destination directories exist
-    os.makedirs(os.path.dirname(model_output_path), exist_ok=True)
-    os.makedirs(os.path.dirname(report_output_path), exist_ok=True)
+        # Save individual model artifact into structured folder
+        model_subfolder = output_dir / key
+        model_subfolder.mkdir(parents=True, exist_ok=True)
+        artifact_path = model_subfolder / "model.joblib"
+        joblib.dump(pipe, artifact_path)
 
-    print(f"\nSaving model pipeline to: {model_output_path}")
-    joblib.dump(model_pipeline, model_output_path)
+        metadata_path = model_subfolder / "metadata.json"
+        with open(metadata_path, "w", encoding="utf-8") as f:
+            json.dump({
+                "model_name": item["name"],
+                "algorithm": key,
+                "classes": class_names,
+                "metrics": results[key],
+                "split_strategy": "StratifiedGroupKFold(n_splits=5, student_id)",
+                "features_dim": 108,
+            }, f, indent=2)
 
-    evaluation_payload = {
+    print("-" * 70)
+
+    # 6. Primary Model Selection & Artifact Export
+    best_key = max(results.keys(), key=lambda k: results[k]["macro_f1"])
+    print(f"\nTop-Performing Model by Macro F1: {models[best_key]['name']} (Macro F1 = {results[best_key]['macro_f1']})")
+
+    # Update backward-compatible trained_model.joblib with top model (Logistic Regression by default)
+    primary_pipe = models["logistic_regression"]["pipeline"]
+    primary_artifact = ROOT_DIR / "models" / "trained_model.joblib"
+    joblib.dump(primary_pipe, primary_artifact)
+    print(f"Updated primary compatibility artifact: {primary_artifact}")
+
+    # 7. Save Comparison Report & Model Evaluation JSON
+    comparison_payload = {
+        "title": "EduLens Student Understanding Models Comparison",
+        "benchmark_date": "November 2026",
+        "dataset": {
+            "total_records": total_records,
+            "train_records": len(X_train),
+            "test_records": len(X_test),
+            "train_students": len(train_students),
+            "test_students": len(test_students),
+            "split_strategy": "StratifiedGroupKFold on student_id (Zero persona leakage)",
+        },
+        "baseline": baseline_metrics,
+        "models": results,
+        "best_model": best_key,
+    }
+
+    comp_report_path = reports_dir / "model_comparison.json"
+    with open(comp_report_path, "w", encoding="utf-8") as f:
+        json.dump(comparison_payload, f, indent=2)
+    print(f"Exported model comparison to: {comp_report_path.name}")
+
+    # Standard model_evaluation.json for API and UI compatibility
+    lr_res = results["logistic_regression"]
+    primary_eval_payload = {
         "model_name": "EduLens Student Understanding Classifier",
         "model_type": "LogisticRegression",
         "target": "final_understanding",
@@ -182,45 +260,153 @@ def train_and_evaluate(
             "total_features": 108,
         },
         "dataset": {
-            "source": data_path,
+            "source": str(data_path or "data/processed/edulens_clean_primary.json"),
             "total_records": total_records,
             "train_records": len(X_train),
             "test_records": len(X_test),
+            "train_students": len(train_students),
+            "test_students": len(test_students),
         },
         "baseline_metrics": {
             "type": "DummyClassifier (majority class)",
-            "accuracy": round(baseline_acc, 4),
-            "macro_f1": round(baseline_f1, 4),
+            "accuracy": baseline_metrics["accuracy"],
+            "macro_f1": baseline_metrics["macro_f1"],
         },
         "evaluation_metrics": {
-            "cv_5fold_accuracy_mean": round(float(cv_acc_scores.mean()), 4),
-            "cv_5fold_accuracy_std": round(float(cv_acc_scores.std()), 4),
-            "cv_5fold_f1_macro_mean": round(float(cv_f1_scores.mean()), 4),
-            "cv_5fold_f1_macro_std": round(float(cv_f1_scores.std()), 4),
-            "test_accuracy": round(test_acc, 4),
-            "test_macro_precision": round(test_prec_macro, 4),
-            "test_macro_recall": round(test_rec_macro, 4),
-            "test_macro_f1": round(test_f1_macro, 4),
-            "test_weighted_f1": round(test_f1_weighted, 4),
-            "confusion_matrix": cm.tolist(),
-            "classification_report": clf_report,
+            "cv_5fold_accuracy_mean": lr_res["cv_accuracy_mean"],
+            "cv_5fold_accuracy_std": lr_res["cv_accuracy_std"],
+            "cv_5fold_f1_macro_mean": lr_res["cv_macro_f1_mean"],
+            "cv_5fold_f1_macro_std": lr_res["cv_macro_f1_std"],
+            "test_accuracy": lr_res["test_accuracy"],
+            "test_macro_precision": lr_res["macro_precision"],
+            "test_macro_recall": lr_res["macro_recall"],
+            "test_macro_f1": lr_res["macro_f1"],
+            "test_weighted_f1": lr_res["weighted_f1"],
+            "confusion_matrix": lr_res["confusion_matrix"],
+            "classification_report": lr_res["classification_report"],
         },
         "limitations": [
-            "Trained on synthetic Claude-generated student sessions.",
-            "Labels reflect synthetic student persona simulation, not validated educational psychometrics.",
-            "Domain is focused on university computer science topics.",
-            "Predictions should guide instructional interventions, not replace formal assessments.",
+            "Trained on synthetic student sessions with structured educational prompts.",
+            "Labels reflect simulated student persona behaviors, not validated human psychometrics.",
+            "Evaluated on university Computer Science topics.",
+            "Predictions are diagnostic recommendations, not formal assessment grades.",
         ],
     }
 
-    print(f"Saving evaluation report to: {report_output_path}")
-    with open(report_output_path, "w", encoding="utf-8") as f:
-        json.dump(evaluation_payload, f, indent=2)
+    eval_report_path = reports_dir / "model_evaluation.json"
+    with open(eval_report_path, "w", encoding="utf-8") as f:
+        json.dump(primary_eval_payload, f, indent=2)
+    print(f"Exported primary evaluation to: {eval_report_path.name}")
 
-    print("\nTraining and evaluation successfully completed.")
+    return comparison_payload
+
+
+def train_quiz_regressor(
+    quiz_data_path: Path = ROOT_DIR / "data" / "processed" / "edulens_clean_quiz.json",
+    output_dir: Path = ROOT_DIR / "models" / "quiz_score",
+    reports_dir: Path = ROOT_DIR / "reports",
+    random_state: int = 42,
+) -> Dict[str, Any]:
+    """
+    Trains and evaluates a Quiz Score Regressor predicting assessment percentage (0-100%).
+    """
+    print("\n" + "=" * 70)
+    print("STAGE 2: QUIZ SCORE PREDICTION REGRESSOR")
     print("=" * 70)
-    return evaluation_payload
+
+    if not quiz_data_path.exists():
+        print(f"Quiz dataset not found at {quiz_data_path}. Generating via prepare_data.py...")
+        from scripts.prepare_data import prepare_datasets
+        prepare_datasets()
+
+    with open(quiz_data_path, "r", encoding="utf-8") as f:
+        quiz_data = json.load(f)
+
+    df = pd.DataFrame(quiz_data)
+    print(f"Loaded {len(df)} sessions with post-session quiz scores.")
+    print(f"Score statistics: Mean={df['quiz_score_percent'].mean():.2f}%, Std={df['quiz_score_percent'].std():.2f}%")
+
+    X = df[["full_text", "student_messages"]]
+    y = df["quiz_score_percent"]
+
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=0.20, random_state=random_state
+    )
+
+    regressors = {
+        "ridge": {
+            "name": "Ridge Regressor (L2)",
+            "pipeline": Pipeline([
+                ("preprocessor", build_feature_pipeline(scaler="standard")),
+                ("regressor", Ridge(alpha=1.0, random_state=random_state)),
+            ]),
+        },
+        "random_forest": {
+            "name": "Random Forest Regressor",
+            "pipeline": Pipeline([
+                ("preprocessor", build_feature_pipeline(scaler="standard")),
+                ("regressor", RandomForestRegressor(n_estimators=100, max_depth=10, random_state=random_state)),
+            ]),
+        },
+    }
+
+    eval_results = {}
+    print("\nTraining Regression Models:")
+    print("-" * 65)
+    print(f"{'Model Name':<28} | {'MAE (%)':<10} | {'RMSE':<10} | {'R2 Score':<10}")
+    print("-" * 65)
+
+    for key, item in regressors.items():
+        pipe = item["pipeline"]
+        pipe.fit(X_train, y_train)
+        y_pred = pipe.predict(X_test)
+        # Clamp predictions to [0, 100]
+        y_pred_clipped = np.clip(y_pred, 0.0, 100.0)
+
+        mae = float(mean_absolute_error(y_test, y_pred_clipped))
+        rmse = float(np.sqrt(mean_squared_error(y_test, y_pred_clipped)))
+        r2 = float(r2_score(y_test, y_pred_clipped))
+
+        eval_results[key] = {
+            "name": item["name"],
+            "mae": round(mae, 3),
+            "rmse": round(rmse, 3),
+            "r2": round(r2, 4),
+        }
+
+        print(f"{item['name']:<28} | {mae:<10.2f} | {rmse:<10.2f} | {r2:<10.4f}")
+
+    # Select best regressor
+    best_reg_key = max(eval_results.keys(), key=lambda k: eval_results[k]["r2"])
+    best_pipe = regressors[best_reg_key]["pipeline"]
+
+    output_dir.mkdir(parents=True, exist_ok=True)
+    reg_artifact_path = output_dir / "model.joblib"
+    joblib.dump(best_pipe, reg_artifact_path)
+    print(f"\nSaved primary Quiz Regressor ({best_reg_key}) to: {reg_artifact_path}")
+
+    quiz_report_payload = {
+        "task": "Quiz Score Prediction (0-100%)",
+        "dataset_records": len(df),
+        "train_records": len(X_train),
+        "test_records": len(X_test),
+        "models": eval_results,
+        "selected_model": best_reg_key,
+    }
+
+    quiz_report_path = reports_dir / "quiz_regressor_evaluation.json"
+    with open(quiz_report_path, "w", encoding="utf-8") as f:
+        json.dump(quiz_report_payload, f, indent=2)
+    print(f"Saved quiz regressor evaluation to: {quiz_report_path.name}")
+    print("=" * 70)
+
+    return quiz_report_payload
+
+
+def run_full_training():
+    train_understanding_models()
+    train_quiz_regressor()
 
 
 if __name__ == "__main__":
-    train_and_evaluate()
+    run_full_training()

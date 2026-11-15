@@ -17,7 +17,7 @@ from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.compose import ColumnTransformer
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import StandardScaler, MinMaxScaler
 
 # Ensure project root is in sys.path
 ROOT_DIR = Path(__file__).resolve().parent.parent
@@ -134,17 +134,24 @@ class ConversationalFeatureExtractor(BaseEstimator, TransformerMixin):
         return np.array(self.feature_names_)
 
 
-def build_feature_pipeline() -> ColumnTransformer:
+def build_feature_pipeline(scaler: str = "standard", max_tfidf_features: int = 100) -> ColumnTransformer:
     """
-    Builds the complete Scikit-Learn feature union / column transformer.
+    Builds the Scikit-Learn feature union / column transformer.
     
     Combines:
     1. 'text_tfidf': TF-IDF vectorizer (max 100 features) on full_text.
-    2. 'convo_stats': StandardScaler applied to the 8 conversational signals.
+    2. 'convo_stats': Feature scaler applied to the 8 conversational signals.
+                      Supports 'standard' (StandardScaler) or 'minmax' (MinMaxScaler,
+                      required for MultinomialNB).
     """
+    if scaler == "minmax":
+        scaler_transformer = MinMaxScaler()
+    else:
+        scaler_transformer = StandardScaler()
+
     convo_pipeline = Pipeline([
         ("extract", ConversationalFeatureExtractor(message_col="student_messages")),
-        ("scale", StandardScaler()),
+        ("scale", scaler_transformer),
     ])
     
     preprocessor = ColumnTransformer(
@@ -152,7 +159,7 @@ def build_feature_pipeline() -> ColumnTransformer:
             (
                 "text_tfidf",
                 TfidfVectorizer(
-                    max_features=100,
+                    max_features=max_tfidf_features,
                     stop_words="english",
                     ngram_range=(1, 2),
                     min_df=2,

@@ -1,0 +1,162 @@
+[
+  {
+    "chat_id": "EXP_0005",
+    "field": "turns[3].teacher_message",
+    "old": "They're different. With starvation the system keeps making progress for others. With deadlock the involved processes are all stuck. Let me show an example with two locks.",
+    "new": "They're different. With starvation the system keeps making progress for others. With deadlock the involved processes are all stuck.",
+    "reason": "Teacher promised an example, but the student supplies it in the next turn; incoherent dialogue.",
+    "category": "coherence"
+  },
+  {
+    "chat_id": "EXP_0009",
+    "field": "turns[2].teacher_message",
+    "old": "The receiver keeps ACKing the last in-order byte, so it sends duplicate ACKs for 2. The sender also has a retransmission timer as a fallback.",
+    "new": "The receiver keeps ACKing the last in-order byte, so it sends duplicate ACKs asking for segment 3 again. The sender also has a retransmission timer as a fallback.",
+    "reason": "ACKs name the next expected byte/segment, not the last received one.",
+    "category": "technical_accuracy"
+  },
+  {
+    "chat_id": "EXP_0013",
+    "field": "turns[8].teacher_message",
+    "old": "No. When a constructor runs the object's vptr isn't fully set up for the final type, and you don't yet have an object to dispatch on.",
+    "new": "No. A constructor's job is to build the object, including setting up its vptr, and dynamic dispatch depends on that already being in place, so a constructor can't itself be dispatched virtually.",
+    "reason": "Original wording about the vptr was muddled.",
+    "category": "technical_accuracy"
+  },
+  {
+    "chat_id": "EXP_0014",
+    "field": "turns[2].teacher_message",
+    "old": "Exact h is ideal: A* would expand only nodes on an optimal path. But optimality only needs h to never overestimate. With h = 0 it behaves like Dijkstra and is still optimal.",
+    "new": "Exact h is ideal: A* would expand essentially only nodes on an optimal path. But optimality only needs h to never overestimate. With h = 0 it behaves like Dijkstra and is still optimal.",
+    "reason": "'only' is too strong: ties can still cause extra expansions.",
+    "category": "technical_accuracy"
+  },
+  {
+    "chat_id": "EXP_0002",
+    "field": "turns[11].teacher_message",
+    "old": "Yes, that's correct. The infinite loop is safe because values are produced only on demand and islice stops after ten. Nicely done.",
+    "new": "Yes, that's correct. The infinite loop is safe because values are produced only on demand and islice stops after ten.",
+    "reason": "Praise closer appeared almost only in understood sessions; a textual shortcut.",
+    "category": "shortcut"
+  },
+  {
+    "chat_id": "EXP_0010",
+    "field": "turns[10].teacher_message",
+    "old": "That's the right diagnosis and fix. Nicely reasoned.",
+    "new": "That's the right diagnosis and fix.",
+    "reason": "Praise closer appeared almost only in understood sessions.",
+    "category": "shortcut"
+  },
+  {
+    "chat_id": "EXP_0016",
+    "field": "turns[15].teacher_message",
+    "old": "Perfect plan, all the best.",
+    "new": "Fine. Run the pipeline version with cv=5 first, then compare the regularised model against it.",
+    "reason": "Praise closer appeared almost only in understood sessions.",
+    "category": "shortcut"
+  },
+  {
+    "chat_id": "EXP_0005",
+    "field": "turns[6].teacher_message",
+    "old": "I'd pause there: better scheduling doesn't fix deadlock. It needs a change in how resources are requested or granted, such as ordering or detection and recovery. Try the printer and scanner example again with a fixed order.",
+    "new": "Glad it feels clearer. Keep working through examples like the printer and scanner one, and check them against your lecture notes.",
+    "reason": "Lenient teacher: does not correct the wrong claim. Realistic, and removes the 'corrective closer = confused' shortcut. Label unchanged because the student's statements are still wrong.",
+    "category": "shortcut"
+  },
+  {
+    "chat_id": "EXP_0020",
+    "field": "turns[8].teacher_message",
+    "old": "I wouldn't submit that. Logistic regression is for classification, so predicting marks with it would be wrong. Rewrite it as: linear regression predicts a number; logistic regression passes the linear score through a sigmoid to get a class probability.",
+    "new": "Thanks for the update. Compare that wording with your lecture notes before you submit, and try running both models on a small dataset to see how they differ.",
+    "reason": "Lenient teacher: does not correct the wrong final answer. Label unchanged (student's answer is wrong).",
+    "category": "shortcut"
+  },
+  {
+    "chat_id": "EXP_0009",
+    "field": "misconception_resolved",
+    "old": true,
+    "new": false,
+    "reason": "Student ends by claiming Reno resets cwnd to 1 on three duplicate ACKs, which is still a congestion-control misunderstanding; 'resolved' was too generous.",
+    "category": "annotation"
+  },
+  {
+    "chat_id": "EXP_0009",
+    "field": "annotation_rationale",
+    "old": "Student asks many good questions and correctly describes slow start. But they mix up flow and congestion control and where cwnd lives early on, again assume cwnd is the limiting window, and finish by repeating that Reno resets cwnd to 1 on three duplicate ACKs, which the teacher had already corrected.",
+    "new": "Student asks many good questions and correctly describes slow start and the min(cwnd, rwnd) rule. But they mix up flow and congestion control early, assume cwnd is the limiting window once more, and finish by repeating that Reno resets cwnd to 1 on three duplicate ACKs, which the teacher had already corrected. Congestion-control behaviour is still wrong at the end.",
+    "reason": "Rationale updated to match misconception_resolved=false.",
+    "category": "annotation"
+  },
+  {
+    "chat_id": "EXP_0018",
+    "field": "student_confidence",
+    "old": "high",
+    "new": "unknown",
+    "reason": "No explicit statement of confidence; 'Am I right?' is a question, and assertive wrong claims are not expressed confidence.",
+    "category": "annotation"
+  },
+  {
+    "chat_id": "EXP_0012",
+    "field": "student_confidence",
+    "old": "moderate",
+    "new": "low",
+    "reason": "Student says 'I still don't have an intuition', an explicit expression of low conceptual confidence.",
+    "category": "annotation"
+  },
+  {
+    "chat_id": "EXP_0001",
+    "field": "annotation_rationale",
+    "old": "Student correctly explains &a and *p, and after a hint applies element-size scaling (double* +2 = 16 bytes). But they also claim arr and q are 'basically the same' and that arr++ is allowed, a gap the teacher had to fix. Their final restatement is tentative and teacher-prompted.",
+    "new": "Student correctly explains &a and *p, and after a hint applies element-size scaling (double* +2 = 16 bytes). But they first say q+1 is 'one byte after arr', and later claim arr and q are 'basically the same thing' so arr++ is allowed. The teacher had to correct both, and the final restatement ('arr is more like a fixed address') is tentative and teacher-prompted.",
+    "reason": "Rationale quoted student wording only abstractly; made it reference actual student statements.",
+    "category": "annotation"
+  },
+  {
+    "chat_id": "EXP_0020",
+    "field": "turns[2].question_type",
+    "old": "clarification",
+    "new": "answer_attempt",
+    "reason": "Student states a claim (logistic regression predicts prices) inside the question; it is an answer attempt.",
+    "category": "annotation"
+  },
+  {
+    "chat_id": "EXP_0020",
+    "field": "turns[4].question_type",
+    "old": "application",
+    "new": "answer_attempt",
+    "reason": "Student commits to an answer (use logistic regression for marks).",
+    "category": "annotation"
+  },
+  {
+    "chat_id": "EXP_0020",
+    "field": "turns[8].question_type",
+    "old": "feedback",
+    "new": "explanation_attempt",
+    "reason": "Final message is the student's own written explanation, not feedback.",
+    "category": "annotation"
+  },
+  {
+    "chat_id": "ALL",
+    "field": "data_source",
+    "old": "(absent)",
+    "new": "synthetic_llm",
+    "reason": "New mandatory field.",
+    "category": "schema"
+  },
+  {
+    "chat_id": "ALL",
+    "field": "self_correction_turns",
+    "old": "(absent)",
+    "new": "list of turns (EXP_0004:[7], EXP_0010:[3], EXP_0017:[3]; others [])",
+    "reason": "New field that makes self_correction checkable.",
+    "category": "schema"
+  },
+  {
+    "chat_id": "ALL",
+    "field": "generation_meta",
+    "old": "schema 2.0",
+    "new": "schema 2.1 + teacher_style + qa_flag",
+    "reason": "Documented teacher behaviour and borderline-label flags.",
+    "category": "schema"
+  }
+]

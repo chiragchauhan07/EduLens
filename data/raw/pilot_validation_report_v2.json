@@ -1,0 +1,363 @@
+{
+  "file": "/mnt/user-data/outputs/edulens_expanded_pilot_020_v2.json",
+  "records": 20,
+  "schema_version": "2.1",
+  "claim_discipline": "structural_pass only means the JSON is well formed and internally consistent. It does NOT mean labels or conversations are educationally correct. All labels are LLM-authored and unverified by humans unless quality_review says otherwise.",
+  "structural": {
+    "structural_pass": true,
+    "records_with_errors": 0,
+    "errors": {},
+    "duplicate_chat_ids": [],
+    "mixed_data_sources_in_file": null,
+    "missing_field_count": 0,
+    "malformed_data_source_count": 0,
+    "invalid_label_count": 0
+  },
+  "semantic_screening": {
+    "kind": "heuristic warnings, not a verdict",
+    "records_with_warnings": 0,
+    "warning_count": 0,
+    "by_code": {},
+    "warnings": {},
+    "human_verified_records": 0
+  },
+  "duplicates": {
+    "exact_duplicate_sessions": 0,
+    "near_duplicate_pairs": [],
+    "student_messages_repeated_across_dataset": 0,
+    "most_repeated_student_messages": []
+  },
+  "distributions": {
+    "total": 20,
+    "data_source": {
+      "synthetic_llm": 20
+    },
+    "final_understanding": {
+      "partial": 7,
+      "confused": 7,
+      "understood": 6
+    },
+    "subject": {
+      "Python": 2,
+      "DBMS": 2,
+      "DAA": 2,
+      "ML": 2,
+      "DSA": 2,
+      "C": 1,
+      "OS": 1,
+      "NLP": 1,
+      "CN": 1,
+      "Java": 1,
+      "DL": 1,
+      "Maths": 1,
+      "C++": 1,
+      "AI": 1,
+      "DataSci": 1
+    },
+    "topic": {
+      "C/Pointers": 1,
+      "Python/Python Advanced": 1,
+      "DBMS/Transactions": 1,
+      "DAA/Dynamic Programming": 1,
+      "OS/Deadlock": 1,
+      "ML/Evaluation Metrics": 1,
+      "DSA/Linked List": 1,
+      "NLP/Text Representation": 1,
+      "CN/Transport Layer": 1,
+      "Java/Exceptions": 1,
+      "DL/Backpropagation": 1,
+      "Maths/Linear Algebra": 1,
+      "C++/OOP": 1,
+      "AI/Search Algorithms": 1,
+      "Python/Python Basics": 1,
+      "DataSci/Data Preprocessing": 1,
+      "DSA/Hashing": 1,
+      "DAA/Complexity": 1,
+      "DBMS/SQL": 1,
+      "ML/Regression": 1
+    },
+    "length_bucket": {
+      "medium": 10,
+      "short": 7,
+      "long": 3
+    },
+    "student_persona": {
+      "beginner": 4,
+      "terse": 2,
+      "hesitant": 2,
+      "overconfident": 2,
+      "curious": 2,
+      "exam": 2,
+      "skeptical": 2,
+      "debug": 2,
+      "explainer": 1,
+      "casual": 1
+    },
+    "language_style": {
+      "english_casual": 9,
+      "english_standard": 5,
+      "hinglish_light": 4,
+      "hinglish_heavy": 2
+    },
+    "teacher_style": {
+      "direct_corrector": 18,
+      "lenient": 2
+    },
+    "self_correction": {
+      "no": 17,
+      "yes": 3
+    },
+    "engagement_level": {
+      "high": 12,
+      "moderate": 5,
+      "low": 3
+    },
+    "misconception_present": {
+      "true": 16,
+      "false": 4
+    },
+    "misconception_category": {
+      "null": 4,
+      "array_name_vs_pointer_variable": 1,
+      "acid_consistency_vs_isolation": 1,
+      "greedy_vs_dp_for_01_knapsack": 1,
+      "deadlock_vs_starvation": 1,
+      "precision_recall_tradeoff_threshold": 1,
+      "tfidf_idf_direction_reversed": 1,
+      "flow_control_vs_congestion_control": 1,
+      "checked_vs_unchecked_exceptions": 1,
+      "backpropagation_vs_gradient_descent": 1,
+      "singular_matrix_meaning_in_eigenvalue_equation": 1,
+      "astar_heuristic_requirements": 1,
+      "mutable_default_argument_evaluation": 1,
+      "chaining_vs_open_addressing_capacity_rehashing": 1,
+      "time_complexity_misunderstanding": 1,
+      "on_vs_where_filtering_in_joins": 1,
+      "confusion_between_linear_and_logistic_regression": 1
+    },
+    "student_confidence": {
+      "unknown": 10,
+      "moderate": 4,
+      "low": 3,
+      "high": 3
+    },
+    "reasoning_quality": {
+      "moderate": 9,
+      "weak": 6,
+      "strong": 5
+    },
+    "llm_client": {
+      "Gemini": 12,
+      "ChatGPT": 5,
+      "Claude": 3
+    },
+    "difficulty_level": {
+      "intermediate": 12,
+      "basic": 4,
+      "advanced": 4
+    },
+    "task_type": {
+      "concept_explanation": 6,
+      "mathematical_explanation": 4,
+      "algorithmic_reasoning": 3,
+      "debugging": 3,
+      "conceptual_comparison": 2,
+      "programming_problem": 1,
+      "practical_application": 1
+    },
+    "unique_student_ids": 20
+  },
+  "leakage_diagnostics": {
+    "n": 20,
+    "reliability": "not_interpretable",
+    "categorical_vs_class": {
+      "overall_sentiment": {
+        "cramers_v": 0.362,
+        "deterministic_mapping": false
+      },
+      "final_turn_sentiment": {
+        "cramers_v": 0.465,
+        "deterministic_mapping": false
+      },
+      "student_confidence": {
+        "cramers_v": 0.362,
+        "deterministic_mapping": false
+      },
+      "engagement_level": {
+        "cramers_v": 0.434,
+        "deterministic_mapping": false
+      },
+      "reasoning_quality": {
+        "cramers_v": 0.867,
+        "deterministic_mapping": false
+      },
+      "self_correction": {
+        "cramers_v": 0.375,
+        "deterministic_mapping": false
+      },
+      "misconception_present": {
+        "cramers_v": 0.764,
+        "deterministic_mapping": false
+      },
+      "student_persona": {
+        "cramers_v": 0.532,
+        "deterministic_mapping": false
+      },
+      "language_style": {
+        "cramers_v": 0.298,
+        "deterministic_mapping": false
+      },
+      "subject": {
+        "cramers_v": 0.791,
+        "deterministic_mapping": false
+      },
+      "length_bucket": {
+        "cramers_v": 0.181,
+        "deterministic_mapping": false
+      },
+      "llm_client": {
+        "cramers_v": 0.22,
+        "deterministic_mapping": false
+      },
+      "difficulty_level": {
+        "cramers_v": 0.148,
+        "deterministic_mapping": false
+      },
+      "task_type": {
+        "cramers_v": 0.427,
+        "deterministic_mapping": false
+      },
+      "teacher_style": {
+        "cramers_v": 0.454,
+        "deterministic_mapping": false
+      },
+      "scenario_tag": {
+        "cramers_v": 0.964,
+        "deterministic_mapping": false
+      },
+      "final_teacher_message_cue": {
+        "cramers_v": 0.328,
+        "deterministic_mapping": false
+      },
+      "last_student_msg_thanks": {
+        "cramers_v": 0.542,
+        "deterministic_mapping": false
+      }
+    },
+    "numeric_vs_class": {
+      "num_student_turns": {
+        "eta_squared": 0.07,
+        "class_means": {
+          "understood": 11.667,
+          "partial": 9.857,
+          "confused": 9.571
+        }
+      },
+      "student_question_count": {
+        "eta_squared": 0.015,
+        "class_means": {
+          "understood": 6.667,
+          "partial": 6.286,
+          "confused": 5.714
+        }
+      },
+      "mean_student_words": {
+        "eta_squared": 0.124,
+        "class_means": {
+          "understood": 17.748,
+          "partial": 19.832,
+          "confused": 20.587
+        }
+      },
+      "emoji_message_share": {
+        "eta_squared": 0.088,
+        "class_means": {
+          "understood": 0.197,
+          "partial": 0.367,
+          "confused": 0.406
+        }
+      },
+      "teacher_correction_share": {
+        "eta_squared": 0.402,
+        "class_means": {
+          "understood": 0.174,
+          "partial": 0.238,
+          "confused": 0.436
+        }
+      },
+      "student_attempt_share": {
+        "eta_squared": 0.027,
+        "class_means": {
+          "understood": 0.55,
+          "partial": 0.496,
+          "confused": 0.535
+        }
+      },
+      "confusion_points": {
+        "eta_squared": 0.829,
+        "class_means": {
+          "understood": 0.833,
+          "partial": 3.429,
+          "confused": 8.143
+        }
+      },
+      "quiz_score_percent": {
+        "eta_squared": 0.143,
+        "class_means": {
+          "understood": 58.5,
+          "partial": 61.286,
+          "confused": 50.714
+        }
+      }
+    },
+    "lexical_probe_student_text": {
+      "min_sessions": 3,
+      "n_class_concentrated_tokens": 3,
+      "examples": [
+        [
+          "code",
+          "understood",
+          4
+        ],
+        [
+          "next",
+          "understood",
+          3
+        ],
+        [
+          "returns",
+          "understood",
+          3
+        ]
+      ]
+    },
+    "warnings": [],
+    "interpretation": "n=20: statistics are 'not_interpretable'. Small samples cannot establish or rule out correlations or shortcuts; empty warnings do not mean the data are free of leakage. Natural relationships between understanding and e.g. reasoning_quality are expected; only deterministic or implausibly strong associations indicate a generation artefact. Re-run on the full dataset and on a held-out, student-grouped classifier probe."
+  },
+  "forbidden_model_input_fields": [
+    "final_understanding",
+    "overall_sentiment",
+    "turns[].sentiment",
+    "turns[].confusion_flag",
+    "confusion_points",
+    "quiz",
+    "reasoning_quality",
+    "misconception_present",
+    "misconception_category",
+    "misconception_resolved",
+    "self_correction",
+    "self_correction_turns",
+    "engagement_level",
+    "student_confidence",
+    "annotation_rationale",
+    "quality_review",
+    "generation_meta",
+    "chat_id",
+    "student_id",
+    "timestamp",
+    "data_source",
+    "llm_client",
+    "turns[].llm_message_context (teacher-derived; allowed only in the full-conversation view)"
+  ],
+  "class_counts_match_expected": true
+}

@@ -1,0 +1,47 @@
+{
+  "dataset_name": "EduLens Cleaned Primary Dataset",
+  "total_records": 430,
+  "target_class_distribution": {
+    "confused": 82,
+    "understood": 192,
+    "partial": 156
+  },
+  "target_class_proportions": {
+    "confused": 0.1907,
+    "understood": 0.4465,
+    "partial": 0.3628
+  },
+  "subject_distribution": {
+    "C++": 27,
+    "OS": 50,
+    "DAA": 80,
+    "ML": 63,
+    "DSA": 80,
+    "DBMS": 40,
+    "Maths": 18,
+    "CN": 27,
+    "Python": 18,
+    "Cloud": 18,
+    "Java": 9
+  },
+  "num_unique_topics": 45,
+  "num_unique_students": 30,
+  "conversational_length_metrics": {
+    "turns_mean": 5.17,
+    "turns_std": 0.89,
+    "turns_min": 3,
+    "turns_max": 7,
+    "words_mean": 84.07,
+    "words_std": 18.1,
+    "words_min": 39,
+    "words_max": 143
+  },
+  "quiz_score_metrics": {
+    "total_records": 1720,
+    "score_mean": 63.24,
+    "score_std": 19.19,
+    "score_min": 14.0,
+    "score_max": 98.0,
+    "score_median": 66.0
+  }
+}

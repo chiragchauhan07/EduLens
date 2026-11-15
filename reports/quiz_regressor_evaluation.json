@@ -1,0 +1,21 @@
+{
+  "task": "Quiz Score Prediction (0-100%)",
+  "dataset_records": 1720,
+  "train_records": 1376,
+  "test_records": 344,
+  "models": {
+    "ridge": {
+      "name": "Ridge Regressor (L2)",
+      "mae": 8.013,
+      "rmse": 9.856,
+      "r2": 0.7356
+    },
+    "random_forest": {
+      "name": "Random Forest Regressor",
+      "mae": 8.006,
+      "rmse": 9.817,
+      "r2": 0.7377
+    }
+  },
+  "selected_model": "random_forest"
+}

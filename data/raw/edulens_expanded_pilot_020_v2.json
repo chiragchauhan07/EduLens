@@ -1,0 +1,3228 @@
+[
+  {
+    "chat_id": "EXP_0001",
+    "student_id": "SYN_S040",
+    "timestamp": "2026-08-04 21:53",
+    "llm_client": "ChatGPT",
+    "subject": "C",
+    "topic": "Pointers",
+    "main_concept": "pointer arithmetic and arrays in C",
+    "confusable_concept": "array indexing",
+    "student_persona": "terse",
+    "language_style": "english_casual",
+    "difficulty_level": "basic",
+    "task_type": "concept_explanation",
+    "num_student_turns": 7,
+    "confusion_points": 2,
+    "final_understanding": "partial",
+    "overall_sentiment": "mixed",
+    "self_correction": "no",
+    "engagement_level": "moderate",
+    "misconception_present": true,
+    "misconception_category": "array_name_vs_pointer_variable",
+    "misconception_resolved": false,
+    "student_confidence": "unknown",
+    "reasoning_quality": "moderate",
+    "turns": [
+      {
+        "turn": 1,
+        "student_message": "what does int *p = &a; actually do 😅",
+        "teacher_message": "It declares p as a pointer to int and initialises it with the address of a. So p stores a's address, and *p later means 'the value at that address'. The * in the declaration is just part of the type.",
+        "llm_message_context": null,
+        "question_type": "definition",
+        "cognitive_level": "Understand",
+        "sentiment": "neutral",
+        "confusion_flag": 0
+      },
+      {
+        "turn": 2,
+        "student_message": "so p holds the address and *p is the value at that address. if a=10 then *p is 10 🤔",
+        "teacher_message": "Right. And writing *p = 20 would change a itself, because p points at a's memory.",
+        "llm_message_context": "Explained declaring and initialising a pointer with &a.",
+        "question_type": "explanation_attempt",
+        "cognitive_level": "Understand",
+        "sentiment": "neutral",
+        "confusion_flag": 0
+      },
+      {
+        "turn": 3,
+        "student_message": "ok. int arr[3]={10,20,30}; int *q=arr; what does q+1 point to 🙏",
+        "teacher_message": "Have a guess first: what do you think q+1 points to, and what would *(q+1) print?",
+        "llm_message_context": "Confirmed the student's summary and showed writing through *p.",
+        "question_type": "application",
+        "cognitive_level": "Apply",
+        "sentiment": "neutral",
+        "confusion_flag": 0
+      },
+      {
+        "turn": 4,
+        "student_message": "q+1 is the address one byte after arr so *(q+1) would be part of the 10, not 20 🤔",
+        "teacher_message": "Good that you committed to a prediction. The catch: pointer arithmetic scales by the size of the pointed-to type. q is an int*, so q+1 moves sizeof(int) bytes, usually 4, and lands on arr[1]. So *(q+1) is 20.",
+        "llm_message_context": "Asked the student to predict q+1 before explaining.",
+        "question_type": "answer_attempt",
+        "cognitive_level": "Apply",
+        "sentiment": "neutral",
+        "confusion_flag": 1
+      },
+      {
+        "turn": 5,
+        "student_message": "oh so it moves 4 bytes here. so if q was a char pointer it would move 1 byte",
+        "teacher_message": "Exactly. The compiler multiplies the offset by sizeof the pointed-to type, which is also why arr[i] is defined as *(arr + i).",
+        "llm_message_context": "Corrected the one-byte assumption: arithmetic scales by element size.",
+        "question_type": "explanation_attempt",
+        "cognitive_level": "Apply",
+        "sentiment": "neutral",
+        "confusion_flag": 0
+      },
+      {
+        "turn": 6,
+        "student_message": "so for double *d, d+2 moves 16 bytes. and q points to arr so arr and q are basically the same thing, i can do arr++ as well 😅",
+        "teacher_message": "Your double example is right on typical systems (2 x 8 = 16 bytes). But arr and q aren't the same: q is a pointer variable you can modify, while arr is the array's name. In most expressions it converts to a pointer to the first element, but you can't assign to it, so arr++ is a compile error and q++ is fine.",
+        "llm_message_context": "Confirmed char pointer moves 1 byte and linked to arr[i].",
+        "question_type": "answer_attempt",
+        "cognitive_level": "Analyze",
+        "sentiment": "neutral",
+        "confusion_flag": 1
+      },
+      {
+        "turn": 7,
+        "student_message": "hmm so arr is more like a fixed address and q is a variable that holds a copy of that address? 🤔",
+        "teacher_message": "Pretty much. arr names the array's storage and decays to the address of its first element; q is separate storage holding a copy of that address, so you can move it. You'll also notice sizeof(arr) gives the whole array size, while sizeof(q) is just the pointer size.",
+        "llm_message_context": "Confirmed double arithmetic; corrected arr++ and array name vs pointer.",
+        "question_type": "clarification",
+        "cognitive_level": "Understand",
+        "sentiment": "neutral",
+        "confusion_flag": 0
+      }
+    ],
+    "quiz": {
+      "num_questions": 15,
+      "correct": 9,
+      "score_percent": 60
+    },
+    "annotation_rationale": "Student correctly explains &a and *p, and after a hint applies element-size scaling (double* +2 = 16 bytes). But they first say q+1 is 'one byte after arr', and later claim arr and q are 'basically the same thing' so arr++ is allowed. The teacher had to correct both, and the final restatement ('arr is more like a fixed address') is tentative and teacher-prompted.",
+    "quality_review": {
+      "automated_structural_check": "passed",
+      "automated_semantic_screen": "heuristic; 0 warning(s)",
+      "checks_run": [
+        "schema",
+        "enums",
+        "annotation_shape",
+        "quiz_arithmetic",
+        "id_leakage",
+        "data_source"
+      ],
+      "human_verified": false,
+      "human_review": null
+    },
+    "generation_meta": {
+      "batch_id": "pilot_000_v2",
+      "schema_version": "2.1",
+      "scenario_tag": "definition_ok_application_fails",
+      "text_source": "LLM-authored synthetic conversation (not human-verified)",
+      "use_as_training_feature": false,
+      "teacher_style": "direct_corrector",
+      "qa_flag": "borderline partial/understood: final restatement correct but teacher-prompted and tentative"
+    },
+    "data_source": "synthetic_llm",
+    "self_correction_turns": []
+  },
+  {
+    "chat_id": "EXP_0002",
+    "student_id": "SYN_S188",
+    "timestamp": "2026-08-16 13:36",
+    "llm_client": "Gemini",
+    "subject": "Python",
+    "topic": "Python Advanced",
+    "main_concept": "generators and the yield keyword",
+    "confusable_concept": "lists and iterators",
+    "student_persona": "hesitant",
+    "language_style": "english_standard",
+    "difficulty_level": "intermediate",
+    "task_type": "concept_explanation",
+    "num_student_turns": 11,
+    "confusion_points": 0,
+    "final_understanding": "understood",
+    "overall_sentiment": "mixed",
+    "self_correction": "no",
+    "engagement_level": "high",
+    "misconception_present": false,
+    "misconception_category": null,
+    "misconception_resolved": null,
+    "student_confidence": "low",
+    "reasoning_quality": "strong",
+    "turns": [
+      {
+        "turn": 1,
+        "student_message": "Hi, could you explain what a generator is in Python? I keep seeing yield but I'm not sure what it actually does.",
+        "teacher_message": "A generator function produces values one at a time instead of all at once. When it hits yield, it hands back a value and pauses, keeping its local variables, and resumes from that point the next time a value is requested.",
+        "llm_message_context": null,
+        "question_type": "definition",
+        "cognitive_level": "Understand",
+        "sentiment": "neutral",
+        "confusion_flag": 0
+      },
+      {
+        "turn": 2,
+        "student_message": "So if I understand correctly, calling a generator function doesn't run the body; it returns a generator object, and the code only runs when I call next() on it? I might be wrong.",
+        "teacher_message": "You're right. Calling it just creates the generator object. Each next() runs the body until the next yield.",
+        "llm_message_context": "Explained generators as pausing functions that yield values lazily.",
+        "question_type": "explanation_attempt",
+        "cognitive_level": "Understand",
+        "sentiment": "mixed",
+        "confusion_flag": 0
+      },
+      {
+        "turn": 3,
+        "student_message": "What happens when it reaches the end? I assume it raises some kind of error?",
+        "teacher_message": "Yes, it raises StopIteration. A for loop catches that for you, which is why you rarely see it.",
+        "llm_message_context": "Confirmed the student's description of lazy execution.",
+        "question_type": "clarification",
+        "cognitive_level": "Understand",
+        "sentiment": "neutral",
+        "confusion_flag": 0
+      },
+      {
+        "turn": 4,
+        "student_message": "Is a generator better than just returning a list?",
+        "teacher_message": "It depends. A generator uses little memory because it never builds the whole sequence, which helps with large or infinite streams. A list is better when you need to reuse the values, index them, or know the length.",
+        "llm_message_context": "Explained StopIteration at generator end.",
+        "question_type": "comparison",
+        "cognitive_level": "Analyze",
+        "sentiment": "neutral",
+        "confusion_flag": 0
+      },
+      {
+        "turn": 5,
+        "student_message": "Let me test: def count(n): i=0; while i<n: yield i; i+=1. If I do g=count(3) and list(g) I get [0,1,2], and a second list(g) gives []? I think the generator is exhausted, but I'm not certain.",
+        "teacher_message": "Correct on both counts. Once a generator is exhausted it stays exhausted.",
+        "llm_message_context": "Compared generators with lists on memory and reuse.",
+        "question_type": "answer_attempt",
+        "cognitive_level": "Apply",
+        "sentiment": "mixed",
+        "confusion_flag": 0
+      },
+      {
+        "turn": 6,
+        "student_message": "So to reuse it I would call count(3) again to make a fresh generator, right? Sorry if that's obvious.",
+        "teacher_message": "Not obvious at all, and yes: each call creates a new, independent generator.",
+        "llm_message_context": "Confirmed generator exhaustion after one pass.",
+        "question_type": "explanation_attempt",
+        "cognitive_level": "Understand",
+        "sentiment": "neutral",
+        "confusion_flag": 0
+      },
+      {
+        "turn": 7,
+        "student_message": "What about sum(x*x for x in range(5)) — is that a generator too?",
+        "teacher_message": "It's a generator expression. It produces each square lazily and sum consumes them one by one, so no intermediate list is built.",
+        "llm_message_context": "Confirmed each call creates a new generator.",
+        "question_type": "clarification",
+        "cognitive_level": "Understand",
+        "sentiment": "neutral",
+        "confusion_flag": 0
+      },
+      {
+        "turn": 8,
+        "student_message": "Then would len() work on a generator? I'd guess not, since it can't know its size in advance.",
+        "teacher_message": "Good reasoning. len(g) raises a TypeError. If you need the count you'd have to consume it, for example sum(1 for _ in g).",
+        "llm_message_context": "Explained generator expressions.",
+        "question_type": "answer_attempt",
+        "cognitive_level": "Analyze",
+        "sentiment": "neutral",
+        "confusion_flag": 0
+      },
+      {
+        "turn": 9,
+        "student_message": "When would I choose a list over a generator, then?",
+        "teacher_message": "When you need several passes, random access, slicing or len(). Generators suit one-pass streaming over big or unbounded data.",
+        "llm_message_context": "Confirmed len() fails on generators.",
+        "question_type": "comparison",
+        "cognitive_level": "Evaluate",
+        "sentiment": "neutral",
+        "confusion_flag": 0
+      },
+      {
+        "turn": 10,
+        "student_message": "So: multiple passes, indexing or length means a list; streaming large data means a generator. I'm still not very confident I'd get this right in an exam though.",
+        "teacher_message": "That summary is accurate, so you're better prepared than you think. For practice, try writing an infinite Fibonacci generator and take the first ten values.",
+        "llm_message_context": "Summarised when lists beat generators.",
+        "question_type": "explanation_attempt",
+        "cognitive_level": "Evaluate",
+        "sentiment": "mixed",
+        "confusion_flag": 0
+      },
+      {
+        "turn": 11,
+        "student_message": "def fib(): a,b=0,1; while True: yield a; a,b=b,a+b — and then list(itertools.islice(fib(), 10)) gives the first ten. Does that look right?",
+        "teacher_message": "Yes, that's correct. The infinite loop is safe because values are produced only on demand and islice stops after ten.",
+        "llm_message_context": "Confirmed summary and suggested a Fibonacci practice task.",
+        "question_type": "answer_attempt",
+        "cognitive_level": "Create",
+        "sentiment": "positive",
+        "confusion_flag": 0
+      }
+    ],
+    "quiz": {
+      "num_questions": 11,
+      "correct": 5,
+      "score_percent": 45
+    },
+    "annotation_rationale": "Every prediction the student makes is correct: lazy execution, exhaustion after one pass, no len(), generator expressions, and a working infinite Fibonacci generator with islice. Hedging ('I might be wrong', 'not very confident') reflects low stated confidence, not missing understanding.",
+    "quality_review": {
+      "automated_structural_check": "passed",
+      "automated_semantic_screen": "heuristic; 0 warning(s)",
+      "checks_run": [
+        "schema",
+        "enums",
+        "annotation_shape",
+        "quiz_arithmetic",
+        "id_leakage",
+        "data_source"
+      ],
+      "human_verified": false,
+      "human_review": null
+    },
+    "generation_meta": {
+      "batch_id": "pilot_000_v2",
+      "schema_version": "2.1",
+      "scenario_tag": "uncertain_but_correct",
+      "text_source": "LLM-authored synthetic conversation (not human-verified)",
+      "use_as_training_feature": false,
+      "teacher_style": "direct_corrector",
+      "qa_flag": null
+    },
+    "data_source": "synthetic_llm",
+    "self_correction_turns": []
+  },
+  {
+    "chat_id": "EXP_0003",
+    "student_id": "SYN_S164",
+    "timestamp": "2026-09-12 12:52",
+    "llm_client": "Gemini",
+    "subject": "DBMS",
+    "topic": "Transactions",
+    "main_concept": "ACID properties of transactions",
+    "confusable_concept": "replication consistency",
+    "student_persona": "overconfident",
+    "language_style": "hinglish_light",
+    "difficulty_level": "intermediate",
+    "task_type": "concept_explanation",
+    "num_student_turns": 10,
+    "confusion_points": 9,
+    "final_understanding": "confused",
+    "overall_sentiment": "mixed",
+    "self_correction": "no",
+    "engagement_level": "high",
+    "misconception_present": true,
+    "misconception_category": "acid_consistency_vs_isolation",
+    "misconception_resolved": false,
+    "student_confidence": "high",
+    "reasoning_quality": "weak",
+    "turns": [
+      {
+        "turn": 1,
+        "student_message": "ACID properties toh easy hain bro. atomicity = all or nothing, consistency = everyone sees the same data, isolation = nobody else can touch the database, durability = saved. correct?",
+        "teacher_message": "Atomicity and durability are right. Consistency and isolation need work. Consistency means a transaction takes the database from one valid state to another, respecting constraints. Isolation means concurrent transactions don't interfere with each other's intermediate states.",
+        "llm_message_context": null,
+        "question_type": "answer_attempt",
+        "cognitive_level": "Understand",
+        "sentiment": "positive",
+        "confusion_flag": 1
+      },
+      {
+        "turn": 2,
+        "student_message": "nahi nahi, consistency means same data har user ko dikhe, my seniors told me. wahi toh hai na?",
+        "teacher_message": "That idea comes from replicated systems, where replicas should agree. ACID consistency is about integrity rules, like a CHECK that balance >= 0. A transaction that would break such a rule is rolled back.",
+        "llm_message_context": "Confirmed atomicity and durability; corrected consistency and isolation.",
+        "question_type": "challenge",
+        "cognitive_level": "Understand",
+        "sentiment": "neutral",
+        "confusion_flag": 1
+      },
+      {
+        "turn": 3,
+        "student_message": "ok but if two users see different balance then database is inconsistent na?",
+        "teacher_message": "Not necessarily. Under isolation, concurrent transactions may see different snapshots for a while, but each snapshot is itself valid. Inconsistent would mean a rule is violated, like a negative balance.",
+        "llm_message_context": "Distinguished ACID consistency from replica consistency.",
+        "question_type": "clarification",
+        "cognitive_level": "Analyze",
+        "sentiment": "neutral",
+        "confusion_flag": 1
+      },
+      {
+        "turn": 4,
+        "student_message": "toh isolation matlab poora database lock ho jata hai jab tak transaction khatam na ho. that's why banks are slow",
+        "teacher_message": "Not quite. Databases lock at much finer levels, such as rows, or use multiversion snapshots, and isolation levels control how much transactions can see of each other. The whole database isn't locked.",
+        "llm_message_context": "Explained that different snapshots are not ACID inconsistency.",
+        "question_type": "explanation_attempt",
+        "cognitive_level": "Understand",
+        "sentiment": "neutral",
+        "confusion_flag": 1
+      },
+      {
+        "turn": 5,
+        "student_message": "example: T1 transfers 100 from A to B. T2 reads A and B at same time. if isolation works T2 should wait for T1 to finish completely right?",
+        "teacher_message": "T2 either sees the state before the transfer or after it, never with 100 already removed from A but not yet added to B. Whether it waits or reads an older snapshot depends on the mechanism.",
+        "llm_message_context": "Corrected whole-database locking idea of isolation.",
+        "question_type": "answer_attempt",
+        "cognitive_level": "Apply",
+        "sentiment": "neutral",
+        "confusion_flag": 0
+      },
+      {
+        "turn": 6,
+        "student_message": "yeah wahi toh, T2 waits. so consistency aur isolation are same thing basically?",
+        "teacher_message": "No, they're different. Consistency: the transaction can't leave the database violating constraints. Isolation: concurrent transactions don't expose each other's half-finished work. Try thinking of CHECK(balance >= 0) for the first and T1/T2 for the second.",
+        "llm_message_context": "Used the transfer example to show isolation outcomes.",
+        "question_type": "clarification",
+        "cognitive_level": "Analyze",
+        "sentiment": "neutral",
+        "confusion_flag": 1
+      },
+      {
+        "turn": 7,
+        "student_message": "ok so consistency is the CHECK thing. but then who makes sure everyone sees same data?",
+        "teacher_message": "Nobody needs to guarantee that in the ACID sense. Visibility is governed by the isolation level, and replicas agreeing is a separate topic.",
+        "llm_message_context": "Separated consistency (constraints) from isolation (concurrency).",
+        "question_type": "clarification",
+        "cognitive_level": "Understand",
+        "sentiment": "neutral",
+        "confusion_flag": 1
+      },
+      {
+        "turn": 8,
+        "student_message": "ok i'll write consistency = same data for all users and also CHECK constraints, both. safe in exam",
+        "teacher_message": "I'd avoid that. 'Same data for all users' would likely be marked wrong for ACID. Stick to: moves the database from one valid state to another.",
+        "llm_message_context": "Explained who controls visibility: isolation level and replication.",
+        "question_type": "explanation_attempt",
+        "cognitive_level": "Evaluate",
+        "sentiment": "neutral",
+        "confusion_flag": 1
+      },
+      {
+        "turn": 9,
+        "student_message": "hmm confusing. isolation toh simply security hai na, ki dusra user access nahi kar sakta",
+        "teacher_message": "No, that's about permissions and access control. Isolation is purely about concurrent transactions not seeing each other's intermediate changes.",
+        "llm_message_context": "Warned against the mixed definition of consistency.",
+        "question_type": "challenge",
+        "cognitive_level": "Understand",
+        "sentiment": "negative",
+        "confusion_flag": 1
+      },
+      {
+        "turn": 10,
+        "student_message": "ok ok. so atomicity all or nothing, consistency same data, isolation security, durability saved. thanks 🙏",
+        "teacher_message": "You have atomicity and durability right. I'd still revisit the other two: consistency is about valid states and constraints, isolation about concurrency. Try the transfer example again with T2 reading mid-way.",
+        "llm_message_context": "Distinguished isolation from access control.",
+        "question_type": "feedback",
+        "cognitive_level": "Evaluate",
+        "sentiment": "negative",
+        "confusion_flag": 1
+      }
+    ],
+    "quiz": {
+      "num_questions": 12,
+      "correct": 7,
+      "score_percent": 58
+    },
+    "annotation_rationale": "Student confidently equates ACID consistency with 'everyone sees the same data' and isolation with locking or security. Across ten turns, despite repeated explanations, they restate the same wrong definitions in their final summary.",
+    "quality_review": {
+      "automated_structural_check": "passed",
+      "automated_semantic_screen": "heuristic; 0 warning(s)",
+      "checks_run": [
+        "schema",
+        "enums",
+        "annotation_shape",
+        "quiz_arithmetic",
+        "id_leakage",
+        "data_source"
+      ],
+      "human_verified": false,
+      "human_review": null
+    },
+    "generation_meta": {
+      "batch_id": "pilot_000_v2",
+      "schema_version": "2.1",
+      "scenario_tag": "confident_but_wrong",
+      "text_source": "LLM-authored synthetic conversation (not human-verified)",
+      "use_as_training_feature": false,
+      "teacher_style": "direct_corrector",
+      "qa_flag": null
+    },
+    "data_source": "synthetic_llm",
+    "self_correction_turns": []
+  },
+  {
+    "chat_id": "EXP_0004",
+    "student_id": "SYN_S032",
+    "timestamp": "2026-11-11 22:15",
+    "llm_client": "Gemini",
+    "subject": "DAA",
+    "topic": "Dynamic Programming",
+    "main_concept": "0/1 knapsack dynamic programming",
+    "confusable_concept": "fractional knapsack greedy",
+    "student_persona": "curious",
+    "language_style": "english_casual",
+    "difficulty_level": "intermediate",
+    "task_type": "algorithmic_reasoning",
+    "num_student_turns": 16,
+    "confusion_points": 2,
+    "final_understanding": "understood",
+    "overall_sentiment": "positive",
+    "self_correction": "yes",
+    "engagement_level": "high",
+    "misconception_present": true,
+    "misconception_category": "greedy_vs_dp_for_01_knapsack",
+    "misconception_resolved": true,
+    "student_confidence": "moderate",
+    "reasoning_quality": "strong",
+    "turns": [
+      {
+        "turn": 1,
+        "student_message": "can we do 0/1 knapsack? i get the story (bag, items) but not why it needs dp 🙏",
+        "teacher_message": "Brute force tries every subset, 2^n possibilities. DP works because the same subproblems repeat: 'best value using the first i items with capacity w'. We solve each once and reuse it.",
+        "llm_message_context": null,
+        "question_type": "why",
+        "cognitive_level": "Understand",
+        "sentiment": "neutral",
+        "confusion_flag": 0
+      },
+      {
+        "turn": 2,
+        "student_message": "why cant i just sort by value/weight and take greedily like fractional knapsack 🙏",
+        "teacher_message": "Test it. Weights [10,20,30], values [60,100,120], capacity 50. What does greedy by ratio give, and what's the best possible?",
+        "llm_message_context": "Explained brute force vs overlapping subproblems.",
+        "question_type": "challenge",
+        "cognitive_level": "Analyze",
+        "sentiment": "neutral",
+        "confusion_flag": 1
+      },
+      {
+        "turn": 3,
+        "student_message": "ratios are 6, 5, 4 so greedy takes items 1 and 2 = weight 30, value 160, item 3 doesnt fit. but items 2+3 weigh 50 and give 220. so greedy fails here 😮",
+        "teacher_message": "Right. In fractional knapsack greedy works because you can take part of an item. With 0/1 you can't, so a locally best choice can block a better combination. That's why we need DP.",
+        "llm_message_context": "Gave a test case to try greedy on.",
+        "question_type": "answer_attempt",
+        "cognitive_level": "Analyze",
+        "sentiment": "positive",
+        "confusion_flag": 0
+      },
+      {
+        "turn": 4,
+        "student_message": "so dp[i][w] = best value using first i items with capacity w. is it dp[i][w] = max(dp[i-1][w], v_i + dp[i-1][w-w_i]) 🤔",
+        "teacher_message": "That's the recurrence. Just remember the second option only exists when w_i <= w.",
+        "llm_message_context": "Confirmed greedy fails for 0/1 knapsack.",
+        "question_type": "explanation_attempt",
+        "cognitive_level": "Apply",
+        "sentiment": "neutral",
+        "confusion_flag": 0
+      },
+      {
+        "turn": 5,
+        "student_message": "right, if w_i > w then dp[i][w] = dp[i-1][w]. and base: dp[0][w] = 0 and dp[i][0] = 0",
+        "teacher_message": "Exactly. You have everything for the table.",
+        "llm_message_context": "Confirmed the recurrence and its condition.",
+        "question_type": "explanation_attempt",
+        "cognitive_level": "Apply",
+        "sentiment": "neutral",
+        "confusion_flag": 0
+      },
+      {
+        "turn": 6,
+        "student_message": "can i fill one by hand? weights [1,3,4], values [15,20,30], capacity 4",
+        "teacher_message": "Go ahead, and tell me the final answer plus which row each value comes from.",
+        "llm_message_context": "Confirmed the base cases.",
+        "question_type": "application",
+        "cognitive_level": "Apply",
+        "sentiment": "positive",
+        "confusion_flag": 0
+      },
+      {
+        "turn": 7,
+        "student_message": "row1: 0,15,15,15,15. row2 (w3,v20): 0,15,15,35?? wait at w=3 it's 20+dp[1][0]=20, i wrote 35 by mistake. so 0,15,15,20,35. row3 (w4,v30): 0,15,15,20,35. answer 35",
+        "teacher_message": "That's right, including your fix at w=3. The answer 35 comes from taking items 1 and 2. Can you recover which items were taken?",
+        "llm_message_context": "Invited the student to fill the DP table.",
+        "question_type": "answer_attempt",
+        "cognitive_level": "Apply",
+        "sentiment": "neutral",
+        "confusion_flag": 1
+      },
+      {
+        "turn": 8,
+        "student_message": "backtrack from dp[3][4]=35. equals dp[2][4] so item 3 not taken. dp[2][4]=35 != dp[1][4]=15 so item 2 taken, go to dp[1][1]=15 != dp[0][1]=0 so item 1 taken",
+        "teacher_message": "Perfect backtracking.",
+        "llm_message_context": "Confirmed the table and asked for item recovery.",
+        "question_type": "answer_attempt",
+        "cognitive_level": "Apply",
+        "sentiment": "neutral",
+        "confusion_flag": 0
+      },
+      {
+        "turn": 9,
+        "student_message": "time is O(nW) right? but W can be huge, is that polynomial or not",
+        "teacher_message": "O(nW) is called pseudo-polynomial: polynomial in the numeric value of W, but W is written in about log W bits.",
+        "llm_message_context": "Confirmed the backtracking procedure.",
+        "question_type": "clarification",
+        "cognitive_level": "Analyze",
+        "sentiment": "neutral",
+        "confusion_flag": 0
+      },
+      {
+        "turn": 10,
+        "student_message": "so exponential in the number of bits of W, which is why knapsack can still be NP-hard even with an O(nW) algorithm",
+        "teacher_message": "Exactly the right understanding.",
+        "llm_message_context": "Introduced pseudo-polynomial time.",
+        "question_type": "explanation_attempt",
+        "cognitive_level": "Analyze",
+        "sentiment": "positive",
+        "confusion_flag": 0
+      },
+      {
+        "turn": 11,
+        "student_message": "can we save space? i think we only need the previous row",
+        "teacher_message": "Yes, one array of size W+1 works if you update it in the right direction. Which direction, and why?",
+        "llm_message_context": "Confirmed pseudo-polynomial vs NP-hardness.",
+        "question_type": "clarification",
+        "cognitive_level": "Analyze",
+        "sentiment": "neutral",
+        "confusion_flag": 0
+      },
+      {
+        "turn": 12,
+        "student_message": "go w from W down to w_i. if i went upward then dp[w-w_i] would already include the current item, so i could use an item twice",
+        "teacher_message": "Correct. Going upward would actually solve the unbounded knapsack.",
+        "llm_message_context": "Suggested the 1D optimisation and asked about direction.",
+        "question_type": "answer_attempt",
+        "cognitive_level": "Analyze",
+        "sentiment": "neutral",
+        "confusion_flag": 0
+      },
+      {
+        "turn": 13,
+        "student_message": "oh so unbounded goes upward on purpose, since reuse is allowed. nice",
+        "teacher_message": "Yes, a one-line change in loop direction turns one problem into the other.",
+        "llm_message_context": "Confirmed downward iteration and unbounded variant.",
+        "question_type": "explanation_attempt",
+        "cognitive_level": "Analyze",
+        "sentiment": "positive",
+        "confusion_flag": 0
+      },
+      {
+        "turn": 14,
+        "student_message": "what if we want the number of subsets with sum = target instead of max value? same table?",
+        "teacher_message": "Same shape. You'd count instead of maximise. What would the recurrence become?",
+        "llm_message_context": "Linked loop direction to unbounded knapsack.",
+        "question_type": "clarification",
+        "cognitive_level": "Analyze",
+        "sentiment": "neutral",
+        "confusion_flag": 0
+      },
+      {
+        "turn": 15,
+        "student_message": "dp[i][s] = dp[i-1][s] + dp[i-1][s-a_i], base dp[0][0] = 1",
+        "teacher_message": "Correct. You're using the same take or skip idea with addition instead of max.",
+        "llm_message_context": "Extended to subset-sum counting.",
+        "question_type": "answer_attempt",
+        "cognitive_level": "Create",
+        "sentiment": "positive",
+        "confusion_flag": 0
+      },
+      {
+        "turn": 16,
+        "student_message": "ok think i get it. state = (items considered, capacity left) and each item is take or skip. thanks! 🔥",
+        "teacher_message": "That's the core idea. For practice, try 'partition equal subset sum': it reduces to this table.",
+        "llm_message_context": "Confirmed counting recurrence.",
+        "question_type": "feedback",
+        "cognitive_level": "Evaluate",
+        "sentiment": "positive",
+        "confusion_flag": 0
+      }
+    ],
+    "quiz": {
+      "num_questions": 14,
+      "correct": 11,
+      "score_percent": 79
+    },
+    "annotation_rationale": "Student starts by proposing greedy by ratio, tests the teacher's example and sees it fails. They then derive the recurrence, fill the table, catch and fix their own table slip (35 vs 20) without teacher input, backtrack the items, explain pseudo-polynomial time, and explain why the 1D loop goes downward.",
+    "quality_review": {
+      "automated_structural_check": "passed",
+      "automated_semantic_screen": "heuristic; 0 warning(s)",
+      "checks_run": [
+        "schema",
+        "enums",
+        "annotation_shape",
+        "quiz_arithmetic",
+        "id_leakage",
+        "data_source"
+      ],
+      "human_verified": false,
+      "human_review": null
+    },
+    "generation_meta": {
+      "batch_id": "pilot_000_v2",
+      "schema_version": "2.1",
+      "scenario_tag": "struggles_then_gets_it",
+      "text_source": "LLM-authored synthetic conversation (not human-verified)",
+      "use_as_training_feature": false,
+      "teacher_style": "direct_corrector",
+      "qa_flag": null
+    },
+    "data_source": "synthetic_llm",
+    "self_correction_turns": [
+      7
+    ]
+  },
+  {
+    "chat_id": "EXP_0005",
+    "student_id": "SYN_S173",
+    "timestamp": "2026-08-26 08:52",
+    "llm_client": "ChatGPT",
+    "subject": "OS",
+    "topic": "Deadlock",
+    "main_concept": "deadlock and its conditions",
+    "confusable_concept": "starvation",
+    "student_persona": "beginner",
+    "language_style": "english_casual",
+    "difficulty_level": "basic",
+    "task_type": "concept_explanation",
+    "num_student_turns": 6,
+    "confusion_points": 6,
+    "final_understanding": "confused",
+    "overall_sentiment": "positive",
+    "self_correction": "no",
+    "engagement_level": "low",
+    "misconception_present": true,
+    "misconception_category": "deadlock_vs_starvation",
+    "misconception_resolved": false,
+    "student_confidence": "high",
+    "reasoning_quality": "weak",
+    "turns": [
+      {
+        "turn": 1,
+        "student_message": "my prof said deadlock is when the system hangs. so is it when a process takes too long to finish? 😅",
+        "teacher_message": "Not exactly. In a deadlock, a set of processes each wait for a resource held by another process in the set, so none can ever proceed. It isn't about being slow; it's about waiting forever in a cycle.",
+        "llm_message_context": null,
+        "question_type": "clarification",
+        "cognitive_level": "Understand",
+        "sentiment": "neutral",
+        "confusion_flag": 1
+      },
+      {
+        "turn": 2,
+        "student_message": "ohh ok so its waiting forever. so if a low priority process never gets the cpu thats deadlock right? 🙏",
+        "teacher_message": "That's starvation. The process could run but is never chosen. In deadlock, every process in the cycle is blocked on another one.",
+        "llm_message_context": "Defined deadlock as circular waiting, not slowness.",
+        "question_type": "answer_attempt",
+        "cognitive_level": "Understand",
+        "sentiment": "neutral",
+        "confusion_flag": 1
+      },
+      {
+        "turn": 3,
+        "student_message": "got it!! so starvation and deadlock are the same just different names 😄",
+        "teacher_message": "They're different. With starvation the system keeps making progress for others. With deadlock the involved processes are all stuck.",
+        "llm_message_context": "Distinguished starvation from deadlock.",
+        "question_type": "explanation_attempt",
+        "cognitive_level": "Understand",
+        "sentiment": "positive",
+        "confusion_flag": 1
+      },
+      {
+        "turn": 4,
+        "student_message": "ok example: P1 holds printer and waits for scanner, P2 holds scanner and waits for printer. thats deadlock because both are slow?",
+        "teacher_message": "It is a deadlock, but not because they're slow. Neither can ever continue: P1 needs what P2 holds and vice versa. That's circular wait.",
+        "llm_message_context": "Corrected the claim that they are the same.",
+        "question_type": "answer_attempt",
+        "cognitive_level": "Apply",
+        "sentiment": "positive",
+        "confusion_flag": 1
+      },
+      {
+        "turn": 5,
+        "student_message": "ok so to avoid deadlock we just give the printer more time. like increase the timeslice 😅",
+        "teacher_message": "No, more time doesn't help since nobody can release anything. You avoid deadlock by breaking one of the necessary conditions, for example making both processes request resources in the same order.",
+        "llm_message_context": "Used the printer/scanner example to show circular wait.",
+        "question_type": "application",
+        "cognitive_level": "Apply",
+        "sentiment": "neutral",
+        "confusion_flag": 1
+      },
+      {
+        "turn": 6,
+        "student_message": "oh nice, so deadlock is solved by scheduling better 👍 this makes sense now, thanks!",
+        "teacher_message": "Glad it feels clearer. Keep working through examples like the printer and scanner one, and check them against your lecture notes.",
+        "llm_message_context": "Explained prevention by breaking a condition, e.g. lock ordering.",
+        "question_type": "feedback",
+        "cognitive_level": "Understand",
+        "sentiment": "positive",
+        "confusion_flag": 1
+      }
+    ],
+    "quiz": {
+      "num_questions": 15,
+      "correct": 6,
+      "score_percent": 40
+    },
+    "annotation_rationale": "Student repeatedly equates deadlock with slowness, starvation, and a scheduling problem. They announce 'got it' and 'this makes sense now' while each restatement is still wrong (timeslice would fix deadlock).",
+    "quality_review": {
+      "automated_structural_check": "passed",
+      "automated_semantic_screen": "heuristic; 0 warning(s)",
+      "checks_run": [
+        "schema",
+        "enums",
+        "annotation_shape",
+        "quiz_arithmetic",
+        "id_leakage",
+        "data_source"
+      ],
+      "human_verified": false,
+      "human_review": null
+    },
+    "generation_meta": {
+      "batch_id": "pilot_000_v2",
+      "schema_version": "2.1",
+      "scenario_tag": "fake_understanding",
+      "text_source": "LLM-authored synthetic conversation (not human-verified)",
+      "use_as_training_feature": false,
+      "teacher_style": "lenient",
+      "qa_flag": null
+    },
+    "data_source": "synthetic_llm",
+    "self_correction_turns": []
+  },
+  {
+    "chat_id": "EXP_0006",
+    "student_id": "SYN_S113",
+    "timestamp": "2026-08-19 14:47",
+    "llm_client": "Claude",
+    "subject": "ML",
+    "topic": "Evaluation Metrics",
+    "main_concept": "precision, recall and F1 on imbalanced data",
+    "confusable_concept": "accuracy",
+    "student_persona": "exam",
+    "language_style": "english_standard",
+    "difficulty_level": "intermediate",
+    "task_type": "mathematical_explanation",
+    "num_student_turns": 12,
+    "confusion_points": 3,
+    "final_understanding": "partial",
+    "overall_sentiment": "mixed",
+    "self_correction": "no",
+    "engagement_level": "high",
+    "misconception_present": true,
+    "misconception_category": "precision_recall_tradeoff_threshold",
+    "misconception_resolved": false,
+    "student_confidence": "unknown",
+    "reasoning_quality": "moderate",
+    "turns": [
+      {
+        "turn": 1,
+        "student_message": "I have a university exam on classification metrics. Can you quickly revise precision, recall and F1 with me?",
+        "teacher_message": "Sure. Precision: of everything predicted positive, how much was right. Recall: of all real positives, how many you found. F1 is their harmonic mean. Want to state the formulas in your own words?",
+        "llm_message_context": null,
+        "question_type": "definition",
+        "cognitive_level": "Remember",
+        "sentiment": "neutral",
+        "confusion_flag": 0
+      },
+      {
+        "turn": 2,
+        "student_message": "Precision = TP/(TP+FP), recall = TP/(TP+FN), F1 is the harmonic mean of both. Is that right?",
+        "teacher_message": "Yes, all three are correct.",
+        "llm_message_context": "Gave short definitions of precision, recall and F1.",
+        "question_type": "explanation_attempt",
+        "cognitive_level": "Remember",
+        "sentiment": "neutral",
+        "confusion_flag": 0
+      },
+      {
+        "turn": 3,
+        "student_message": "Why harmonic and not arithmetic mean?",
+        "teacher_message": "The harmonic mean is dominated by the smaller value. If precision is 1.0 and recall is 0.01, the arithmetic mean is about 0.5, which looks fine, but F1 is about 0.02. It punishes imbalance.",
+        "llm_message_context": "Confirmed the formulas.",
+        "question_type": "why",
+        "cognitive_level": "Understand",
+        "sentiment": "neutral",
+        "confusion_flag": 0
+      },
+      {
+        "turn": 4,
+        "student_message": "A past paper asks: TP=40, FP=10, FN=20, TN=930. Find precision, recall and accuracy. My attempt: precision = 40/50 = 0.8, recall = 40/(40+10) = 0.8, accuracy = (40+930)/1000 = 0.97.",
+        "teacher_message": "Precision and accuracy are right. Check recall again: which error type belongs in its denominator?",
+        "llm_message_context": "Explained why F1 uses the harmonic mean.",
+        "question_type": "answer_attempt",
+        "cognitive_level": "Apply",
+        "sentiment": "neutral",
+        "confusion_flag": 1
+      },
+      {
+        "turn": 5,
+        "student_message": "Oh, I used the wrong cell. Recall should use FN, so 40/60 = 0.67.",
+        "teacher_message": "Correct. Now F1?",
+        "llm_message_context": "Checked answers; hinted recall used the wrong denominator.",
+        "question_type": "answer_attempt",
+        "cognitive_level": "Apply",
+        "sentiment": "neutral",
+        "confusion_flag": 0
+      },
+      {
+        "turn": 6,
+        "student_message": "F1 = 2 x 0.8 x 0.67 / (0.8 + 0.67) = 0.73. Since accuracy is 97%, the model is very good, correct?",
+        "teacher_message": "F1 is right. The conclusion isn't safe, though: only 60 of 1000 cases are positive, so a model that predicts negative every time would get 94% accuracy. Recall of 0.67 is the more telling number.",
+        "llm_message_context": "Confirmed recall and asked for F1.",
+        "question_type": "evaluation",
+        "cognitive_level": "Evaluate",
+        "sentiment": "neutral",
+        "confusion_flag": 1
+      },
+      {
+        "turn": 7,
+        "student_message": "So accuracy is useless? Then why do we report it?",
+        "teacher_message": "Not useless, just misleading when classes are imbalanced. It's fine as one number on balanced data, but always read it next to precision and recall.",
+        "llm_message_context": "Confirmed F1; warned about accuracy on imbalanced data.",
+        "question_type": "why",
+        "cognitive_level": "Evaluate",
+        "sentiment": "neutral",
+        "confusion_flag": 0
+      },
+      {
+        "turn": 8,
+        "student_message": "For cancer screening, should I optimise precision or recall? 🙏",
+        "teacher_message": "Usually recall, because missing a real case (a false negative) is costly, and follow-up tests can sort out false alarms.",
+        "llm_message_context": "Clarified when accuracy is and isn't informative.",
+        "question_type": "application",
+        "cognitive_level": "Evaluate",
+        "sentiment": "neutral",
+        "confusion_flag": 0
+      },
+      {
+        "turn": 9,
+        "student_message": "And for a spam filter I'd want high precision, because a real email in spam is worse than a missed spam. Is that the same logic? 🙏",
+        "teacher_message": "Yes, the same logic with the costs reversed.",
+        "llm_message_context": "Discussed choosing recall for screening.",
+        "question_type": "explanation_attempt",
+        "cognitive_level": "Evaluate",
+        "sentiment": "neutral",
+        "confusion_flag": 0
+      },
+      {
+        "turn": 10,
+        "student_message": "What if both matter, like fraud detection?",
+        "teacher_message": "Then F1 or an F-beta score balances them, and the precision-recall curve shows what you can get at different thresholds.",
+        "llm_message_context": "Confirmed spam filter prefers precision.",
+        "question_type": "clarification",
+        "cognitive_level": "Analyze",
+        "sentiment": "neutral",
+        "confusion_flag": 0
+      },
+      {
+        "turn": 11,
+        "student_message": "If I lower the classification threshold, both precision and recall go up since the model catches more positives, right?",
+        "teacher_message": "Recall goes up, but precision usually goes down: you add more positive predictions, and many of the extra ones are false positives.",
+        "llm_message_context": "Introduced F-beta and PR curves.",
+        "question_type": "answer_attempt",
+        "cognitive_level": "Analyze",
+        "sentiment": "mixed",
+        "confusion_flag": 1
+      },
+      {
+        "turn": 12,
+        "student_message": "Hmm, OK. So lowering the threshold trades precision for recall, usually. I need to be careful with that one in the exam. 😅",
+        "teacher_message": "Exactly, and that trade-off is exactly what the PR curve plots. Try drawing one for your 40/10/20 example at two thresholds as practice.",
+        "llm_message_context": "Corrected the claim about threshold and precision.",
+        "question_type": "explanation_attempt",
+        "cognitive_level": "Understand",
+        "sentiment": "mixed",
+        "confusion_flag": 0
+      }
+    ],
+    "quiz": {
+      "num_questions": 14,
+      "correct": 9,
+      "score_percent": 64
+    },
+    "annotation_rationale": "Student states the definitions correctly and computes precision and accuracy right, but uses FP instead of FN for recall, calls 97% accuracy 'very good' until corrected, and finishes by claiming lowering the threshold raises both precision and recall.",
+    "quality_review": {
+      "automated_structural_check": "passed",
+      "automated_semantic_screen": "heuristic; 0 warning(s)",
+      "checks_run": [
+        "schema",
+        "enums",
+        "annotation_shape",
+        "quiz_arithmetic",
+        "id_leakage",
+        "data_source"
+      ],
+      "human_verified": false,
+      "human_review": null
+    },
+    "generation_meta": {
+      "batch_id": "pilot_000_v2",
+      "schema_version": "2.1",
+      "scenario_tag": "definition_ok_application_fails",
+      "text_source": "LLM-authored synthetic conversation (not human-verified)",
+      "use_as_training_feature": false,
+      "teacher_style": "direct_corrector",
+      "qa_flag": "borderline partial/understood: only slips are recall denominator and threshold effect"
+    },
+    "data_source": "synthetic_llm",
+    "self_correction_turns": []
+  },
+  {
+    "chat_id": "EXP_0007",
+    "student_id": "SYN_S070",
+    "timestamp": "2026-09-27 10:41",
+    "llm_client": "Claude",
+    "subject": "DSA",
+    "topic": "Linked List",
+    "main_concept": "reversing a singly linked list",
+    "confusable_concept": "recursive reversal",
+    "student_persona": "terse",
+    "language_style": "english_casual",
+    "difficulty_level": "basic",
+    "task_type": "programming_problem",
+    "num_student_turns": 5,
+    "confusion_points": 0,
+    "final_understanding": "understood",
+    "overall_sentiment": "mixed",
+    "self_correction": "no",
+    "engagement_level": "low",
+    "misconception_present": false,
+    "misconception_category": null,
+    "misconception_resolved": null,
+    "student_confidence": "unknown",
+    "reasoning_quality": "moderate",
+    "turns": [
+      {
+        "turn": 1,
+        "student_message": "reverse a singly linked list iteratively",
+        "teacher_message": "Use three pointers: prev, cur and next. Walk the list, point each node back at the previous one, then move forward. Want to write it yourself?",
+        "llm_message_context": null,
+        "question_type": "application",
+        "cognitive_level": "Apply",
+        "sentiment": "neutral",
+        "confusion_flag": 0
+      },
+      {
+        "turn": 2,
+        "student_message": "prev=None; cur=head; while cur: nxt=cur.next; cur.next=prev; prev=cur; cur=nxt; return prev",
+        "teacher_message": "That's correct. It runs in O(n) time and O(1) extra space, and returning prev gives the new head.",
+        "llm_message_context": "Outlined the prev/cur/next approach.",
+        "question_type": "creation",
+        "cognitive_level": "Create",
+        "sentiment": "neutral",
+        "confusion_flag": 0
+      },
+      {
+        "turn": 3,
+        "student_message": "empty list returns None, single node returns itself. dry run 1->2->3 gives 3->2->1",
+        "teacher_message": "Right on all three.",
+        "llm_message_context": "Confirmed the iterative solution and its complexity.",
+        "question_type": "answer_attempt",
+        "cognitive_level": "Apply",
+        "sentiment": "neutral",
+        "confusion_flag": 0
+      },
+      {
+        "turn": 4,
+        "student_message": "recursive version uses O(n) stack",
+        "teacher_message": "Yes, one frame per node. Recursion would look like: reverse the rest, then do head.next.next = head and head.next = None.",
+        "llm_message_context": "Confirmed edge cases and the dry run.",
+        "question_type": "explanation_attempt",
+        "cognitive_level": "Analyze",
+        "sentiment": "neutral",
+        "confusion_flag": 0
+      },
+      {
+        "turn": 5,
+        "student_message": "head.next = None so the old head doesnt still point to the second node, otherwise 1<->2 becomes a cycle",
+        "teacher_message": "Exactly right.",
+        "llm_message_context": "Confirmed O(n) stack and sketched the recursive step.",
+        "question_type": "explanation_attempt",
+        "cognitive_level": "Analyze",
+        "sentiment": "neutral",
+        "confusion_flag": 0
+      }
+    ],
+    "quiz": {
+      "num_questions": 10,
+      "correct": 6,
+      "score_percent": 60
+    },
+    "annotation_rationale": "Student gives a correct iterative solution with the right three-pointer logic, handles the edge cases, states the recursive stack cost, and explains why head.next must be set to None. Messages are short but all technically correct.",
+    "quality_review": {
+      "automated_structural_check": "passed",
+      "automated_semantic_screen": "heuristic; 0 warning(s)",
+      "checks_run": [
+        "schema",
+        "enums",
+        "annotation_shape",
+        "quiz_arithmetic",
+        "id_leakage",
+        "data_source"
+      ],
+      "human_verified": false,
+      "human_review": null
+    },
+    "generation_meta": {
+      "batch_id": "pilot_000_v2",
+      "schema_version": "2.1",
+      "scenario_tag": "terse_but_correct",
+      "text_source": "LLM-authored synthetic conversation (not human-verified)",
+      "use_as_training_feature": false,
+      "teacher_style": "direct_corrector",
+      "qa_flag": null
+    },
+    "data_source": "synthetic_llm",
+    "self_correction_turns": []
+  },
+  {
+    "chat_id": "EXP_0008",
+    "student_id": "SYN_S124",
+    "timestamp": "2026-11-01 17:35",
+    "llm_client": "ChatGPT",
+    "subject": "NLP",
+    "topic": "Text Representation",
+    "main_concept": "TF-IDF weighting",
+    "confusable_concept": "raw word count",
+    "student_persona": "skeptical",
+    "language_style": "hinglish_heavy",
+    "difficulty_level": "intermediate",
+    "task_type": "mathematical_explanation",
+    "num_student_turns": 9,
+    "confusion_points": 8,
+    "final_understanding": "confused",
+    "overall_sentiment": "negative",
+    "self_correction": "no",
+    "engagement_level": "high",
+    "misconception_present": true,
+    "misconception_category": "tfidf_idf_direction_reversed",
+    "misconception_resolved": false,
+    "student_confidence": "moderate",
+    "reasoning_quality": "weak",
+    "turns": [
+      {
+        "turn": 1,
+        "student_message": "TF-IDF samajh nahi aata yaar. sir ne bola important words ko score deta hai, but kaise decide karta hai ki word important hai?",
+        "teacher_message": "Do cheezein combine hoti hain. TF: word is document mein kitni baar aaya. IDF: word poore corpus mein kitna rare hai. Jo word is document mein bahut aaye lekin baaki documents mein kam, uska score high hota hai.",
+        "llm_message_context": null,
+        "question_type": "definition",
+        "cognitive_level": "Understand",
+        "sentiment": "neutral",
+        "confusion_flag": 0
+      },
+      {
+        "turn": 2,
+        "student_message": "mujhe lagta hai jo word sabse zyada documents mein aata hai woh sabse important hoga, kyunki sab documents mein relevant hai, aur uska TF bhi zyada hoga. isliye IDF = documents jisme word aaya / total documents, jitna high utna better. right hai na? 😅",
+        "teacher_message": "Yahan ulta ho raha hai. IDF = log(N / df), toh jo word kam documents mein aaye uska IDF bada hota hai. 'the' ya 'is' har document mein hote hain, toh unka IDF lagbhag zero hota hai.",
+        "llm_message_context": "Explained TF and IDF and how they combine.",
+        "question_type": "answer_attempt",
+        "cognitive_level": "Understand",
+        "sentiment": "neutral",
+        "confusion_flag": 1
+      },
+      {
+        "turn": 3,
+        "student_message": "lekin 'the' toh sabse zyada baar aata hai, toh uska TF-IDF high hona chahiye na? most used word hai so most important",
+        "teacher_message": "Frequency aur importance same nahi hain. 'the' ka TF high hai, lekin IDF lagbhag 0 hai, toh product kam ho jata hai. Wahi toh IDF ka kaam hai: common words ko neeche dhakelna.",
+        "llm_message_context": "Corrected the direction of IDF with a log(N/df) formula.",
+        "question_type": "challenge",
+        "cognitive_level": "Analyze",
+        "sentiment": "neutral",
+        "confusion_flag": 1
+      },
+      {
+        "turn": 4,
+        "student_message": "oh toh TF-IDF common words ka score kam karta hai. but phir 'cat' jo sirf ek document mein hai usko highest score milega? rare matlab toh useless hona chahiye 🤨",
+        "teacher_message": "Agar 'cat' us document mein bahut baar aaya aur baaki mein nahi, toh woh us document ko dusron se alag karta hai. Isi liye uska score high hota hai. Rare words useless nahi, discriminative hote hain.",
+        "llm_message_context": "Separated frequency from importance; common words get low weight.",
+        "question_type": "challenge",
+        "cognitive_level": "Analyze",
+        "sentiment": "negative",
+        "confusion_flag": 1
+      },
+      {
+        "turn": 5,
+        "student_message": "mujhe ab bhi nahi jam raha. mera friend bolta hai TF-IDF is just word count. toh dono same hi hain na basically",
+        "teacher_message": "Word count sirf TF hai. TF-IDF usse corpus ke hisaab se adjust karta hai. Isi liye 'the' count mein upar hota hai lekin TF-IDF mein neeche.",
+        "llm_message_context": "Explained why rare words are discriminative.",
+        "question_type": "comparison",
+        "cognitive_level": "Understand",
+        "sentiment": "negative",
+        "confusion_flag": 1
+      },
+      {
+        "turn": 6,
+        "student_message": "calculation: 3 docs, 'ml' appears in all 3 docs, TF in doc1 = 0.2. toh TF-IDF = 0.2 x (3/3) = 0.2, isliye 'ml' bahut important hai kyunki 1 sabse bada number hai 🙏",
+        "teacher_message": "Formula mein log hota hai: IDF = log(3/3) = log(1) = 0. Toh TF-IDF = 0.2 x 0 = 0. Jo word har document mein hai woh kisi ek document ko alag nahi karta.",
+        "llm_message_context": "Distinguished TF-IDF from plain word counts.",
+        "question_type": "answer_attempt",
+        "cognitive_level": "Apply",
+        "sentiment": "neutral",
+        "confusion_flag": 1
+      },
+      {
+        "turn": 7,
+        "student_message": "ok log(1) = 0. toh word jo sab docs mein hai uska score 0? ye toh galat hai na, jo sab docs mein hai woh topic ka sabse relevant word hoga",
+        "teacher_message": "TF-IDF ka goal hai ek document ko dusre documents se alag karna, poore corpus ka topic nikalna nahi. Agar corpus ka overall topic chahiye toh doosre tareeke hote hain, jaise corpus-wide frequency ya topic models.",
+        "llm_message_context": "Corrected the calculation using log and df=N.",
+        "question_type": "challenge",
+        "cognitive_level": "Evaluate",
+        "sentiment": "negative",
+        "confusion_flag": 1
+      },
+      {
+        "turn": 8,
+        "student_message": "samajh gaya shayad. matlab TF-IDF high = word kaafi docs mein common hai aur is doc mein bhi common hai",
+        "teacher_message": "Nahi, yeh ulta hai. High TF-IDF = word is document mein frequent hai lekin baaki documents mein rare hai.",
+        "llm_message_context": "Clarified TF-IDF aims at discrimination between documents.",
+        "question_type": "explanation_attempt",
+        "cognitive_level": "Understand",
+        "sentiment": "mixed",
+        "confusion_flag": 1
+      },
+      {
+        "turn": 9,
+        "student_message": "ok ok. toh final: high TF-IDF means common word jo sab jagah aata hai. yaad rakh liya, thanks",
+        "teacher_message": "Mujhe lagta hai yeh abhi bhi ulta hai, isliye ek chhota exercise: teen documents lo, 'the' aur 'cat' ka TF-IDF nikalo, aur dekho kaunsa zyada aata hai.",
+        "llm_message_context": "Corrected the final summary of what high TF-IDF means.",
+        "question_type": "feedback",
+        "cognitive_level": "Understand",
+        "sentiment": "negative",
+        "confusion_flag": 1
+      }
+    ],
+    "quiz": {
+      "num_questions": 10,
+      "correct": 6,
+      "score_percent": 60
+    },
+    "annotation_rationale": "Student writes long, engaged explanations but consistently reverses IDF (words in many documents get high weight), computes log-free IDF = 3/3 = 1, and ends by restating that high TF-IDF means a word common everywhere. Elaborate but conceptually wrong across the session.",
+    "quality_review": {
+      "automated_structural_check": "passed",
+      "automated_semantic_screen": "heuristic; 0 warning(s)",
+      "checks_run": [
+        "schema",
+        "enums",
+        "annotation_shape",
+        "quiz_arithmetic",
+        "id_leakage",
+        "data_source"
+      ],
+      "human_verified": false,
+      "human_review": null
+    },
+    "generation_meta": {
+      "batch_id": "pilot_000_v2",
+      "schema_version": "2.1",
+      "scenario_tag": "verbose_but_wrong",
+      "text_source": "LLM-authored synthetic conversation (not human-verified)",
+      "use_as_training_feature": false,
+      "teacher_style": "direct_corrector",
+      "qa_flag": null
+    },
+    "data_source": "synthetic_llm",
+    "self_correction_turns": []
+  },
+  {
+    "chat_id": "EXP_0009",
+    "student_id": "SYN_S104",
+    "timestamp": "2026-08-04 08:36",
+    "llm_client": "Gemini",
+    "subject": "CN",
+    "topic": "Transport Layer",
+    "main_concept": "TCP flow control and congestion control",
+    "confusable_concept": "UDP",
+    "student_persona": "curious",
+    "language_style": "english_standard",
+    "difficulty_level": "advanced",
+    "task_type": "conceptual_comparison",
+    "num_student_turns": 16,
+    "confusion_points": 5,
+    "final_understanding": "partial",
+    "overall_sentiment": "positive",
+    "self_correction": "no",
+    "engagement_level": "high",
+    "misconception_present": true,
+    "misconception_category": "flow_control_vs_congestion_control",
+    "misconception_resolved": false,
+    "student_confidence": "unknown",
+    "reasoning_quality": "moderate",
+    "turns": [
+      {
+        "turn": 1,
+        "student_message": "Why does TCP need sequence numbers? I understand it's reliable, but not the mechanism.",
+        "teacher_message": "Sequence numbers let the receiver put bytes in order, detect missing data and discard duplicates. They also let ACKs say which data has been received.",
+        "llm_message_context": null,
+        "question_type": "why",
+        "cognitive_level": "Understand",
+        "sentiment": "neutral",
+        "confusion_flag": 0
+      },
+      {
+        "turn": 2,
+        "student_message": "So if the receiver gets 1, 2, 4 it knows 3 is missing. How does the sender find out?",
+        "teacher_message": "The receiver keeps ACKing the last in-order byte, so it sends duplicate ACKs asking for segment 3 again. The sender also has a retransmission timer as a fallback.",
+        "llm_message_context": "Explained the purpose of sequence numbers.",
+        "question_type": "clarification",
+        "cognitive_level": "Understand",
+        "sentiment": "neutral",
+        "confusion_flag": 0
+      },
+      {
+        "turn": 3,
+        "student_message": "Is that what triple duplicate ACK means? Three duplicate ACKs trigger a retransmit of 3 without waiting for the timeout?",
+        "teacher_message": "Yes, that's fast retransmit.",
+        "llm_message_context": "Described cumulative and duplicate ACKs plus timeout.",
+        "question_type": "explanation_attempt",
+        "cognitive_level": "Understand",
+        "sentiment": "positive",
+        "confusion_flag": 0
+      },
+      {
+        "turn": 4,
+        "student_message": "And the receive window is related to this somehow?",
+        "teacher_message": "The receive window (rwnd) is advertised by the receiver in each ACK: it says how much free buffer space it has. The sender must not have more unacknowledged data in flight than that.",
+        "llm_message_context": "Confirmed fast retransmit on triple duplicate ACK.",
+        "question_type": "clarification",
+        "cognitive_level": "Understand",
+        "sentiment": "neutral",
+        "confusion_flag": 0
+      },
+      {
+        "turn": 5,
+        "student_message": "OK so flow control means the sender slows down so the network isn't overloaded?",
+        "teacher_message": "That's congestion control. Flow control protects the receiver's buffer so the sender doesn't overrun it. They're separate mechanisms with separate windows.",
+        "llm_message_context": "Introduced the receive window.",
+        "question_type": "answer_attempt",
+        "cognitive_level": "Understand",
+        "sentiment": "neutral",
+        "confusion_flag": 1
+      },
+      {
+        "turn": 6,
+        "student_message": "Then what does the sender use to slow down when the network is busy?",
+        "teacher_message": "A congestion window, cwnd, which the sender maintains itself. At any moment it may send at most min(cwnd, rwnd) bytes in flight.",
+        "llm_message_context": "Corrected flow control vs congestion control.",
+        "question_type": "clarification",
+        "cognitive_level": "Understand",
+        "sentiment": "neutral",
+        "confusion_flag": 0
+      },
+      {
+        "turn": 7,
+        "student_message": "So cwnd is advertised by the receiver in the TCP header, like rwnd?",
+        "teacher_message": "No, cwnd is purely local to the sender and never sent. Only rwnd is carried in the header.",
+        "llm_message_context": "Introduced cwnd and the min(cwnd, rwnd) rule.",
+        "question_type": "answer_attempt",
+        "cognitive_level": "Understand",
+        "sentiment": "neutral",
+        "confusion_flag": 1
+      },
+      {
+        "turn": 8,
+        "student_message": "Understood. So in slow start cwnd starts at 1 MSS and roughly doubles every RTT until it reaches ssthresh, then grows linearly.",
+        "teacher_message": "That's correct. Slow start is exponential per RTT, and congestion avoidance adds about 1 MSS per RTT.",
+        "llm_message_context": "Corrected that cwnd is sender-local.",
+        "question_type": "explanation_attempt",
+        "cognitive_level": "Understand",
+        "sentiment": "positive",
+        "confusion_flag": 0
+      },
+      {
+        "turn": 9,
+        "student_message": "What happens to ssthresh and cwnd on a timeout?",
+        "teacher_message": "ssthresh is set to half of the current cwnd and cwnd drops to 1 MSS, restarting slow start.",
+        "llm_message_context": "Confirmed slow start and congestion avoidance.",
+        "question_type": "clarification",
+        "cognitive_level": "Understand",
+        "sentiment": "neutral",
+        "confusion_flag": 0
+      },
+      {
+        "turn": 10,
+        "student_message": "And on a triple duplicate ACK in Reno, cwnd goes back to 1 as well?",
+        "teacher_message": "No. In Reno, three duplicate ACKs trigger fast recovery: ssthresh becomes half of cwnd and cwnd is set to ssthresh plus 3 MSS, not 1.",
+        "llm_message_context": "Explained timeout response.",
+        "question_type": "clarification",
+        "cognitive_level": "Understand",
+        "sentiment": "neutral",
+        "confusion_flag": 1
+      },
+      {
+        "turn": 11,
+        "student_message": "Why treat the two loss signals differently?",
+        "teacher_message": "Duplicate ACKs mean later packets are still arriving, so the network is still delivering: mild congestion. A timeout means almost nothing is getting through, which is more severe.",
+        "llm_message_context": "Explained Reno fast recovery differs from timeout.",
+        "question_type": "why",
+        "cognitive_level": "Analyze",
+        "sentiment": "neutral",
+        "confusion_flag": 0
+      },
+      {
+        "turn": 12,
+        "student_message": "That makes sense. Does UDP have any of this?",
+        "teacher_message": "No. UDP has no flow or congestion control, no retransmission and no ordering. Applications must add what they need.",
+        "llm_message_context": "Explained why the two loss signals are treated differently.",
+        "question_type": "clarification",
+        "cognitive_level": "Understand",
+        "sentiment": "neutral",
+        "confusion_flag": 0
+      },
+      {
+        "turn": 13,
+        "student_message": "So a UDP video stream could take as much bandwidth as it likes and starve TCP flows?",
+        "teacher_message": "It can, which is why many real-time protocols implement their own rate adaptation, and why QUIC builds congestion control on top of UDP.",
+        "llm_message_context": "Explained UDP has none of these mechanisms.",
+        "question_type": "explanation_attempt",
+        "cognitive_level": "Analyze",
+        "sentiment": "neutral",
+        "confusion_flag": 0
+      },
+      {
+        "turn": 14,
+        "student_message": "What if rwnd is 0? The sender stops completely, so how would it ever learn that the buffer has freed up? Isn't that a deadlock?",
+        "teacher_message": "Good catch. The sender keeps sending small zero-window probes, and the receiver answers with the current window, so it resumes once space frees up.",
+        "llm_message_context": "Discussed UDP fairness and application-level congestion control.",
+        "question_type": "clarification",
+        "cognitive_level": "Analyze",
+        "sentiment": "positive",
+        "confusion_flag": 0
+      },
+      {
+        "turn": 15,
+        "student_message": "Quick check: cwnd is 8 MSS and rwnd is 4 MSS. I'd say the sender can have 8 in flight since cwnd is larger.",
+        "teacher_message": "It's the minimum, so only 4 MSS. The receiver's limit is the tighter one here.",
+        "llm_message_context": "Explained zero-window probes.",
+        "question_type": "answer_attempt",
+        "cognitive_level": "Apply",
+        "sentiment": "neutral",
+        "confusion_flag": 1
+      },
+      {
+        "turn": 16,
+        "student_message": "Right, the minimum. So flow control is about the receiver and congestion control about the network. For my notes: on triple duplicate ACK Reno sets cwnd back to 1, like on a timeout.",
+        "teacher_message": "The first part is spot on. The Reno line isn't: on three duplicate ACKs cwnd is cut to about half (ssthresh plus 3), and only a timeout drops it to 1. Worth fixing in your notes.",
+        "llm_message_context": "Corrected: in-flight limit is min(cwnd, rwnd).",
+        "question_type": "feedback",
+        "cognitive_level": "Understand",
+        "sentiment": "neutral",
+        "confusion_flag": 1
+      }
+    ],
+    "quiz": {
+      "num_questions": 11,
+      "correct": 6,
+      "score_percent": 55
+    },
+    "annotation_rationale": "Student asks many good questions and correctly describes slow start and the min(cwnd, rwnd) rule. But they mix up flow and congestion control early, assume cwnd is the limiting window once more, and finish by repeating that Reno resets cwnd to 1 on three duplicate ACKs, which the teacher had already corrected. Congestion-control behaviour is still wrong at the end.",
+    "quality_review": {
+      "automated_structural_check": "passed",
+      "automated_semantic_screen": "heuristic; 0 warning(s)",
+      "checks_run": [
+        "schema",
+        "enums",
+        "annotation_shape",
+        "quiz_arithmetic",
+        "id_leakage",
+        "data_source"
+      ],
+      "human_verified": false,
+      "human_review": null
+    },
+    "generation_meta": {
+      "batch_id": "pilot_000_v2",
+      "schema_version": "2.1",
+      "scenario_tag": "many_questions_with_relapse",
+      "text_source": "LLM-authored synthetic conversation (not human-verified)",
+      "use_as_training_feature": false,
+      "teacher_style": "direct_corrector",
+      "qa_flag": "borderline partial/understood: strong grasp except Reno relapse at the end"
+    },
+    "data_source": "synthetic_llm",
+    "self_correction_turns": []
+  },
+  {
+    "chat_id": "EXP_0010",
+    "student_id": "SYN_S101",
+    "timestamp": "2026-09-17 13:59",
+    "llm_client": "Gemini",
+    "subject": "Java",
+    "topic": "Exceptions",
+    "main_concept": "checked vs unchecked exceptions and finally",
+    "confusable_concept": "null handling",
+    "student_persona": "debug",
+    "language_style": "hinglish_light",
+    "difficulty_level": "intermediate",
+    "task_type": "debugging",
+    "num_student_turns": 10,
+    "confusion_points": 2,
+    "final_understanding": "understood",
+    "overall_sentiment": "positive",
+    "self_correction": "yes",
+    "engagement_level": "high",
+    "misconception_present": true,
+    "misconception_category": "checked_vs_unchecked_exceptions",
+    "misconception_resolved": true,
+    "student_confidence": "unknown",
+    "reasoning_quality": "strong",
+    "turns": [
+      {
+        "turn": 1,
+        "student_message": "bhai mera code NullPointerException de raha hai line 12 pe: String s = map.get(\"x\"); int n = s.length(); samajh nahi aa raha kyun",
+        "teacher_message": "map.get returns null when the key isn't in the map. Calling s.length() on null throws NullPointerException. So the real question is why 'x' isn't there.",
+        "llm_message_context": null,
+        "question_type": "debugging",
+        "cognitive_level": "Analyze",
+        "sentiment": "neutral",
+        "confusion_flag": 1
+      },
+      {
+        "turn": 2,
+        "student_message": "oh so key 'x' kabhi put hi nahi hui. i'll check containsKey ya getOrDefault. kaunsa better hai?",
+        "teacher_message": "getOrDefault is concise when you have a sensible default. containsKey or an Optional is better when 'missing' needs different handling.",
+        "llm_message_context": "Explained that map.get returns null for missing keys.",
+        "question_type": "comparison",
+        "cognitive_level": "Evaluate",
+        "sentiment": "neutral",
+        "confusion_flag": 0
+      },
+      {
+        "turn": 3,
+        "student_message": "NPE is a checked exception right, compiler forces try-catch? ...wait no. maine s.length() bina try/catch ke likha aur compile ho gaya, so it must be unchecked, RuntimeException ka subclass 🙏",
+        "teacher_message": "Correct. NullPointerException extends RuntimeException, so the compiler doesn't force you to handle it. Checked exceptions, like IOException, must be caught or declared.",
+        "llm_message_context": "Compared getOrDefault and containsKey.",
+        "question_type": "answer_attempt",
+        "cognitive_level": "Understand",
+        "sentiment": "neutral",
+        "confusion_flag": 1
+      },
+      {
+        "turn": 4,
+        "student_message": "then checked exceptions ka point kya hai? sab unchecked kyu nahi kar dete",
+        "teacher_message": "Checked exceptions are meant for recoverable conditions outside the program's control, like a missing file, so callers are forced to think about them. Many developers find them noisy, and the trade-off is debated.",
+        "llm_message_context": "Confirmed NPE is unchecked and defined checked exceptions.",
+        "question_type": "why",
+        "cognitive_level": "Evaluate",
+        "sentiment": "neutral",
+        "confusion_flag": 0
+      },
+      {
+        "turn": 5,
+        "student_message": "if i write try { return 1; } finally { System.out.println(\"x\"); } the x still prints before the method returns right?",
+        "teacher_message": "Yes. The finally block runs before the method actually returns.",
+        "llm_message_context": "Explained the rationale and debate around checked exceptions.",
+        "question_type": "explanation_attempt",
+        "cognitive_level": "Understand",
+        "sentiment": "neutral",
+        "confusion_flag": 0
+      },
+      {
+        "turn": 6,
+        "student_message": "and if both try and finally have a return, finally's return wins and any exception is swallowed. bad idea",
+        "teacher_message": "Right on both. It overrides the try's return and hides exceptions, which is why compilers and linters warn about it.",
+        "llm_message_context": "Confirmed finally runs before return.",
+        "question_type": "explanation_attempt",
+        "cognitive_level": "Analyze",
+        "sentiment": "neutral",
+        "confusion_flag": 0
+      },
+      {
+        "turn": 7,
+        "student_message": "try-with-resources mein Scanner automatically close ho jata hai even if exception aaye? finally ki zaroorat nahi?",
+        "teacher_message": "Yes, anything that implements AutoCloseable is closed automatically, in reverse order, whether the block ends normally or with an exception.",
+        "llm_message_context": "Confirmed return in finally overrides and swallows exceptions.",
+        "question_type": "clarification",
+        "cognitive_level": "Understand",
+        "sentiment": "neutral",
+        "confusion_flag": 0
+      },
+      {
+        "turn": 8,
+        "student_message": "agar close() khud exception throw kare toh kaunsa exception dikhega? 🤔",
+        "teacher_message": "The exception from the body is the one that propagates. The one from close() is attached as a suppressed exception, which you can read with getSuppressed().",
+        "llm_message_context": "Explained try-with-resources.",
+        "question_type": "clarification",
+        "cognitive_level": "Analyze",
+        "sentiment": "neutral",
+        "confusion_flag": 0
+      },
+      {
+        "turn": 9,
+        "student_message": "custom exception: InsufficientBalanceException for my bank app. i'd extend Exception so it's checked, because caller must handle low balance",
+        "teacher_message": "Reasonable. Callers can recover, for example by prompting for a smaller amount, so a checked exception fits. For programming errors, like a null argument, you'd extend RuntimeException.",
+        "llm_message_context": "Explained suppressed exceptions.",
+        "question_type": "creation",
+        "cognitive_level": "Create",
+        "sentiment": "positive",
+        "confusion_flag": 0
+      },
+      {
+        "turn": 10,
+        "student_message": "ok so my original bug: map.get returned null, NPE which is unchecked. fix: getOrDefault plus validate input. thanks!",
+        "teacher_message": "That's the right diagnosis and fix.",
+        "llm_message_context": "Reviewed the custom checked exception design.",
+        "question_type": "feedback",
+        "cognitive_level": "Evaluate",
+        "sentiment": "positive",
+        "confusion_flag": 0
+      }
+    ],
+    "quiz": {
+      "num_questions": 13,
+      "correct": 10,
+      "score_percent": 77
+    },
+    "annotation_rationale": "Student diagnoses the NPE source, then claims NullPointerException is checked and independently corrects it by noting their code compiled without try/catch. They correctly describe finally with return, try-with-resources, suppressed exceptions, and design a custom checked exception.",
+    "quality_review": {
+      "automated_structural_check": "passed",
+      "automated_semantic_screen": "heuristic; 0 warning(s)",
+      "checks_run": [
+        "schema",
+        "enums",
+        "annotation_shape",
+        "quiz_arithmetic",
+        "id_leakage",
+        "data_source"
+      ],
+      "human_verified": false,
+      "human_review": null
+    },
+    "generation_meta": {
+      "batch_id": "pilot_000_v2",
+      "schema_version": "2.1",
+      "scenario_tag": "self_correct_while_debugging",
+      "text_source": "LLM-authored synthetic conversation (not human-verified)",
+      "use_as_training_feature": false,
+      "teacher_style": "direct_corrector",
+      "qa_flag": null
+    },
+    "data_source": "synthetic_llm",
+    "self_correction_turns": [
+      3
+    ]
+  },
+  {
+    "chat_id": "EXP_0011",
+    "student_id": "SYN_S158",
+    "timestamp": "2026-08-06 10:28",
+    "llm_client": "Claude",
+    "subject": "DL",
+    "topic": "Backpropagation",
+    "main_concept": "backpropagation and gradient descent",
+    "confusable_concept": "gradient descent",
+    "student_persona": "hesitant",
+    "language_style": "english_casual",
+    "difficulty_level": "advanced",
+    "task_type": "mathematical_explanation",
+    "num_student_turns": 16,
+    "confusion_points": 11,
+    "final_understanding": "confused",
+    "overall_sentiment": "mixed",
+    "self_correction": "no",
+    "engagement_level": "high",
+    "misconception_present": true,
+    "misconception_category": "backpropagation_vs_gradient_descent",
+    "misconception_resolved": false,
+    "student_confidence": "low",
+    "reasoning_quality": "moderate",
+    "turns": [
+      {
+        "turn": 1,
+        "student_message": "can someone explain backpropagation? i've watched 3 videos and i feel like i'm missing something",
+        "teacher_message": "Sure. First a forward pass produces a prediction and a loss. Then backprop works backward through the layers using the chain rule to compute how much the loss changes with respect to each weight. Those gradients are then used to update the weights.",
+        "llm_message_context": null,
+        "question_type": "definition",
+        "cognitive_level": "Understand",
+        "sentiment": "mixed",
+        "confusion_flag": 0
+      },
+      {
+        "turn": 2,
+        "student_message": "so backprop runs the network in reverse, like feeding the output back in to get the input?",
+        "teacher_message": "No, it doesn't reconstruct inputs. What flows backward isn't data but gradients: error signals that say how sensitive the loss is to each layer's values and weights.",
+        "llm_message_context": "Gave an overview: forward pass, loss, backward gradients.",
+        "question_type": "explanation_attempt",
+        "cognitive_level": "Understand",
+        "sentiment": "neutral",
+        "confusion_flag": 1
+      },
+      {
+        "turn": 3,
+        "student_message": "ok so the error goes backward. is the error just output minus target?",
+        "teacher_message": "For squared error, the gradient at the output is proportional to (prediction minus target), so that's the starting point. It then gets multiplied back through each layer.",
+        "llm_message_context": "Corrected: gradients flow backward, not data.",
+        "question_type": "clarification",
+        "cognitive_level": "Understand",
+        "sentiment": "neutral",
+        "confusion_flag": 0
+      },
+      {
+        "turn": 4,
+        "student_message": "and then each weight gets updated by that error right? like w = w - error",
+        "teacher_message": "Close, but the update uses the gradient of the loss with respect to that weight, scaled by a learning rate: w becomes w minus eta times dL/dw. Using the raw error would ignore how much each weight actually affects the output.",
+        "llm_message_context": "Related output error to the starting gradient.",
+        "question_type": "answer_attempt",
+        "cognitive_level": "Understand",
+        "sentiment": "neutral",
+        "confusion_flag": 1
+      },
+      {
+        "turn": 5,
+        "student_message": "so backprop is what updates the weights, and gradient descent is... i thought they were the same thing",
+        "teacher_message": "They're related but different. Backprop computes the gradients. Gradient descent is the rule that uses those gradients to change the weights.",
+        "llm_message_context": "Corrected the weight update rule.",
+        "question_type": "clarification",
+        "cognitive_level": "Understand",
+        "sentiment": "mixed",
+        "confusion_flag": 1
+      },
+      {
+        "turn": 6,
+        "student_message": "hmm so backprop computes and gradient descent updates. so gradient descent doesn't need backprop?",
+        "teacher_message": "It needs gradients, and backprop is the efficient way to get them in a neural net. You could in principle estimate gradients numerically, but that's far slower.",
+        "llm_message_context": "Separated gradient computation (backprop) from the update rule.",
+        "question_type": "clarification",
+        "cognitive_level": "Analyze",
+        "sentiment": "neutral",
+        "confusion_flag": 0
+      },
+      {
+        "turn": 7,
+        "student_message": "ok let me try a tiny one. x=2, w=3, y_hat = w*x = 6, target 4. loss=(6-4)^2=4. the error is 2 so new w = 3-2 = 1? idk if that's right",
+        "teacher_message": "The forward pass and loss are right. The gradient is dL/dw = 2(y_hat - y)x = 2 x 2 x 2 = 8. With a learning rate of 0.1, the new w is 3 - 0.8 = 2.2.",
+        "llm_message_context": "Explained that gradient descent needs gradients from backprop or alternatives.",
+        "question_type": "answer_attempt",
+        "cognitive_level": "Apply",
+        "sentiment": "mixed",
+        "confusion_flag": 1
+      },
+      {
+        "turn": 8,
+        "student_message": "why is there an x in there? i thought the gradient was only the error",
+        "teacher_message": "Because w affects the output through x. By the chain rule, dL/dw = dL/dy_hat times dy_hat/dw, and dy_hat/dw = x here.",
+        "llm_message_context": "Worked the example: correct loss, corrected gradient and update.",
+        "question_type": "why",
+        "cognitive_level": "Understand",
+        "sentiment": "neutral",
+        "confusion_flag": 1
+      },
+      {
+        "turn": 9,
+        "student_message": "sorry what does the chain rule have to do with it. i know it from calculus but didn't think it applied here",
+        "teacher_message": "A network is a function of functions: loss depends on y_hat, which depends on w. The chain rule lets you multiply those local sensitivities together, and backprop organises that multiplication layer by layer.",
+        "llm_message_context": "Explained why x appears via the chain rule.",
+        "question_type": "clarification",
+        "cognitive_level": "Understand",
+        "sentiment": "mixed",
+        "confusion_flag": 1
+      },
+      {
+        "turn": 10,
+        "student_message": "ok so for two layers: x -> h = w1*x -> y_hat = w2*h. the gradient for w1 comes from w2 since it's backward",
+        "teacher_message": "Yes: dL/dw1 = dL/dy_hat times w2 times x. The w2 term is exactly how the signal travels backward to w1.",
+        "llm_message_context": "Connected the chain rule to nested functions in a network.",
+        "question_type": "answer_attempt",
+        "cognitive_level": "Analyze",
+        "sentiment": "positive",
+        "confusion_flag": 0
+      },
+      {
+        "turn": 11,
+        "student_message": "so does w1 get updated first and then w2 since the flow is backward?",
+        "teacher_message": "Not quite. You compute all the gradients with the current weights first, then update all weights together. The order of the backward pass is about computing gradients, not about update order.",
+        "llm_message_context": "Confirmed the two-layer gradient for w1.",
+        "question_type": "clarification",
+        "cognitive_level": "Understand",
+        "sentiment": "neutral",
+        "confusion_flag": 1
+      },
+      {
+        "turn": 12,
+        "student_message": "but if w2 is updated first then w1's gradient would use the new w2, no?",
+        "teacher_message": "That's exactly why we finish computing every gradient with the old weights before updating anything.",
+        "llm_message_context": "Clarified gradients first, then simultaneous updates.",
+        "question_type": "challenge",
+        "cognitive_level": "Analyze",
+        "sentiment": "neutral",
+        "confusion_flag": 1
+      },
+      {
+        "turn": 13,
+        "student_message": "ok. so which part is the 'learning', the gradient or the update?",
+        "teacher_message": "Both are needed. The gradient tells you which direction reduces the loss, and the update takes a step in that direction.",
+        "llm_message_context": "Reinforced computing all gradients before updating.",
+        "question_type": "clarification",
+        "cognitive_level": "Understand",
+        "sentiment": "neutral",
+        "confusion_flag": 0
+      },
+      {
+        "turn": 14,
+        "student_message": "i think backprop is what makes the network learn and gradient descent is just a setting we pick, like the learning rate",
+        "teacher_message": "Gradient descent isn't a setting: it's the optimiser that performs the update. The learning rate is its hyperparameter. Backprop only supplies the gradients.",
+        "llm_message_context": "Explained the roles of gradient and update.",
+        "question_type": "explanation_attempt",
+        "cognitive_level": "Understand",
+        "sentiment": "mixed",
+        "confusion_flag": 1
+      },
+      {
+        "turn": 15,
+        "student_message": "i keep mixing these up 😅 can you give me a one sentence version?",
+        "teacher_message": "Backprop computes the gradient of the loss with respect to every weight; gradient descent uses those gradients to update the weights.",
+        "llm_message_context": "Corrected: gradient descent is the optimiser, not a setting.",
+        "question_type": "clarification",
+        "cognitive_level": "Remember",
+        "sentiment": "mixed",
+        "confusion_flag": 1
+      },
+      {
+        "turn": 16,
+        "student_message": "ugh ok. so backprop updates the weights, with gradient descent as a setting. i'll go with that for now i guess",
+        "teacher_message": "Not quite, and it may help to hold the two apart: backprop gives you the gradients, and gradient descent applies the update. Try re-running your tiny x=2, w=3 example, doing those as two separate steps.",
+        "llm_message_context": "Gave a one-sentence summary.",
+        "question_type": "feedback",
+        "cognitive_level": "Understand",
+        "sentiment": "negative",
+        "confusion_flag": 1
+      }
+    ],
+    "quiz": {
+      "num_questions": 13,
+      "correct": 9,
+      "score_percent": 69
+    },
+    "annotation_rationale": "Over sixteen turns the student tries many times but repeatedly conflates backprop with the update step: thinks it runs the network in reverse, sets w = w - error, believes weights update sequentially in backward order, and ends saying backprop updates weights with gradient descent as 'a setting'. Several explanations did not stick.",
+    "quality_review": {
+      "automated_structural_check": "passed",
+      "automated_semantic_screen": "heuristic; 0 warning(s)",
+      "checks_run": [
+        "schema",
+        "enums",
+        "annotation_shape",
+        "quiz_arithmetic",
+        "id_leakage",
+        "data_source"
+      ],
+      "human_verified": false,
+      "human_review": null
+    },
+    "generation_meta": {
+      "batch_id": "pilot_000_v2",
+      "schema_version": "2.1",
+      "scenario_tag": "needs_multiple_explanations",
+      "text_source": "LLM-authored synthetic conversation (not human-verified)",
+      "use_as_training_feature": false,
+      "teacher_style": "direct_corrector",
+      "qa_flag": "borderline confused/partial: derives a correct 2-layer gradient but final conflation persists"
+    },
+    "data_source": "synthetic_llm",
+    "self_correction_turns": []
+  },
+  {
+    "chat_id": "EXP_0012",
+    "student_id": "SYN_S121",
+    "timestamp": "2026-09-29 11:00",
+    "llm_client": "Gemini",
+    "subject": "Maths",
+    "topic": "Linear Algebra",
+    "main_concept": "eigenvalues and eigenvectors",
+    "confusable_concept": "determinant",
+    "student_persona": "explainer",
+    "language_style": "english_standard",
+    "difficulty_level": "intermediate",
+    "task_type": "mathematical_explanation",
+    "num_student_turns": 8,
+    "confusion_points": 3,
+    "final_understanding": "partial",
+    "overall_sentiment": "mixed",
+    "self_correction": "no",
+    "engagement_level": "moderate",
+    "misconception_present": true,
+    "misconception_category": "singular_matrix_meaning_in_eigenvalue_equation",
+    "misconception_resolved": false,
+    "student_confidence": "low",
+    "reasoning_quality": "moderate",
+    "turns": [
+      {
+        "turn": 1,
+        "student_message": "I need the eigenvalues of A = [[4,1],[2,3]]. My attempt: det(A - lambda I) = (4-lambda)(3-lambda) - 2 = lambda^2 - 7 lambda + 10 = 0, so lambda = 5 and 2. Is that right? 🙏",
+        "teacher_message": "Yes. A quick check: the eigenvalues sum to the trace (7) and multiply to the determinant (10), which they do.",
+        "llm_message_context": null,
+        "question_type": "answer_attempt",
+        "cognitive_level": "Apply",
+        "sentiment": "neutral",
+        "confusion_flag": 0
+      },
+      {
+        "turn": 2,
+        "student_message": "For lambda=5: (A-5I)v = 0 gives [[-1,1],[2,-2]], so v = [1,1]. For lambda=2: [[2,1],[2,1]]v = 0, so v = [1,-2].",
+        "teacher_message": "Both correct. Nice work.",
+        "llm_message_context": "Confirmed eigenvalues and gave the trace/determinant check.",
+        "question_type": "answer_attempt",
+        "cognitive_level": "Apply",
+        "sentiment": "positive",
+        "confusion_flag": 0
+      },
+      {
+        "turn": 3,
+        "student_message": "Now what do these numbers actually mean? My textbook only says Av = lambda v. 🙏",
+        "teacher_message": "Geometrically, an eigenvector is a direction that A only stretches or flips and doesn't rotate. The eigenvalue is the stretch factor along that direction.",
+        "llm_message_context": "Confirmed both eigenvectors.",
+        "question_type": "why",
+        "cognitive_level": "Understand",
+        "sentiment": "neutral",
+        "confusion_flag": 0
+      },
+      {
+        "turn": 4,
+        "student_message": "So eigenvectors are the vectors that A doesn't change at all? 🤔",
+        "teacher_message": "Not 'doesn't change': they're scaled. [1,1] becomes [5,5] under A. The direction is preserved, but the length is multiplied by lambda.",
+        "llm_message_context": "Explained the geometric meaning of eigenvectors.",
+        "question_type": "answer_attempt",
+        "cognitive_level": "Understand",
+        "sentiment": "neutral",
+        "confusion_flag": 1
+      },
+      {
+        "turn": 5,
+        "student_message": "Right, scaled. But why does det(A - lambda I) = 0 give eigenvalues? I memorised it as a procedure. 😅",
+        "teacher_message": "From Av = lambda v we get (A - lambda I)v = 0. We want a non-zero v, and that's only possible if A - lambda I is singular, meaning its determinant is zero.",
+        "llm_message_context": "Corrected: scaled, not unchanged.",
+        "question_type": "why",
+        "cognitive_level": "Understand",
+        "sentiment": "neutral",
+        "confusion_flag": 0
+      },
+      {
+        "turn": 6,
+        "student_message": "I think it's because the determinant being zero means the two columns are equal, so that makes lambda special. Does that sound right? 😅",
+        "teacher_message": "Not quite. A zero determinant means the columns are linearly dependent, not necessarily equal; so the matrix collapses some direction and has a non-trivial null space. That null space is where your eigenvectors live.",
+        "llm_message_context": "Derived why det(A - lambda I) = 0.",
+        "question_type": "explanation_attempt",
+        "cognitive_level": "Understand",
+        "sentiment": "mixed",
+        "confusion_flag": 1
+      },
+      {
+        "turn": 7,
+        "student_message": "What would it mean if an eigenvalue were negative or complex?",
+        "teacher_message": "Negative: the direction is flipped as well as scaled. Complex: no real direction is preserved, which typically happens for rotation-like transformations.",
+        "llm_message_context": "Corrected: dependent columns and null space, not equal columns.",
+        "question_type": "clarification",
+        "cognitive_level": "Understand",
+        "sentiment": "neutral",
+        "confusion_flag": 0
+      },
+      {
+        "turn": 8,
+        "student_message": "For the rotation matrix [[0,-1],[1,0]] I get lambda^2 + 1 = 0, so no real eigenvalues. I can compute it, but I still don't have an intuition for why a rotation has none. 😭",
+        "teacher_message": "That's the intuition: a 90-degree rotation turns every direction into a different one, so no real vector stays on its own line. The algebra and the picture agree. Try sketching where [1,0] and [0,1] go.",
+        "llm_message_context": "Explained negative and complex eigenvalues.",
+        "question_type": "feedback",
+        "cognitive_level": "Understand",
+        "sentiment": "negative",
+        "confusion_flag": 1
+      }
+    ],
+    "quiz": {
+      "num_questions": 15,
+      "correct": 10,
+      "score_percent": 67
+    },
+    "annotation_rationale": "Student computes eigenvalues and eigenvectors for a 2x2 matrix correctly and handles the rotation matrix equation, but explanations of why det(A - lambda I) = 0 are wrong ('columns are equal') and they say they lack intuition for eigenvectors. Procedure is strong, conceptual explanation is weak.",
+    "quality_review": {
+      "automated_structural_check": "passed",
+      "automated_semantic_screen": "heuristic; 0 warning(s)",
+      "checks_run": [
+        "schema",
+        "enums",
+        "annotation_shape",
+        "quiz_arithmetic",
+        "id_leakage",
+        "data_source"
+      ],
+      "human_verified": false,
+      "human_review": null
+    },
+    "generation_meta": {
+      "batch_id": "pilot_000_v2",
+      "schema_version": "2.1",
+      "scenario_tag": "solves_but_cannot_explain",
+      "text_source": "LLM-authored synthetic conversation (not human-verified)",
+      "use_as_training_feature": false,
+      "teacher_style": "direct_corrector",
+      "qa_flag": null
+    },
+    "data_source": "synthetic_llm",
+    "self_correction_turns": []
+  },
+  {
+    "chat_id": "EXP_0013",
+    "student_id": "SYN_S021",
+    "timestamp": "2026-11-06 10:16",
+    "llm_client": "ChatGPT",
+    "subject": "C++",
+    "topic": "OOP",
+    "main_concept": "virtual functions and dynamic dispatch",
+    "confusable_concept": "function overloading",
+    "student_persona": "skeptical",
+    "language_style": "english_casual",
+    "difficulty_level": "advanced",
+    "task_type": "concept_explanation",
+    "num_student_turns": 13,
+    "confusion_points": 0,
+    "final_understanding": "understood",
+    "overall_sentiment": "positive",
+    "self_correction": "no",
+    "engagement_level": "high",
+    "misconception_present": false,
+    "misconception_category": null,
+    "misconception_resolved": null,
+    "student_confidence": "unknown",
+    "reasoning_quality": "strong",
+    "turns": [
+      {
+        "turn": 1,
+        "student_message": "why do we even need virtual functions? just call the right class's function directly",
+        "teacher_message": "When the exact type is known at compile time you can. Virtual functions matter when you hold a Base* or Base& that may refer to different derived objects and want the right override chosen at runtime.",
+        "llm_message_context": null,
+        "question_type": "why",
+        "cognitive_level": "Understand",
+        "sentiment": "negative",
+        "confusion_flag": 0
+      },
+      {
+        "turn": 2,
+        "student_message": "but i know the type when i write the code. Derived d; d.f() works fine without virtual",
+        "teacher_message": "True for that case. It breaks down with containers of Base*, factory functions or plugin interfaces, where the concrete type is only known at runtime.",
+        "llm_message_context": "Explained the need for runtime dispatch via base pointers.",
+        "question_type": "challenge",
+        "cognitive_level": "Analyze",
+        "sentiment": "neutral",
+        "confusion_flag": 0
+      },
+      {
+        "turn": 3,
+        "student_message": "ok so Base* p = new Derived; p->f() calls Base::f if f isn't virtual because the call is bound at compile time using the pointer type. with virtual it's looked up at runtime through the vtable",
+        "teacher_message": "Exactly. Non-virtual: static binding by the pointer's type. Virtual: dynamic binding through the object's vptr into the vtable.",
+        "llm_message_context": "Explained when static type is not enough.",
+        "question_type": "explanation_attempt",
+        "cognitive_level": "Analyze",
+        "sentiment": "neutral",
+        "confusion_flag": 0
+      },
+      {
+        "turn": 4,
+        "student_message": "is the vtable per object or per class?",
+        "teacher_message": "Per class. Each object just carries a hidden pointer (the vptr) to its class's vtable.",
+        "llm_message_context": "Confirmed static vs dynamic binding.",
+        "question_type": "clarification",
+        "cognitive_level": "Understand",
+        "sentiment": "neutral",
+        "confusion_flag": 0
+      },
+      {
+        "turn": 5,
+        "student_message": "so sizeof grows by a pointer if there's any virtual function. i tested struct A{int x;} = 4 bytes, with a virtual fn it's 16 on my machine, probably padding",
+        "teacher_message": "Right: 8 bytes for the vptr on a 64-bit system, 4 for x, and padding to 16 for alignment.",
+        "llm_message_context": "Explained vtable per class, vptr per object.",
+        "question_type": "answer_attempt",
+        "cognitive_level": "Apply",
+        "sentiment": "positive",
+        "confusion_flag": 0
+      },
+      {
+        "turn": 6,
+        "student_message": "what about deleting through a Base*? delete p with a non-virtual destructor only runs Base's destructor?",
+        "teacher_message": "Yes, only Base's destructor runs, so the Derived part leaks. That's why base classes meant for polymorphism should have virtual destructors.",
+        "llm_message_context": "Confirmed the object size and padding.",
+        "question_type": "clarification",
+        "cognitive_level": "Analyze",
+        "sentiment": "neutral",
+        "confusion_flag": 0
+      },
+      {
+        "turn": 7,
+        "student_message": "isn't it undefined behaviour by the standard though? a leak is just what usually happens",
+        "teacher_message": "You're right, and I should have said so. Deleting a derived object through a base pointer with a non-virtual destructor is undefined behaviour; a leak is just one possible outcome.",
+        "llm_message_context": "Explained non-virtual destructor behaviour (as a leak).",
+        "question_type": "challenge",
+        "cognitive_level": "Evaluate",
+        "sentiment": "neutral",
+        "confusion_flag": 0
+      },
+      {
+        "turn": 8,
+        "student_message": "can a constructor be virtual?",
+        "teacher_message": "No. A constructor's job is to build the object, including setting up its vptr, and dynamic dispatch depends on that already being in place, so a constructor can't itself be dispatched virtually.",
+        "llm_message_context": "Teacher conceded: it is undefined behaviour, not just a leak.",
+        "question_type": "clarification",
+        "cognitive_level": "Understand",
+        "sentiment": "neutral",
+        "confusion_flag": 0
+      },
+      {
+        "turn": 9,
+        "student_message": "what if i call a virtual function inside the Base constructor? will it call the Derived override?",
+        "teacher_message": "No, it calls Base's version. At that point the Derived part hasn't been constructed, so dispatching to Derived would touch uninitialised members.",
+        "llm_message_context": "Explained why constructors cannot be virtual.",
+        "question_type": "application",
+        "cognitive_level": "Analyze",
+        "sentiment": "neutral",
+        "confusion_flag": 0
+      },
+      {
+        "turn": 10,
+        "student_message": "makes sense, same reason in reverse for destructors: by the time Base's destructor runs the Derived part is already gone, so it also calls Base's version",
+        "teacher_message": "Exactly right.",
+        "llm_message_context": "Explained virtual calls in constructors resolve to Base.",
+        "question_type": "explanation_attempt",
+        "cognitive_level": "Analyze",
+        "sentiment": "positive",
+        "confusion_flag": 0
+      },
+      {
+        "turn": 11,
+        "student_message": "what's the override keyword for? my code works without it",
+        "teacher_message": "It asks the compiler to verify that you're really overriding a base virtual function. If the signature differs in some way, you get an error instead of silently creating a new function.",
+        "llm_message_context": "Confirmed the destructor case.",
+        "question_type": "why",
+        "cognitive_level": "Understand",
+        "sentiment": "neutral",
+        "confusion_flag": 0
+      },
+      {
+        "turn": 12,
+        "student_message": "so if Base has virtual void f() const and Derived writes void f() without const, it's a different function that hides it, and override would give a compile error. i'll always use override",
+        "teacher_message": "That's the classic case, and your plan is a good habit.",
+        "llm_message_context": "Explained the override keyword.",
+        "question_type": "answer_attempt",
+        "cognitive_level": "Analyze",
+        "sentiment": "positive",
+        "confusion_flag": 0
+      },
+      {
+        "turn": 13,
+        "student_message": "pure virtual makes the class abstract but it can still have a body, right? i read you can define it",
+        "teacher_message": "Yes. A pure virtual function can have a definition, which derived classes can call explicitly, and a pure virtual destructor must have one.",
+        "llm_message_context": "Confirmed the const mismatch example.",
+        "question_type": "clarification",
+        "cognitive_level": "Analyze",
+        "sentiment": "neutral",
+        "confusion_flag": 0
+      }
+    ],
+    "quiz": {
+      "num_questions": 10,
+      "correct": 5,
+      "score_percent": 50
+    },
+    "annotation_rationale": "Student correctly explains static vs dynamic binding and vptr/vtable, spots that deleting through a base pointer without a virtual destructor is undefined behaviour rather than just a leak (challenging the teacher correctly), and reasons accurately about constructors, destructors and override.",
+    "quality_review": {
+      "automated_structural_check": "passed",
+      "automated_semantic_screen": "heuristic; 0 warning(s)",
+      "checks_run": [
+        "schema",
+        "enums",
+        "annotation_shape",
+        "quiz_arithmetic",
+        "id_leakage",
+        "data_source"
+      ],
+      "human_verified": false,
+      "human_review": null
+    },
+    "generation_meta": {
+      "batch_id": "pilot_000_v2",
+      "schema_version": "2.1",
+      "scenario_tag": "challenges_explanation_correctly",
+      "text_source": "LLM-authored synthetic conversation (not human-verified)",
+      "use_as_training_feature": false,
+      "teacher_style": "direct_corrector",
+      "qa_flag": null
+    },
+    "data_source": "synthetic_llm",
+    "self_correction_turns": []
+  },
+  {
+    "chat_id": "EXP_0014",
+    "student_id": "SYN_S118",
+    "timestamp": "2026-09-28 19:37",
+    "llm_client": "Gemini",
+    "subject": "AI",
+    "topic": "Search Algorithms",
+    "main_concept": "A* search and heuristics",
+    "confusable_concept": "Dijkstra's algorithm",
+    "student_persona": "overconfident",
+    "language_style": "hinglish_light",
+    "difficulty_level": "advanced",
+    "task_type": "algorithmic_reasoning",
+    "num_student_turns": 11,
+    "confusion_points": 5,
+    "final_understanding": "partial",
+    "overall_sentiment": "positive",
+    "self_correction": "no",
+    "engagement_level": "high",
+    "misconception_present": true,
+    "misconception_category": "astar_heuristic_requirements",
+    "misconception_resolved": false,
+    "student_confidence": "high",
+    "reasoning_quality": "moderate",
+    "turns": [
+      {
+        "turn": 1,
+        "student_message": "A* toh simple hai: f(n) = g(n) + h(n), and heuristic must be exact cost to goal otherwise it won't be optimal. viva ke liye bas verify kar do 🙏",
+        "teacher_message": "f = g + h is right. The 'exact' part isn't. The heuristic doesn't need to be exact; it needs to be admissible, meaning it never overestimates the true remaining cost.",
+        "llm_message_context": null,
+        "question_type": "answer_attempt",
+        "cognitive_level": "Understand",
+        "sentiment": "neutral",
+        "confusion_flag": 1
+      },
+      {
+        "turn": 2,
+        "student_message": "nahi nahi, if h is not exact then A* can go in wrong direction. exact h is the best obviously 🤔",
+        "teacher_message": "Exact h is ideal: A* would expand essentially only nodes on an optimal path. But optimality only needs h to never overestimate. With h = 0 it behaves like Dijkstra and is still optimal.",
+        "llm_message_context": "Confirmed f=g+h; corrected that h need not be exact.",
+        "question_type": "challenge",
+        "cognitive_level": "Analyze",
+        "sentiment": "neutral",
+        "confusion_flag": 1
+      },
+      {
+        "turn": 3,
+        "student_message": "ok admissible = h(n) <= true cost. example: Manhattan distance on a grid with obstacles and 4-direction moves, admissible? 🔥",
+        "teacher_message": "Yes. Obstacles can only make the real path longer, so Manhattan never overestimates.",
+        "llm_message_context": "Explained exact h is best but not required; h=0 gives uniform-cost search.",
+        "question_type": "answer_attempt",
+        "cognitive_level": "Apply",
+        "sentiment": "positive",
+        "confusion_flag": 0
+      },
+      {
+        "turn": 4,
+        "student_message": "and Euclidean on the same grid is also admissible since it's smaller than Manhattan",
+        "teacher_message": "Correct. It's admissible but less informed, so A* will expand more nodes.",
+        "llm_message_context": "Confirmed Manhattan is admissible on a 4-direction grid.",
+        "question_type": "explanation_attempt",
+        "cognitive_level": "Analyze",
+        "sentiment": "neutral",
+        "confusion_flag": 0
+      },
+      {
+        "turn": 5,
+        "student_message": "so more informed = better. what if i multiply Manhattan by 2 to make it more informed?",
+        "teacher_message": "Careful: that can overestimate the true cost, so it's no longer admissible and A* may return a suboptimal path.",
+        "llm_message_context": "Confirmed Euclidean is admissible but less informed.",
+        "question_type": "application",
+        "cognitive_level": "Analyze",
+        "sentiment": "neutral",
+        "confusion_flag": 0
+      },
+      {
+        "turn": 6,
+        "student_message": "but bigger h means fewer nodes expanded, so faster. only difference is the path may be slightly longer, theek hai na 🙏",
+        "teacher_message": "That's a real trade-off, and it's the idea behind weighted A*. Just call it bounded-suboptimal rather than optimal.",
+        "llm_message_context": "Warned that scaling a heuristic can break admissibility.",
+        "question_type": "evaluation",
+        "cognitive_level": "Evaluate",
+        "sentiment": "neutral",
+        "confusion_flag": 0
+      },
+      {
+        "turn": 7,
+        "student_message": "admissible heuristic guarantees A* is optimal always, even in graph search with a closed list 🤔",
+        "teacher_message": "Not always. With a closed list you also need consistency, or you must be willing to reopen nodes. Admissibility alone is enough for tree search.",
+        "llm_message_context": "Described the weighted A* trade-off.",
+        "question_type": "answer_attempt",
+        "cognitive_level": "Analyze",
+        "sentiment": "neutral",
+        "confusion_flag": 1
+      },
+      {
+        "turn": 8,
+        "student_message": "consistent matlab same as admissible, bas naam alag 🙏",
+        "teacher_message": "No: consistency means h(n) <= c(n, n') + h(n') for every edge. Consistent implies admissible, but not the other way round.",
+        "llm_message_context": "Introduced consistency for graph search.",
+        "question_type": "clarification",
+        "cognitive_level": "Analyze",
+        "sentiment": "neutral",
+        "confusion_flag": 1
+      },
+      {
+        "turn": 9,
+        "student_message": "ok consistent is stronger. so graph search with closed list needs consistent, tree search only admissible. and f never decreases along a path under consistency?",
+        "teacher_message": "Right on all three.",
+        "llm_message_context": "Distinguished consistency from admissibility.",
+        "question_type": "explanation_attempt",
+        "cognitive_level": "Analyze",
+        "sentiment": "positive",
+        "confusion_flag": 0
+      },
+      {
+        "turn": 10,
+        "student_message": "good. Manhattan on a 4-direction grid is consistent too, and for 8-puzzle misplaced tiles is admissible since each misplaced tile needs at least one move",
+        "teacher_message": "Both correct.",
+        "llm_message_context": "Confirmed summary of consistency requirements.",
+        "question_type": "answer_attempt",
+        "cognitive_level": "Apply",
+        "sentiment": "positive",
+        "confusion_flag": 0
+      },
+      {
+        "turn": 11,
+        "student_message": "ok viva ready: optimal with admissible h (tree) or consistent h (graph), h needn't be exact. and negative edge costs are fine as long as h is admissible, right?",
+        "teacher_message": "The first part is right. The last claim isn't: A* assumes non-negative edge costs, and negative costs can break optimality even with an admissible heuristic. Mention that in your viva.",
+        "llm_message_context": "Confirmed the Manhattan and misplaced-tiles examples.",
+        "question_type": "feedback",
+        "cognitive_level": "Evaluate",
+        "sentiment": "positive",
+        "confusion_flag": 1
+      }
+    ],
+    "quiz": {
+      "num_questions": 15,
+      "correct": 9,
+      "score_percent": 60
+    },
+    "annotation_rationale": "Student begins sure that h must be exact, is corrected, then reasons well about admissibility, consistency and Manhattan/misplaced-tiles heuristics. But they end with a new confident error, that negative edge costs are fine for A*, so the picture is good but incomplete.",
+    "quality_review": {
+      "automated_structural_check": "passed",
+      "automated_semantic_screen": "heuristic; 0 warning(s)",
+      "checks_run": [
+        "schema",
+        "enums",
+        "annotation_shape",
+        "quiz_arithmetic",
+        "id_leakage",
+        "data_source"
+      ],
+      "human_verified": false,
+      "human_review": null
+    },
+    "generation_meta": {
+      "batch_id": "pilot_000_v2",
+      "schema_version": "2.1",
+      "scenario_tag": "confident_but_wrong",
+      "text_source": "LLM-authored synthetic conversation (not human-verified)",
+      "use_as_training_feature": false,
+      "teacher_style": "direct_corrector",
+      "qa_flag": null
+    },
+    "data_source": "synthetic_llm",
+    "self_correction_turns": []
+  },
+  {
+    "chat_id": "EXP_0015",
+    "student_id": "SYN_S047",
+    "timestamp": "2026-10-09 15:33",
+    "llm_client": "Gemini",
+    "subject": "Python",
+    "topic": "Python Basics",
+    "main_concept": "mutable default arguments",
+    "confusable_concept": "immutable default values",
+    "student_persona": "casual",
+    "language_style": "english_casual",
+    "difficulty_level": "intermediate",
+    "task_type": "debugging",
+    "num_student_turns": 7,
+    "confusion_points": 6,
+    "final_understanding": "confused",
+    "overall_sentiment": "mixed",
+    "self_correction": "no",
+    "engagement_level": "moderate",
+    "misconception_present": true,
+    "misconception_category": "mutable_default_argument_evaluation",
+    "misconception_resolved": false,
+    "student_confidence": "unknown",
+    "reasoning_quality": "weak",
+    "turns": [
+      {
+        "turn": 1,
+        "student_message": "why does this print [1] then [1, 2]?? def add(x, lst=[]): lst.append(x); return lst. add(1) then add(2). i expected [2] the second time",
+        "teacher_message": "The default [] is created once, when the function is defined, not on every call. Both calls get the same list object, so the second append sees the first.",
+        "llm_message_context": null,
+        "question_type": "debugging",
+        "cognitive_level": "Analyze",
+        "sentiment": "neutral",
+        "confusion_flag": 1
+      },
+      {
+        "turn": 2,
+        "student_message": "so python remembers lst between calls like a static variable? 🤔",
+        "teacher_message": "It can look like that. The default object is stored on the function and reused. Because a list is mutable, changes to it stay visible on later calls.",
+        "llm_message_context": "Explained defaults are evaluated once at definition time.",
+        "question_type": "clarification",
+        "cognitive_level": "Understand",
+        "sentiment": "neutral",
+        "confusion_flag": 1
+      },
+      {
+        "turn": 3,
+        "student_message": "ok so if i call add(5, []) it should also remember the old stuff then",
+        "teacher_message": "No. Passing [] gives that call its own new list, so the stored default isn't involved at all.",
+        "llm_message_context": "Described the shared default object behaving like persistent state.",
+        "question_type": "answer_attempt",
+        "cognitive_level": "Apply",
+        "sentiment": "neutral",
+        "confusion_flag": 1
+      },
+      {
+        "turn": 4,
+        "student_message": "then why dont ints do this? def f(x, n=0): n += 1; return n always gives 1 😅",
+        "teacher_message": "Ints are immutable. n += 1 doesn't modify the stored 0; it rebinds the local name n to a new int. The default itself never changes.",
+        "llm_message_context": "Corrected: an explicitly passed list bypasses the default.",
+        "question_type": "clarification",
+        "cognitive_level": "Understand",
+        "sentiment": "neutral",
+        "confusion_flag": 0
+      },
+      {
+        "turn": 5,
+        "student_message": "so ints are safe because python makes a fresh copy of the default each call?",
+        "teacher_message": "Not a copy. The same 0 object is reused each time. Nothing goes wrong simply because it can't be mutated.",
+        "llm_message_context": "Explained immutable defaults rebind rather than mutate.",
+        "question_type": "answer_attempt",
+        "cognitive_level": "Understand",
+        "sentiment": "neutral",
+        "confusion_flag": 1
+      },
+      {
+        "turn": 6,
+        "student_message": "i changed it to lst = lst + [x]; return lst and it works now. so i guess lst=[] just doesnt matter anymore",
+        "teacher_message": "That works because lst + [x] builds a new list instead of mutating the shared one. The default [] is still created once; you just stopped modifying it. The usual idiom is lst=None, then create a list inside the function.",
+        "llm_message_context": "Corrected the 'fresh copy' idea.",
+        "question_type": "debugging",
+        "cognitive_level": "Analyze",
+        "sentiment": "neutral",
+        "confusion_flag": 1
+      },
+      {
+        "turn": 7,
+        "student_message": "ok so the fix is because + is safer than append, i'll just always use + instead of append lol",
+        "teacher_message": "I wouldn't conclude that. The issue is mutating a shared default, not append itself. In normal code append is perfectly fine. Try the None pattern and see why it needs no special choice of operator.",
+        "llm_message_context": "Explained why the + version avoids mutation; suggested the None idiom.",
+        "question_type": "feedback",
+        "cognitive_level": "Analyze",
+        "sentiment": "neutral",
+        "confusion_flag": 1
+      }
+    ],
+    "quiz": {
+      "num_questions": 13,
+      "correct": 6,
+      "score_percent": 46
+    },
+    "annotation_rationale": "Student gets a working fix but for the wrong reasons: says Python 'copies' immutable defaults, that default values act like static variables, and ends up believing '+ is safer than append' instead of understanding shared default objects and mutation.",
+    "quality_review": {
+      "automated_structural_check": "passed",
+      "automated_semantic_screen": "heuristic; 0 warning(s)",
+      "checks_run": [
+        "schema",
+        "enums",
+        "annotation_shape",
+        "quiz_arithmetic",
+        "id_leakage",
+        "data_source"
+      ],
+      "human_verified": false,
+      "human_review": null
+    },
+    "generation_meta": {
+      "batch_id": "pilot_000_v2",
+      "schema_version": "2.1",
+      "scenario_tag": "shallow_fix_wrong_model",
+      "text_source": "LLM-authored synthetic conversation (not human-verified)",
+      "use_as_training_feature": false,
+      "teacher_style": "direct_corrector",
+      "qa_flag": "borderline confused/partial: working fix reached, mechanism explained wrongly"
+    },
+    "data_source": "synthetic_llm",
+    "self_correction_turns": []
+  },
+  {
+    "chat_id": "EXP_0016",
+    "student_id": "SYN_S187",
+    "timestamp": "2026-11-07 16:23",
+    "llm_client": "Gemini",
+    "subject": "DataSci",
+    "topic": "Data Preprocessing",
+    "main_concept": "data leakage in ML pipelines",
+    "confusable_concept": "overfitting",
+    "student_persona": "beginner",
+    "language_style": "hinglish_heavy",
+    "difficulty_level": "intermediate",
+    "task_type": "practical_application",
+    "num_student_turns": 15,
+    "confusion_points": 1,
+    "final_understanding": "understood",
+    "overall_sentiment": "positive",
+    "self_correction": "no",
+    "engagement_level": "high",
+    "misconception_present": false,
+    "misconception_category": null,
+    "misconception_resolved": null,
+    "student_confidence": "moderate",
+    "reasoning_quality": "strong",
+    "turns": [
+      {
+        "turn": 1,
+        "student_message": "bhai mera model train pe 99% accuracy de raha hai aur test pe 71%. kuch galat hai kya? 😭",
+        "teacher_message": "Ho sakta hai overfitting ho ya data leakage. Pehle yeh batao: preprocessing aur train/test split kis order mein kiya?",
+        "llm_message_context": null,
+        "question_type": "debugging",
+        "cognitive_level": "Analyze",
+        "sentiment": "negative",
+        "confusion_flag": 1
+      },
+      {
+        "turn": 2,
+        "student_message": "maine pehle poore dataset pe StandardScaler fit kiya, phir train_test_split kiya. isse koi dikkat hai?",
+        "teacher_message": "Haan, yeh leakage hai. Scaler ne test data ka mean aur std bhi dekh liya, toh test set pura 'unseen' nahi raha.",
+        "llm_message_context": "Asked about preprocessing order to diagnose overfitting vs leakage.",
+        "question_type": "clarification",
+        "cognitive_level": "Apply",
+        "sentiment": "neutral",
+        "confusion_flag": 0
+      },
+      {
+        "turn": 3,
+        "student_message": "scaling mein toh sirf mean aur std lagta hai. isse test ka kitna info leak ho sakta hai? 😅",
+        "teacher_message": "Scaling mein kam hota hai, lekin principle same hai. Imputation, PCA ya target encoding mein leak bahut bada ho sakta hai. Test set ko future ka data samjho: uske statistics bhi model pipeline ko nahi dikhne chahiye.",
+        "llm_message_context": "Identified scaling before splitting as leakage.",
+        "question_type": "why",
+        "cognitive_level": "Analyze",
+        "sentiment": "neutral",
+        "confusion_flag": 0
+      },
+      {
+        "turn": 4,
+        "student_message": "ok principle samajh aaya: test future ka data hai, toh uske statistics bhi access nahi hone chahiye. so scaler sirf train pe fit karun, phir dono ko transform? 😄",
+        "teacher_message": "Bilkul sahi.",
+        "llm_message_context": "Explained the leakage principle and bigger leaks in other steps.",
+        "question_type": "explanation_attempt",
+        "cognitive_level": "Understand",
+        "sentiment": "positive",
+        "confusion_flag": 0
+      },
+      {
+        "turn": 5,
+        "student_message": "code dikhao please 😅",
+        "teacher_message": "scaler = StandardScaler()\nX_train = scaler.fit_transform(X_train)\nX_test = scaler.transform(X_test)\nTest par sirf transform hota hai, fit nahi.",
+        "llm_message_context": "Confirmed the fit-on-train, transform-both rule.",
+        "question_type": "application",
+        "cognitive_level": "Apply",
+        "sentiment": "neutral",
+        "confusion_flag": 0
+      },
+      {
+        "turn": 6,
+        "student_message": "cross validation mein kya? agar CV se pehle scale karun toh har fold mein same leakage hoga na",
+        "teacher_message": "Haan. Isliye scaler aur model ko ek Pipeline mein daalo, taaki har fold mein scaler sirf us fold ke train part pe fit ho.",
+        "llm_message_context": "Showed fit_transform on train and transform on test.",
+        "question_type": "clarification",
+        "cognitive_level": "Analyze",
+        "sentiment": "neutral",
+        "confusion_flag": 0
+      },
+      {
+        "turn": 7,
+        "student_message": "pipeline = make_pipeline(StandardScaler(), LogisticRegression()); cross_val_score(pipeline, X, y, cv=5). aisa? 👍",
+        "teacher_message": "Perfect, yahi sahi tareeka hai.",
+        "llm_message_context": "Explained Pipeline inside cross-validation.",
+        "question_type": "answer_attempt",
+        "cognitive_level": "Apply",
+        "sentiment": "positive",
+        "confusion_flag": 0
+      },
+      {
+        "turn": 8,
+        "student_message": "ek aur doubt: mere dataset mein 'discharge_summary' column hai jisme doctor ne diagnosis likha hai, aur target bhi diagnosis hai. maine use feature bana diya, accuracy 99%. yeh bhi leakage hai? 😅",
+        "teacher_message": "Haan, yeh target leakage hai. Feature mein woh jaankari hai jo prediction ke time par available nahi hoti.",
+        "llm_message_context": "Confirmed the pipeline with cross_val_score.",
+        "question_type": "answer_attempt",
+        "cognitive_level": "Analyze",
+        "sentiment": "neutral",
+        "confusion_flag": 0
+      },
+      {
+        "turn": 9,
+        "student_message": "matlab rule: feature prediction time par available hona chahiye. jaise 'loan defaulted date' se default predict karna galat hoga",
+        "teacher_message": "Exactly, example bhi sahi hai.",
+        "llm_message_context": "Identified target leakage from the discharge summary.",
+        "question_type": "explanation_attempt",
+        "cognitive_level": "Analyze",
+        "sentiment": "positive",
+        "confusion_flag": 0
+      },
+      {
+        "turn": 10,
+        "student_message": "time series data mein random split karun toh? 🤔",
+        "teacher_message": "Wahan random split future ke data se past predict karwa dega. Time-based split use karo: train past pe, test future pe.",
+        "llm_message_context": "Confirmed the prediction-time availability rule.",
+        "question_type": "clarification",
+        "cognitive_level": "Analyze",
+        "sentiment": "neutral",
+        "confusion_flag": 0
+      },
+      {
+        "turn": 11,
+        "student_message": "toh TimeSeriesSplit use karunga aur shuffle=True kabhi nahi. ek aur: ek patient ke 3 records hain, ek train mein ek test mein, yeh bhi problem hai na?",
+        "teacher_message": "Haan, yeh group leakage hai. GroupKFold ya group-wise split use karo with patient_id as the group.",
+        "llm_message_context": "Explained time-based splitting for time series.",
+        "question_type": "answer_attempt",
+        "cognitive_level": "Analyze",
+        "sentiment": "neutral",
+        "confusion_flag": 0
+      },
+      {
+        "turn": 12,
+        "student_message": "GroupKFold with patient_id. note kar liya: scaling fit on train, target leakage, time split, group split 🙏",
+        "teacher_message": "Bahut achhi summary. Ek aur cheez: oversampling ya SMOTE kab karna chahiye?",
+        "llm_message_context": "Confirmed TimeSeriesSplit and introduced GroupKFold.",
+        "question_type": "explanation_attempt",
+        "cognitive_level": "Evaluate",
+        "sentiment": "positive",
+        "confusion_flag": 0
+      },
+      {
+        "turn": 13,
+        "student_message": "sirf train fold pe, split ke baad. warna synthetic samples test ke neighbours se ban sakte hain, wahi leakage ho jayega",
+        "teacher_message": "Sahi. imblearn ka pipeline use karo, taaki sampling bhi CV ke andar sirf train fold pe ho.",
+        "llm_message_context": "Confirmed summary and asked about SMOTE timing.",
+        "question_type": "answer_attempt",
+        "cognitive_level": "Analyze",
+        "sentiment": "neutral",
+        "confusion_flag": 0
+      },
+      {
+        "turn": 14,
+        "student_message": "ek baat: scaling leakage se toh test score zyada achha dikhna chahiye tha, kam nahi. toh mera 99 vs 71 ka gap actually overfitting ka hai, leakage ka nahi? 🙏",
+        "teacher_message": "Sahi socha. Leakage test score ko badhata hai. Tumhare gap ka bada hissa overfitting ho sakta hai, jo regularisation, kam depth ya zyada data se kam hota hai.",
+        "llm_message_context": "Confirmed SMOTE only on the train fold.",
+        "question_type": "evaluation",
+        "cognitive_level": "Evaluate",
+        "sentiment": "neutral",
+        "confusion_flag": 0
+      },
+      {
+        "turn": 15,
+        "student_message": "toh next step: pipeline fix karta hoon, phir regularisation aur depth kam karke CV se compare. thanks bhai 🙏",
+        "teacher_message": "Fine. Run the pipeline version with cv=5 first, then compare the regularised model against it.",
+        "llm_message_context": "Confirmed that the gap is mostly overfitting.",
+        "question_type": "feedback",
+        "cognitive_level": "Create",
+        "sentiment": "positive",
+        "confusion_flag": 0
+      }
+    ],
+    "quiz": {
+      "num_questions": 10,
+      "correct": 4,
+      "score_percent": 40
+    },
+    "annotation_rationale": "After seeing the scaler example, the student correctly explains fit-on-train-only, writes a valid pipeline for CV, identifies target leakage from the discharge summary, proposes time-based and group splits, and reasons that scaling leakage inflates scores so the 71% test result is mostly overfitting.",
+    "quality_review": {
+      "automated_structural_check": "passed",
+      "automated_semantic_screen": "heuristic; 0 warning(s)",
+      "checks_run": [
+        "schema",
+        "enums",
+        "annotation_shape",
+        "quiz_arithmetic",
+        "id_leakage",
+        "data_source"
+      ],
+      "human_verified": false,
+      "human_review": null
+    },
+    "generation_meta": {
+      "batch_id": "pilot_000_v2",
+      "schema_version": "2.1",
+      "scenario_tag": "asks_for_demo_then_explains_back",
+      "text_source": "LLM-authored synthetic conversation (not human-verified)",
+      "use_as_training_feature": false,
+      "teacher_style": "direct_corrector",
+      "qa_flag": null
+    },
+    "data_source": "synthetic_llm",
+    "self_correction_turns": []
+  },
+  {
+    "chat_id": "EXP_0017",
+    "student_id": "SYN_S098",
+    "timestamp": "2026-09-13 21:19",
+    "llm_client": "Gemini",
+    "subject": "DSA",
+    "topic": "Hashing",
+    "main_concept": "hash table collision handling",
+    "confusable_concept": "open addressing",
+    "student_persona": "beginner",
+    "language_style": "english_casual",
+    "difficulty_level": "intermediate",
+    "task_type": "concept_explanation",
+    "num_student_turns": 9,
+    "confusion_points": 4,
+    "final_understanding": "partial",
+    "overall_sentiment": "positive",
+    "self_correction": "yes",
+    "engagement_level": "moderate",
+    "misconception_present": true,
+    "misconception_category": "chaining_vs_open_addressing_capacity_rehashing",
+    "misconception_resolved": false,
+    "student_confidence": "unknown",
+    "reasoning_quality": "moderate",
+    "turns": [
+      {
+        "turn": 1,
+        "student_message": "can you explain how hash tables handle collisions? i only know the word chaining",
+        "teacher_message": "Two main approaches. Chaining: each bucket holds a list of all keys that hash there. Open addressing: if the slot is taken, probe other slots in the same array until you find a free one.",
+        "llm_message_context": null,
+        "question_type": "definition",
+        "cognitive_level": "Understand",
+        "sentiment": "neutral",
+        "confusion_flag": 0
+      },
+      {
+        "turn": 2,
+        "student_message": "so with chaining each bucket is a linked list. insert is O(1) always and search is O(1) always right",
+        "teacher_message": "Inserting at the head of the list is O(1). For search, what determines how long the list you have to walk is?",
+        "llm_message_context": "Introduced chaining and open addressing.",
+        "question_type": "answer_attempt",
+        "cognitive_level": "Understand",
+        "sentiment": "neutral",
+        "confusion_flag": 1
+      },
+      {
+        "turn": 3,
+        "student_message": "hmm wait, if every key hashes to the same bucket the chain has n elements so search walks all n. so its O(n) worst case and O(1) only on average. i was wrong to say always",
+        "teacher_message": "Exactly. With a good hash function and a bounded load factor, chains stay short, so the average is O(1).",
+        "llm_message_context": "Confirmed insert and prompted the student to think about search.",
+        "question_type": "explanation_attempt",
+        "cognitive_level": "Analyze",
+        "sentiment": "positive",
+        "confusion_flag": 0
+      },
+      {
+        "turn": 4,
+        "student_message": "what's load factor? n/m, keys over buckets? so when it gets high we resize and rehash",
+        "teacher_message": "Yes. Many tables resize when it passes a threshold, like 0.75, so chains and probe sequences stay short.",
+        "llm_message_context": "Confirmed the student's self-correction about average vs worst case.",
+        "question_type": "clarification",
+        "cognitive_level": "Understand",
+        "sentiment": "neutral",
+        "confusion_flag": 0
+      },
+      {
+        "turn": 5,
+        "student_message": "for chaining do we have to resize when the table is full? like we cant add more items once every bucket has one",
+        "teacher_message": "No. With chaining a bucket can hold any number of items, so the table never becomes 'full'. Resizing there is about keeping chains short, not about capacity.",
+        "llm_message_context": "Explained load factor and resizing.",
+        "question_type": "clarification",
+        "cognitive_level": "Understand",
+        "sentiment": "neutral",
+        "confusion_flag": 1
+      },
+      {
+        "turn": 6,
+        "student_message": "ok so load factor can be above 1 in chaining. but in open addressing it has to stay below 1?",
+        "teacher_message": "Right: every item occupies a slot in the array itself, so it can never exceed 1, and performance gets bad well before that.",
+        "llm_message_context": "Corrected: chaining has no capacity limit; resizing is for speed.",
+        "question_type": "answer_attempt",
+        "cognitive_level": "Analyze",
+        "sentiment": "positive",
+        "confusion_flag": 0
+      },
+      {
+        "turn": 7,
+        "student_message": "linear probing: if slot i is taken try i+1, i+2. and to delete a key i just set its slot to empty?",
+        "teacher_message": "Careful. Emptying it can break the probe chain: a later search might stop at that empty slot and miss a key stored further along. Open addressing usually marks deleted slots with a tombstone.",
+        "llm_message_context": "Confirmed load factor limits for chaining vs open addressing.",
+        "question_type": "application",
+        "cognitive_level": "Apply",
+        "sentiment": "neutral",
+        "confusion_flag": 1
+      },
+      {
+        "turn": 8,
+        "student_message": "i see, searches have to continue past deleted markers. and primary clustering is long runs of occupied slots in linear probing",
+        "teacher_message": "Yes to both. Quadratic probing or double hashing reduces that clustering.",
+        "llm_message_context": "Explained why deletion needs tombstones in open addressing.",
+        "question_type": "explanation_attempt",
+        "cognitive_level": "Analyze",
+        "sentiment": "neutral",
+        "confusion_flag": 0
+      },
+      {
+        "turn": 9,
+        "student_message": "but resizing isnt needed in chaining so we never rehash there, right?",
+        "teacher_message": "Not quite. It isn't needed for correctness, but in practice chained tables still resize and rehash as n grows, otherwise chains get long and lookups drift towards O(n).",
+        "llm_message_context": "Confirmed tombstones and primary clustering.",
+        "question_type": "answer_attempt",
+        "cognitive_level": "Analyze",
+        "sentiment": "neutral",
+        "confusion_flag": 1
+      }
+    ],
+    "quiz": {
+      "num_questions": 14,
+      "correct": 7,
+      "score_percent": 50
+    },
+    "annotation_rationale": "Student independently corrects their own 'search is always O(1)' claim by reasoning about one long chain, and correctly relates load factor and open addressing. But they believe deleting a slot just empties it and finish by claiming chaining never needs rehashing, both gaps teacher-corrected or left unresolved.",
+    "quality_review": {
+      "automated_structural_check": "passed",
+      "automated_semantic_screen": "heuristic; 0 warning(s)",
+      "checks_run": [
+        "schema",
+        "enums",
+        "annotation_shape",
+        "quiz_arithmetic",
+        "id_leakage",
+        "data_source"
+      ],
+      "human_verified": false,
+      "human_review": null
+    },
+    "generation_meta": {
+      "batch_id": "pilot_000_v2",
+      "schema_version": "2.1",
+      "scenario_tag": "partial_self_correction",
+      "text_source": "LLM-authored synthetic conversation (not human-verified)",
+      "use_as_training_feature": false,
+      "teacher_style": "direct_corrector",
+      "qa_flag": null
+    },
+    "data_source": "synthetic_llm",
+    "self_correction_turns": [
+      3
+    ]
+  },
+  {
+    "chat_id": "EXP_0018",
+    "student_id": "SYN_S170",
+    "timestamp": "2026-09-29 20:03",
+    "llm_client": "ChatGPT",
+    "subject": "DAA",
+    "topic": "Complexity",
+    "main_concept": "time complexity of loops and recurrences",
+    "confusable_concept": "recurrence solving",
+    "student_persona": "exam",
+    "language_style": "english_standard",
+    "difficulty_level": "intermediate",
+    "task_type": "algorithmic_reasoning",
+    "num_student_turns": 11,
+    "confusion_points": 10,
+    "final_understanding": "confused",
+    "overall_sentiment": "mixed",
+    "self_correction": "no",
+    "engagement_level": "high",
+    "misconception_present": true,
+    "misconception_category": "time_complexity_misunderstanding",
+    "misconception_resolved": false,
+    "student_confidence": "unknown",
+    "reasoning_quality": "weak",
+    "turns": [
+      {
+        "turn": 1,
+        "student_message": "I have a DAA exam tomorrow. Could you check my understanding of time complexity? For for(i=1; i<=n; i*=2) the loop runs about n/2 times, so it's O(n). Am I right? 🤔",
+        "teacher_message": "Not quite. Since i doubles each time (1, 2, 4, 8, ...), it reaches n after about log2(n) steps, so the loop is O(log n).",
+        "llm_message_context": null,
+        "question_type": "answer_attempt",
+        "cognitive_level": "Apply",
+        "sentiment": "neutral",
+        "confusion_flag": 1
+      },
+      {
+        "turn": 2,
+        "student_message": "Hmm, but i goes 1,2,4,...,n, so that's about n/2 values? For n=16 that's 1,2,4,8,16, which is 5 values, and 16/2 is 8, so close enough. O(n). 🙏",
+        "teacher_message": "Try a larger n. For n = 1024 the values are 1, 2, 4, ..., 1024, which is only 11 iterations, while n/2 is 512. The gap grows, and that's the log.",
+        "llm_message_context": "Corrected the loop with i*=2 to O(log n).",
+        "question_type": "challenge",
+        "cognitive_level": "Analyze",
+        "sentiment": "neutral",
+        "confusion_flag": 1
+      },
+      {
+        "turn": 3,
+        "student_message": "OK, 11 for 1024. Maybe it's sqrt(n), since sqrt(1024) is 32? 🤔",
+        "teacher_message": "No: it's log2(n), here 10 (plus one for the first term). Doubling reaches n in log n steps.",
+        "llm_message_context": "Used n=1024 to show logarithmic growth.",
+        "question_type": "answer_attempt",
+        "cognitive_level": "Analyze",
+        "sentiment": "neutral",
+        "confusion_flag": 1
+      },
+      {
+        "turn": 4,
+        "student_message": "Fine, log n. Then for i in 1..n { for j in 1..n } it's O(n^2), and for i in 1..n { for j=1; j<=n; j*=2 } is also O(n^2) since there are two loops. 😅",
+        "teacher_message": "The first is O(n^2). The second is O(n log n): the outer loop runs n times and the inner runs about log n times each, so you multiply n by log n.",
+        "llm_message_context": "Corrected sqrt guess to log2(n).",
+        "question_type": "answer_attempt",
+        "cognitive_level": "Apply",
+        "sentiment": "neutral",
+        "confusion_flag": 1
+      },
+      {
+        "turn": 5,
+        "student_message": "Why would the multiplication change anything? Both loops go from 1 to n, so it's n times n regardless of the step. 🙏",
+        "teacher_message": "The step changes how many times the inner loop executes. Stepping by 1 gives n iterations, doubling gives about log n. The bounds are the same but the counts are not.",
+        "llm_message_context": "Corrected the second nested loop to O(n log n).",
+        "question_type": "challenge",
+        "cognitive_level": "Analyze",
+        "sentiment": "neutral",
+        "confusion_flag": 1
+      },
+      {
+        "turn": 6,
+        "student_message": "I see the log n point, but the exam rubric says 'nested loops = O(n^2)' and the examiner expects that.",
+        "teacher_message": "That's a rule of thumb that holds when both loops step by 1. The mark scheme will also reward counting iterations correctly, which is what you're doing here.",
+        "llm_message_context": "Explained that the step size changes iteration count.",
+        "question_type": "evaluation",
+        "cognitive_level": "Evaluate",
+        "sentiment": "neutral",
+        "confusion_flag": 0
+      },
+      {
+        "turn": 7,
+        "student_message": "Let me try one: for(i=n/2; i<=n; i++) { for(j=1; j+n/2<=n; j++) { for(k=1; k<=n; k*=2) ... } } I'd say n/2 + n/2 + log n = O(n). 🙏",
+        "teacher_message": "These loops are nested, so you multiply: n/2 times n/2 times log n, which is O(n^2 log n). You only add when loops run one after another.",
+        "llm_message_context": "Clarified that the nested-loop rule is only a heuristic.",
+        "question_type": "answer_attempt",
+        "cognitive_level": "Apply",
+        "sentiment": "neutral",
+        "confusion_flag": 1
+      },
+      {
+        "turn": 8,
+        "student_message": "But the loops are written one after another with braces, so aren't they sequential? Sequential loops add.",
+        "teacher_message": "Look at the braces: the j-loop and k-loop sit inside the previous loop's braces, so they're nested. Sequential would be a loop that closes before the next one starts.",
+        "llm_message_context": "Corrected add vs multiply for nested loops.",
+        "question_type": "challenge",
+        "cognitive_level": "Analyze",
+        "sentiment": "neutral",
+        "confusion_flag": 1
+      },
+      {
+        "turn": 9,
+        "student_message": "Alright. Then for T(n) = T(n/2) + n, by Master theorem it's O(n log n), because it halves the input and does linear work.",
+        "teacher_message": "It's O(n). Only one subproblem of size n/2 is solved, so the work is n + n/2 + n/4 + ... = about 2n. Merge sort has two subproblems, 2T(n/2) + n, and that's what gives n log n.",
+        "llm_message_context": "Pointed out the nesting structure.",
+        "question_type": "answer_attempt",
+        "cognitive_level": "Analyze",
+        "sentiment": "neutral",
+        "confusion_flag": 1
+      },
+      {
+        "turn": 10,
+        "student_message": "Hmm, I remember that halving gives log n and linear work gives n, so I'd combine them as n log n. Merge sort does that. 😅",
+        "teacher_message": "Merge sort has two recursive calls, which is what changes it. With one call, the work shrinks geometrically.",
+        "llm_message_context": "Corrected T(n)=T(n/2)+n to O(n).",
+        "question_type": "challenge",
+        "cognitive_level": "Analyze",
+        "sentiment": "neutral",
+        "confusion_flag": 1
+      },
+      {
+        "turn": 11,
+        "student_message": "Surprising, but here's my summary for the exam: halving always gives n log n, nested loops always n^2, and i*=2 is n/2. Thanks! 🙏",
+        "teacher_message": "I'd be careful: those three rules would cost marks. Halving can give log n, n, or n log n depending on the recurrence; nested loops multiply iteration counts; and i*=2 is log n. Rework the 1024 example before tomorrow.",
+        "llm_message_context": "Contrasted merge sort with the single-call recurrence.",
+        "question_type": "feedback",
+        "cognitive_level": "Evaluate",
+        "sentiment": "neutral",
+        "confusion_flag": 1
+      }
+    ],
+    "quiz": {
+      "num_questions": 12,
+      "correct": 5,
+      "score_percent": 42
+    },
+    "annotation_rationale": "Student argues at length for wrong rules: i*=2 loops are O(n), nested loops are always O(n^2), nested loops add, and T(n)=T(n/2)+n is O(n log n). Counterexamples are acknowledged only briefly and the final notes repeat the wrong rules.",
+    "quality_review": {
+      "automated_structural_check": "passed",
+      "automated_semantic_screen": "heuristic; 0 warning(s)",
+      "checks_run": [
+        "schema",
+        "enums",
+        "annotation_shape",
+        "quiz_arithmetic",
+        "id_leakage",
+        "data_source"
+      ],
+      "human_verified": false,
+      "human_review": null
+    },
+    "generation_meta": {
+      "batch_id": "pilot_000_v2",
+      "schema_version": "2.1",
+      "scenario_tag": "confident_wrong_rules_of_thumb",
+      "text_source": "LLM-authored synthetic conversation (not human-verified)",
+      "use_as_training_feature": false,
+      "teacher_style": "direct_corrector",
+      "qa_flag": null
+    },
+    "data_source": "synthetic_llm",
+    "self_correction_turns": []
+  },
+  {
+    "chat_id": "EXP_0019",
+    "student_id": "SYN_S097",
+    "timestamp": "2026-11-08 11:55",
+    "llm_client": "Gemini",
+    "subject": "DBMS",
+    "topic": "SQL",
+    "main_concept": "LEFT JOIN with filter conditions",
+    "confusable_concept": "INNER JOIN",
+    "student_persona": "debug",
+    "language_style": "hinglish_light",
+    "difficulty_level": "intermediate",
+    "task_type": "debugging",
+    "num_student_turns": 6,
+    "confusion_points": 2,
+    "final_understanding": "partial",
+    "overall_sentiment": "positive",
+    "self_correction": "no",
+    "engagement_level": "moderate",
+    "misconception_present": true,
+    "misconception_category": "on_vs_where_filtering_in_joins",
+    "misconception_resolved": false,
+    "student_confidence": "unknown",
+    "reasoning_quality": "moderate",
+    "turns": [
+      {
+        "turn": 1,
+        "student_message": "yaar ye query kyu kaam nahi kar rahi: SELECT c.name, o.total FROM customers c LEFT JOIN orders o ON c.id = o.cid WHERE o.total > 100; mujhe saare customers chahiye, even jinke orders nahi hain",
+        "teacher_message": "WHERE o.total > 100 runs after the join. For customers with no orders, o.total is NULL, and NULL > 100 isn't true, so those rows are removed. The query behaves like an INNER JOIN. Move the condition into the ON clause.",
+        "llm_message_context": null,
+        "question_type": "debugging",
+        "cognitive_level": "Analyze",
+        "sentiment": "neutral",
+        "confusion_flag": 1
+      },
+      {
+        "turn": 2,
+        "student_message": "ohh. toh ON mein daalu: LEFT JOIN orders o ON c.id = o.cid AND o.total > 100. then customers without any order will show total NULL, right?",
+        "teacher_message": "Yes. Customers whose orders are all 100 or less also show NULL, because no order matched the full ON condition.",
+        "llm_message_context": "Explained why WHERE filters out unmatched LEFT JOIN rows.",
+        "question_type": "answer_attempt",
+        "cognitive_level": "Apply",
+        "sentiment": "positive",
+        "confusion_flag": 0
+      },
+      {
+        "turn": 3,
+        "student_message": "ok. and WHERE kab use karte hain then? kya WHERE joins ke baad chalta hai?",
+        "teacher_message": "Logically the order is FROM and JOIN with ON first, then WHERE, then GROUP BY, HAVING, SELECT. So WHERE filters the joined result.",
+        "llm_message_context": "Confirmed ON-clause fix and its NULL behaviour.",
+        "question_type": "clarification",
+        "cognitive_level": "Understand",
+        "sentiment": "neutral",
+        "confusion_flag": 0
+      },
+      {
+        "turn": 4,
+        "student_message": "got it. toh agar mujhe customers chahiye jinke NO orders hain, WHERE o.total IS NULL after left join. but what if an order has total NULL? 😄",
+        "teacher_message": "Good thought. Test a column that can't be NULL in a matched row, like o.cid or the order's primary key: WHERE o.id IS NULL. NOT EXISTS is another option.",
+        "llm_message_context": "Explained logical query execution order.",
+        "question_type": "application",
+        "cognitive_level": "Analyze",
+        "sentiment": "positive",
+        "confusion_flag": 0
+      },
+      {
+        "turn": 5,
+        "student_message": "RIGHT JOIN toh LEFT JOIN ka reverse hai. and FULL OUTER JOIN is like a UNION of left and right joins?",
+        "teacher_message": "Conceptually yes: all matched rows plus unmatched rows from both sides. In SQL engines that support it, FULL OUTER JOIN is the direct way to write it.",
+        "llm_message_context": "Explained anti-join using a non-nullable key or NOT EXISTS.",
+        "question_type": "clarification",
+        "cognitive_level": "Understand",
+        "sentiment": "neutral",
+        "confusion_flag": 0
+      },
+      {
+        "turn": 6,
+        "student_message": "so filter in ON vs WHERE gives different results for INNER JOIN too, right? like it did for left join",
+        "teacher_message": "For an INNER JOIN they're equivalent: unmatched rows are dropped either way, so the condition can go in ON or WHERE. The difference only appears with outer joins, where ON decides what matches and WHERE removes rows afterwards.",
+        "llm_message_context": "Confirmed RIGHT and FULL OUTER JOIN relationships.",
+        "question_type": "answer_attempt",
+        "cognitive_level": "Analyze",
+        "sentiment": "neutral",
+        "confusion_flag": 1
+      }
+    ],
+    "quiz": {
+      "num_questions": 11,
+      "correct": 8,
+      "score_percent": 73
+    },
+    "annotation_rationale": "Student applies the ON-clause fix correctly once told, and asks sensible questions about execution order and finding customers without orders. But they overgeneralise and claim ON and WHERE differ for inner joins too, showing they have not understood why the difference only affects outer joins.",
+    "quality_review": {
+      "automated_structural_check": "passed",
+      "automated_semantic_screen": "heuristic; 0 warning(s)",
+      "checks_run": [
+        "schema",
+        "enums",
+        "annotation_shape",
+        "quiz_arithmetic",
+        "id_leakage",
+        "data_source"
+      ],
+      "human_verified": false,
+      "human_review": null
+    },
+    "generation_meta": {
+      "batch_id": "pilot_000_v2",
+      "schema_version": "2.1",
+      "scenario_tag": "overgeneralises_after_fix",
+      "text_source": "LLM-authored synthetic conversation (not human-verified)",
+      "use_as_training_feature": false,
+      "teacher_style": "direct_corrector",
+      "qa_flag": null
+    },
+    "data_source": "synthetic_llm",
+    "self_correction_turns": []
+  },
+  {
+    "chat_id": "EXP_0020",
+    "student_id": "SYN_S038",
+    "timestamp": "2026-10-24 14:31",
+    "llm_client": "Gemini",
+    "subject": "ML",
+    "topic": "Regression",
+    "main_concept": "linear and logistic regression",
+    "confusable_concept": "classification",
+    "student_persona": "beginner",
+    "language_style": "english_casual",
+    "difficulty_level": "basic",
+    "task_type": "conceptual_comparison",
+    "num_student_turns": 8,
+    "confusion_points": 7,
+    "final_understanding": "confused",
+    "overall_sentiment": "mixed",
+    "self_correction": "no",
+    "engagement_level": "low",
+    "misconception_present": true,
+    "misconception_category": "confusion_between_linear_and_logistic_regression",
+    "misconception_resolved": false,
+    "student_confidence": "moderate",
+    "reasoning_quality": "weak",
+    "turns": [
+      {
+        "turn": 1,
+        "student_message": "im new to ml. whats the difference between linear regression and logistic regression? the names sound same",
+        "teacher_message": "Linear regression predicts a continuous number, like a house price. Logistic regression predicts the probability of a class, like spam or not spam, so it's used for classification despite the name.",
+        "llm_message_context": null,
+        "question_type": "comparison",
+        "cognitive_level": "Understand",
+        "sentiment": "neutral",
+        "confusion_flag": 0
+      },
+      {
+        "turn": 2,
+        "student_message": "so logistic regression is also for predicting numbers like house prices, just a fancier version? 🤔",
+        "teacher_message": "Not for prices. It outputs a value between 0 and 1 that we interpret as the probability of a class, then use a threshold such as 0.5 to decide the class.",
+        "llm_message_context": "Distinguished predicting a number from predicting a class probability.",
+        "question_type": "answer_attempt",
+        "cognitive_level": "Understand",
+        "sentiment": "neutral",
+        "confusion_flag": 1
+      },
+      {
+        "turn": 3,
+        "student_message": "i ran it on my data and it gives 0.8, 0.3 etc. so thats the predicted price in lakhs? 😅",
+        "teacher_message": "No. 0.8 means about 80% probability of the positive class, such as 'house sells within a month'. It has nothing to do with price.",
+        "llm_message_context": "Corrected: logistic regression gives class probabilities, not prices.",
+        "question_type": "debugging",
+        "cognitive_level": "Understand",
+        "sentiment": "neutral",
+        "confusion_flag": 1
+      },
+      {
+        "turn": 4,
+        "student_message": "ok so 0.8 is the probability. then to predict a students marks from study hours i'd use logistic regression since marks are decimals right? 🙏",
+        "teacher_message": "Marks are a continuous quantity, so linear regression fits. Logistic regression would suit a question like 'will the student pass: yes or no'.",
+        "llm_message_context": "Interpreted 0.8 as a probability.",
+        "question_type": "answer_attempt",
+        "cognitive_level": "Apply",
+        "sentiment": "neutral",
+        "confusion_flag": 1
+      },
+      {
+        "turn": 5,
+        "student_message": "hmm ok linear then. but my marks are 0 to 100, should i put sigmoid on the output to keep it in range?",
+        "teacher_message": "I wouldn't. Sigmoid squashes values to between 0 and 1 for probabilities. For marks you can just use linear regression, and check the predictions look sensible.",
+        "llm_message_context": "Chose linear regression for marks and logistic for pass/fail.",
+        "question_type": "clarification",
+        "cognitive_level": "Apply",
+        "sentiment": "neutral",
+        "confusion_flag": 1
+      },
+      {
+        "turn": 6,
+        "student_message": "so how is the logistic curve fitted, same as linear, minimizing squared error?",
+        "teacher_message": "Not squared error. Logistic regression is usually fitted by maximising the likelihood, which means minimising log loss.",
+        "llm_message_context": "Explained sigmoid is for probabilities, not for bounding scores.",
+        "question_type": "clarification",
+        "cognitive_level": "Understand",
+        "sentiment": "neutral",
+        "confusion_flag": 1
+      },
+      {
+        "turn": 7,
+        "student_message": "got it mostly. so the only real difference is logistic has a sigmoid on top, everything else is the same",
+        "teacher_message": "That's part of it, but the target and the loss are different too. Linear regression predicts a number with squared error; logistic predicts a class probability with log loss.",
+        "llm_message_context": "Explained logistic regression uses log loss, not squared error.",
+        "question_type": "explanation_attempt",
+        "cognitive_level": "Understand",
+        "sentiment": "mixed",
+        "confusion_flag": 1
+      },
+      {
+        "turn": 8,
+        "student_message": "ok final answer for my assignment: logistic regression = linear regression + sigmoid so predictions dont go beyond 100, so it's better than linear for marks 🙏",
+        "teacher_message": "Thanks for the update. Compare that wording with your lecture notes before you submit, and try running both models on a small dataset to see how they differ.",
+        "llm_message_context": "Added that target and loss function also differ.",
+        "question_type": "explanation_attempt",
+        "cognitive_level": "Understand",
+        "sentiment": "mixed",
+        "confusion_flag": 1
+      }
+    ],
+    "quiz": {
+      "num_questions": 15,
+      "correct": 6,
+      "score_percent": 40
+    },
+    "annotation_rationale": "Student takes 'regression' in the name to mean logistic regression predicts numbers, misreads 0.8 as a price and a mark, suggests sigmoid to keep scores in 0-100, and ends with 'logistic is linear plus sigmoid so predictions don't go beyond 100'. Core difference between predicting a value and a class probability is never grasped.",
+    "quality_review": {
+      "automated_structural_check": "passed",
+      "automated_semantic_screen": "heuristic; 0 warning(s)",
+      "checks_run": [
+        "schema",
+        "enums",
+        "annotation_shape",
+        "quiz_arithmetic",
+        "id_leakage",
+        "data_source"
+      ],
+      "human_verified": false,
+      "human_review": null
+    },
+    "generation_meta": {
+      "batch_id": "pilot_000_v2",
+      "schema_version": "2.1",
+      "scenario_tag": "names_mislead",
+      "text_source": "LLM-authored synthetic conversation (not human-verified)",
+      "use_as_training_feature": false,
+      "teacher_style": "lenient",
+      "qa_flag": null
+    },
+    "data_source": "synthetic_llm",
+    "self_correction_turns": []
+  }
+]

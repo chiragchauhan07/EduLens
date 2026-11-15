@@ -99,6 +99,10 @@ class PredictRequest(BaseModel):
         description="Text transcript, list of student messages, or structured session object with 'turns'/'messages'",
     )
     text: Optional[str] = Field(None, description="Plain text transcript of student messages")
+    algorithm: Optional[str] = Field(
+        None,
+        description="Optional model algorithm: 'logistic_regression', 'naive_bayes', or 'linear_svm'",
+    )
 
 
 SAMPLE_CONVERSATIONS = [
@@ -199,14 +203,17 @@ def health_check(request: Request):
 def predict_understanding(req: PredictRequest):
     """
     Evaluates student dialogue and returns predicted comprehension level,
-    probabilities, and extracted conversational signals.
+    probabilities, predicted quiz score, and extracted conversational signals.
     """
     input_data = req.conversation if req.conversation is not None else req.text
     if not input_data:
         raise HTTPException(status_code=400, detail="Either 'conversation' or 'text' must be provided.")
 
     try:
-        predictor = get_predictor()
+        if req.algorithm:
+            predictor = EduLensPredictor(algorithm=req.algorithm)
+        else:
+            predictor = get_predictor()
         result = predictor.predict(input_data)
         return result
     except Exception as e:
@@ -308,6 +315,32 @@ def get_model_info():
         return _cached_eval
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to load model evaluation: {str(e)}")
+
+
+@router.get("/model-comparison")
+def get_model_comparison():
+    """Returns comparative benchmark metrics across Logistic Regression, Naive Bayes, and Linear SVM."""
+    report_path = ROOT_DIR / "reports" / "model_comparison.json"
+    if not report_path.exists():
+        raise HTTPException(status_code=404, detail="Model comparison report not found.")
+    try:
+        with open(report_path, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to load comparison: {str(e)}")
+
+
+@router.get("/quiz-model-info")
+def get_quiz_model_info():
+    """Returns evaluation benchmarks for post-session quiz score regressor."""
+    report_path = ROOT_DIR / "reports" / "quiz_regressor_evaluation.json"
+    if not report_path.exists():
+        raise HTTPException(status_code=404, detail="Quiz regressor report not found.")
+    try:
+        with open(report_path, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to load quiz report: {str(e)}")
 
 
 # Mount router on both root and /api prefixes so any Vercel rewrite configuration works!
