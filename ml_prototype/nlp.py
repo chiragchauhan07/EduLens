@@ -134,3 +134,4 @@ def extract_nlp_features_vector(
             pass
 
     return vec, feature_names
+

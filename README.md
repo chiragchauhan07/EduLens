@@ -4,10 +4,10 @@
 
 [![Python](https://img.shields.io/badge/Python-3.10%2B-blue.svg)](https://www.python.org/)
 [![scikit-learn](https://img.shields.io/badge/scikit--learn-1.3%2B-orange.svg)](https://scikit-learn.org/)
-[![Streamlit](https://img.shields.io/badge/Streamlit-1.30%2B-FF4B4B.svg)](https://streamlit.io/)
-[![Tests](https://img.shields.io/badge/Tests-41%20Passing-brightgreen.svg)](#running-tests)
+[![MCP](https://img.shields.io/badge/MCP-Official%202.x-purple.svg)](docs/MCP.md)
+[![Tests](https://img.shields.io/badge/Tests-66%20Passing-brightgreen.svg)](#running-tests)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Status](https://img.shields.io/badge/Status-Prototype%20Delivered-success.svg)](#project-status)
+[![Status](https://img.shields.io/badge/Status-MCP%20Ready-success.svg)](#project-status)
 
 **NLP and Machine Learning-Based Student Learning Intelligence and Performance Analytics Platform**
 
@@ -83,7 +83,10 @@ EduLens serves as the **intelligence and analytics layer** built around the stud
   - **Student Performance Analyzer:** Test real-time inference, optional quiz submission evaluation, discrepancy alerts, and feature attributions.
   - **Topic-Wise Performance:** Curriculum-level mastery aggregates, confusion rates, and topic difficulty rankings.
   - **Model Architecture & Viva Guide:** Multi-model benchmarks, 6 ablation experiments, explainability tabs, and defense Q&A.
-- **🛡️ 41 Automated Unit & Integration Tests:** Powered by `pytest` ensuring 100% end-to-end pipeline reliability across all 12 acceptance cases and modules.
+- **🛡️ 66 Automated Unit & Integration Tests:** Powered by `pytest` ensuring 100% end-to-end reliability across ML, API, and the official Model Context Protocol server.
+- **🔌 Official Model Context Protocol (MCP) Server:** Seamless integration with ChatGPT and Claude Desktop via both remote SSE/HTTP and local Stdio transports. Exposes 6 production tools for session ingestion, real-time analytics, longitudinal mastery, and quiz submission.
+- **💾 Thread-Safe Persistent SQLite Storage:** Thread-safe WAL-mode SQLite storage separating audit-proof raw conversation transcripts (`raw_sessions`) from derived learning analytics (`analytics_results`) and quiz evaluations (`quiz_submissions`).
+- **🔐 Multi-User Isolation & Context Propagation:** Cryptographic bearer token management mapping requests to isolated student IDs with automatic deduplication via SHA-256 session hashing.
 
 ---
 
@@ -91,32 +94,35 @@ EduLens serves as the **intelligence and analytics layer** built around the stud
 
 ```text
 EduLens/
-├── .gitignore                             # Git ignore rules (caches, venvs, env files)
+├── .env.example                           # Template environment configuration
+├── .gitignore                             # Git ignore rules (caches, venvs, env files, DBs)
 ├── pytest.ini                             # Pytest configuration (pythonpath = .)
-├── requirements.txt                       # Production & prototype dependencies
+├── requirements.txt                       # Production, ML & MCP dependencies
 ├── PROJECT_AUDIT.md                       # Comprehensive codebase & architecture audit
 ├── README.md                              # Main onboarding guide (this file)
 ├── api/                                   # Vercel Serverless API endpoints
-│   └── index.py                           # FastAPI application (/api/pipeline, /api/predict, /api/evaluate-quiz, etc.)
+│   └── index.py                           # FastAPI application (/api/pipeline, /api/predict, etc.)
+├── backend/                               # Backend Services & Protocols
+│   └── mcp_server/                        # Official Model Context Protocol (MCP) Server
+│       ├── auth/                          # TokenManager & user context isolation
+│       ├── schemas/                       # Pydantic schemas for 6 tools & resources
+│       ├── services/                      # IngestionService & SQLiteStorageService (WAL)
+│       ├── tools/                         # Modular tool handlers (ingestion, analytics, quiz)
+│       ├── config.py                      # Server configuration & environment variables
+│       └── server.py                      # MCP entry point (SSE, Streamable, Stdio)
 ├── data/
-│   ├── raw/
-│   │   ├── edulens_chats_dataset.json     # Primary supervised dataset (430 sessions)
-│   │   ├── edulens_chats_set1 (1).json    # Supplementary dataset (420 sessions)
-│   │   ├── edulens_chats_set2 (1).json    # Supplementary dataset (430 sessions)
-│   │   ├── edulens_chats_set3 (1).json    # Supplementary dataset (440 sessions)
-│   │   ├── edulens_expanded_pilot_020_v2.json # Pilot schema v2.1 dataset (20 sessions)
-│   │   ├── education_dialogue/            # 47k Gemini dialogues (unlabeled)
-│   │   └── mathdial/                      # 2.8k human math tutoring dialogues
-│   └── processed/                         # Validated, leakage-free cleaned datasets
-├── docs/                                  # Four Permanent Technical Records
+│   ├── raw/                               # Historical conversation datasets (1,700+ sessions)
+│   ├── processed/                         # Validated, leakage-free cleaned datasets
+│   └── storage/                           # Persistent storage (data/storage/edulens.db)
+├── docs/                                  # Technical Specifications & Architecture Records
+│   ├── DATASET.md                         # Dataset schemas & group splitting rules
 │   ├── DSP.md                             # Data Science Pipeline specification
-│   ├── NLP.md                             # Natural Language Processing & vectorization
 │   ├── ML.md                              # Machine Learning benchmarks & ablation
-│   └── DATASET.md                         # Dataset schemas & group splitting rules
+│   ├── MCP.md                             # Model Context Protocol full architecture & guide
+│   └── NLP.md                             # Natural Language Processing & vectorization
 ├── ml_prototype/                          # Core Machine Learning Package
-│   ├── __init__.py                        # Package root
 │   ├── confidence.py                      # Expressed linguistic confidence estimator
-│   ├── dashboard.py                       # 3-page interactive Streamlit dashboard (4 Dimensions)
+│   ├── dashboard.py                       # 3-page interactive Streamlit dashboard
 │   ├── data_loader.py                     # Schema normalization & dataset loader
 │   ├── dsp.py                             # Modular DSP pipeline (validation, speaker dynamics)
 │   ├── explainability.py                  # Model coefficients & instance attribution
@@ -128,26 +134,16 @@ EduLens/
 │   ├── train_model.py                     # Group-aware training, CV & artifact generation
 │   └── unified_pipeline.py                # Unified end-to-end pipeline (EduLensUnifiedPipeline)
 ├── models/                                # Versioned Model Artifacts
-│   ├── confidence/model.joblib            # Exploratory pilot confidence model
 │   ├── quiz_regressor/                    # Quiz score regression models (Random Forest / Ridge)
 │   ├── understanding/                     # Understanding classification models (LR, SVM, NB)
-│   └── trained_model.joblib               # Primary backward-compatible pipeline artifact
+│   └── trained_model.joblib               # Backward-compatible pipeline artifact
 ├── reports/                               # Generated JSON & Markdown Reports
-│   ├── confidence_pilot_evaluation.json   # Pilot confidence audit and model metrics
-│   ├── feature_ablation.json              # 6-configuration feature ablation report
-│   ├── model_comparison.json              # Cross-model evaluation benchmark
-│   ├── model_evaluation.json              # Primary Logistic Regression evaluation report
-│   ├── model_explainability.json          # Global explainability weights and importances
-│   ├── prediction_walkthrough.md          # 7-stage dialogue prediction trace
-│   └── quiz_regressor_evaluation.json     # Group-aware regression evaluation
 ├── scripts/                               # Reproducible Execution Scripts
-│   ├── prepare_data.py                    # Dataset validation and cleaning
-│   ├── run_feature_ablation.py            # Systematic ablation experiment suite
-│   └── walkthrough_prediction.py          # Prediction trace generator
 └── tests/
-    ├── __init__.py
     ├── test_api.py                        # FastAPI endpoint test suite (11 tests)
     ├── test_comprehensive_suite.py        # 12 acceptance cases & modular tests (16 tests)
+    ├── test_mcp_e2e.py                    # Live ClientSession MCP subprocess E2E test
+    ├── test_mcp_server.py                 # MCP server suite: all 6 tools, storage & auth (24 tests)
     └── test_prototype.py                  # Pipeline, model & explainability tests (14 tests)
 ```
 
@@ -263,8 +259,21 @@ Test the inference engine on sample conversations:
 python ml_prototype/predict.py
 ```
 
+### Run Model Context Protocol (MCP) Server
+EduLens includes a standard MCP 2.x server allowing Claude Desktop and ChatGPT to interact directly with the learning analytics engine:
+
+```powershell
+# Run with Server-Sent Events (SSE) for remote clients / ChatGPT (default port 8001)
+python -m backend.mcp_server.server --transport sse --port 8001
+
+# Run with Stdio for local Claude Desktop
+python -m backend.mcp_server.server --transport stdio
+```
+
+See [docs/MCP.md](docs/MCP.md) for full Claude Desktop and ChatGPT configuration guides.
+
 ### Run Automated Tests
-Verify code integrity with pytest:
+Verify code integrity across the full test suite (66 tests):
 ```powershell
 pytest
 ```
@@ -302,7 +311,7 @@ The web dashboard is organized into three dedicated modules:
 ## 🗺️ Engineering Roadmap
 
 - [x] **Phase 1: ML Prototype & Diagnostics** — Curated dataset, leakage-free feature extractor, 96.5% accurate model, Streamlit UI.
-- [ ] **Phase 2: Live Ingestion & MCP Integration** — Model Context Protocol server for direct submission from Claude Desktop and ChatGPT.
+- [x] **Phase 2: Live Ingestion & MCP Integration** — Model Context Protocol server (official MCP 2.x, SSE/Stdio transports, 6 production tools, WAL SQLite, 66 passing tests).
 - [ ] **Phase 3: Targeted Quiz Generation** — Gemini API integration to synthesize adaptive 10–15 question validation quizzes.
 - [ ] **Phase 4: Longitudinal Knowledge Tracing** — Multi-session tracking per student across academic terms.
 - [ ] **Phase 5: Production Web Platform** — Next.js educator dashboard with FastAPI backend and PostgreSQL persistence.

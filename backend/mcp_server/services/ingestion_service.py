@@ -1,0 +1,439 @@
+"""
+ingestion_service.py — Core ingestion and analytics orchestration service for EduLens MCP.
+Glues MCP protocol inputs directly to the existing unified ML, DSP, and NLP pipelines.
+"""
+
+import hashlib
+import json
+import uuid
+from datetime import datetime, timezone
+from typing import Any, Dict, List, Optional
+
+from ml_prototype.unified_pipeline import EduLensUnifiedPipeline
+from ml_prototype.quiz_evaluator import evaluate_quiz_submission
+from ml_prototype.scoring_engine import TopicPerformanceScoringEngine
+
+from backend.mcp_server.auth.authentication import AuthorizationError, UserContext
+from backend.mcp_server.schemas.session_schema import (
+    QuizSubmissionRequest,
+    QuizSubmissionResult,
+    SessionAnalyticsResponse,
+    SessionIngestRequest,
+    SessionIngestResult,
+    SessionListItem,
+    SessionListResponse,
+    StudentPerformanceResponse,
+    TopicAnalyticsResponse,
+)
+from backend.mcp_server.services.storage_service import StorageService, get_storage_service
+
+
+class IngestionService:
+    """
+    Orchestrates conversation ingestion, raw JSON storage, idempotency verification,
+    and invocation of the unified learning analytics pipeline.
+    """
+
+    def __init__(self, storage: Optional[StorageService] = None):
+        self.storage = storage or get_storage_service()
+        self._pipeline: Optional[EduLensUnifiedPipeline] = None
+
+    def _get_pipeline(self) -> EduLensUnifiedPipeline:
+        """Lazy loads and caches the unified ML pipeline."""
+        if self._pipeline is None:
+            self._pipeline = EduLensUnifiedPipeline(algorithm="logistic_regression")
+        return self._pipeline
+
+    @staticmethod
+    def _compute_content_hash(messages: List[Any], user_id: str) -> str:
+        """Computes a deterministic SHA-256 hash of student messages for idempotency."""
+        normalized_content = []
+        for m in messages:
+            role = m.role if hasattr(m, "role") else m.get("role", "")
+            content = m.content if hasattr(m, "content") else m.get("content", "")
+            normalized_content.append(f"{role.strip().lower()}:{content.strip()}")
+        raw_key = f"{user_id}::" + "||".join(normalized_content)
+        return hashlib.sha256(raw_key.encode("utf-8")).hexdigest()
+
+    def ingest_session(self, request: SessionIngestRequest, user: UserContext) -> SessionIngestResult:
+        """
+        Ingests a learning conversation:
+        1. Validates payload and role integrity.
+        2. Computes content hash and detects duplicate submissions.
+        3. Persists original raw JSON session to separate raw storage.
+        4. Invokes the unified analytics pipeline directly.
+        5. Persists analytics results and returns structured intelligence.
+        """
+        # User isolation: use authenticated user identity
+        effective_user_id = user.user_id
+
+        # Verify idempotency
+        content_hash = self._compute_content_hash(request.messages, effective_user_id)
+        existing = self.storage.find_session_by_content_hash(content_hash, effective_user_id)
+        if existing and existing.get("status") == "processed":
+            existing_analytics = self.storage.get_analytics(existing["session_id"], effective_user_id)
+            return SessionIngestResult(
+                status="duplicate_detected",
+                session_id=existing["session_id"],
+                user_id=effective_user_id,
+                source_agent=existing.get("source_agent", request.source_agent),
+                subject=existing.get("subject", request.subject),
+                topic=existing.get("topic", request.topic),
+                ingested_at=existing.get("ingested_at", datetime.now(timezone.utc).isoformat()),
+                turns_count=existing.get("turns_count", len(request.messages)),
+                is_duplicate=True,
+                message="Identical learning conversation was previously ingested. Returning existing analytics.",
+                analytics=existing_analytics.get("full_analytics_json") if existing_analytics else None,
+            )
+
+        # Generate unique session identifier if not supplied
+        session_id = request.session_id or f"SES_{uuid.uuid4().hex[:12].upper()}"
+
+        # Filter out system messages / developer instructions for privacy and safety
+        cleaned_turns: List[Dict[str, Any]] = []
+        student_utterances: List[str] = []
+
+        turn_idx = 1
+        for msg in request.messages:
+            role = msg.role.strip().lower()
+            if role == "system":
+                # Exclude system prompts from learning conversation analysis
+                continue
+
+            content = msg.content.strip()
+            cleaned_turns.append({
+                "turn": turn_idx,
+                "role": role,
+                "content": content,
+                "timestamp": msg.timestamp,
+            })
+            if role in ("user", "student", "human"):
+                student_utterances.append(content)
+            turn_idx += 1
+
+        if not student_utterances:
+            raise ValueError("Conversation must contain at least one valid student utterance ('user' or 'student' role).")
+
+        # Build raw storage payload
+        raw_storage_payload = {
+            "session_id": session_id,
+            "user_id": effective_user_id,
+            "source_agent": request.source_agent,
+            "subject": request.subject or "Computer Science",
+            "topic": request.topic or "General",
+            "content_hash": content_hash,
+            "turns_count": len(cleaned_turns),
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "ingested_at": datetime.now(timezone.utc).isoformat(),
+            "status": "ingested",
+            "raw_json": {
+                "session_id": session_id,
+                "user_id": effective_user_id,
+                "source_agent": request.source_agent,
+                "subject": request.subject,
+                "topic": request.topic,
+                "messages": [m.model_dump() for m in request.messages],
+                "metadata": request.metadata or {},
+                "quiz_submission": request.quiz_submission,
+            },
+        }
+
+        # 1. Store Raw Session First (Ensures conversation is never lost)
+        self.storage.save_raw_session(raw_storage_payload)
+
+        # 2. Prepare pipeline input format compatible with DSP & NLP
+        # We supply turns format and student_messages list
+        pipeline_input = {
+            "chat_id": session_id,
+            "student_id": effective_user_id,
+            "subject": request.subject or "Computer Science",
+            "topic": request.topic or "General",
+            "turns": [
+                {
+                    "turn": i + 1,
+                    "student_message": m["content"] if m["role"] in ("user", "student", "human") else "",
+                    "teacher_message": m["content"] if m["role"] in ("assistant", "teacher", "ai") else "",
+                }
+                for i, m in enumerate(cleaned_turns)
+            ],
+            "student_messages": student_utterances,
+        }
+
+        # 3. Execute Unified Analytics Pipeline
+        try:
+            pipeline = self._get_pipeline()
+            analytics_result = pipeline.process_session(
+                session_input=pipeline_input,
+                quiz_submission=request.quiz_submission,
+                explain=True,
+                topic_override=request.topic,
+            )
+
+            # 4. Save Analytics to Analytics Storage
+            self.storage.save_analytics(session_id, effective_user_id, analytics_result)
+
+            return SessionIngestResult(
+                status="success",
+                session_id=session_id,
+                user_id=effective_user_id,
+                source_agent=request.source_agent,
+                subject=request.subject,
+                topic=request.topic,
+                ingested_at=raw_storage_payload["ingested_at"],
+                turns_count=len(cleaned_turns),
+                is_duplicate=False,
+                message="Learning conversation successfully ingested and evaluated across 4 dimensions.",
+                analytics=analytics_result,
+            )
+
+        except Exception as err:
+            # Mark raw session as processing_failed, but do not delete raw conversation!
+            self.storage.update_session_status(session_id, effective_user_id, "processing_failed", str(err))
+            return SessionIngestResult(
+                status="processing_failed",
+                session_id=session_id,
+                user_id=effective_user_id,
+                source_agent=request.source_agent,
+                subject=request.subject,
+                topic=request.topic,
+                ingested_at=raw_storage_payload["ingested_at"],
+                turns_count=len(cleaned_turns),
+                is_duplicate=False,
+                message=f"Conversation stored securely, but analytics pipeline failed: {str(err)}",
+                analytics=None,
+            )
+
+    def get_session_analytics(self, session_id: str, user: UserContext) -> SessionAnalyticsResponse:
+        """Retrieves previously generated analytics for a session with user-level access verification."""
+        analytics = self.storage.get_analytics(session_id, user.user_id)
+        if not analytics:
+            # Check if session exists in raw_sessions
+            raw = self.storage.get_raw_session(session_id, user.user_id)
+            if not raw:
+                raise KeyError(f"Session '{session_id}' not found for user '{user.user_id}'.")
+            raise ValueError(f"Session '{session_id}' exists with status '{raw.get('status')}', but has no completed analytics.")
+
+        raw_json = analytics["full_analytics_json"]
+        raw_sess = self.storage.get_raw_session(session_id, user.user_id) or {}
+
+        if "topics" in raw_json and raw_json["topics"]:
+            top_topic = raw_json["topics"][0]
+            u = top_topic.get("understanding", {}) or {}
+            topic_understanding = {
+                "predicted_class": u.get("classification", "unknown"),
+                "understanding_score": u.get("score_index", 0.0),
+                "confidence": u.get("confidence", 0.0),
+                "probabilities": u.get("probabilities", {}),
+                "display_name": u.get("display_name", ""),
+            }
+            actual_quiz_performance = top_topic.get("actual_quiz_performance") or {
+                "status": "awaiting_quiz_submission"
+            }
+            c = top_topic.get("expressed_confidence", {}) or {}
+            learning_confidence = {
+                "expressed_confidence_level": c.get("classification", "unknown"),
+                "expressed_confidence_score": c.get("score", 0.0),
+                "status": c.get("status", "experimental_heuristic_baseline"),
+            }
+            o = top_topic.get("overall_performance", {}) or {}
+            overall_topic_performance = {
+                "overall_performance_score": o.get("score"),
+                "status": o.get("status", "awaiting_quiz_submission"),
+                "formula": o.get("formula", ""),
+                "explanation": o.get("explanation", ""),
+            }
+            discrepancy_analysis = {
+                "discrepancy_detected": bool(o.get("discrepancies")),
+                "details": "; ".join(o.get("discrepancies", [])) if o.get("discrepancies") else None,
+            }
+            conversational_signals = top_topic.get("conversational_signals", {}) or {}
+            feature_explanation = top_topic.get("feature_explanation")
+            pedagogical_feedback = u.get("pedagogical_feedback", "")
+        else:
+            topic_understanding = raw_json.get("topic_understanding", {}) or {}
+            actual_quiz_performance = raw_json.get("actual_quiz_performance", {}) or {}
+            learning_confidence = raw_json.get("learning_confidence", {}) or {}
+            overall_topic_performance = raw_json.get("overall_topic_performance", {}) or {}
+            discrepancy_analysis = raw_json.get("discrepancy_analysis", {}) or {}
+            conversational_signals = raw_json.get("conversational_signals", {}) or {}
+            feature_explanation = raw_json.get("feature_explanation")
+            pedagogical_feedback = raw_json.get("pedagogical_feedback", "")
+
+        return SessionAnalyticsResponse(
+            session_id=session_id,
+            user_id=user.user_id,
+            subject=raw_sess.get("subject"),
+            topic=raw_sess.get("topic"),
+            source_agent=raw_sess.get("source_agent", "chatgpt"),
+            status=raw_sess.get("status", "processed"),
+            topic_understanding=topic_understanding,
+            actual_quiz_performance=actual_quiz_performance,
+            learning_confidence=learning_confidence,
+            overall_topic_performance=overall_topic_performance,
+            discrepancy_analysis=discrepancy_analysis,
+            conversational_signals=conversational_signals,
+            feature_explanation=feature_explanation,
+            pedagogical_feedback=pedagogical_feedback,
+            processed_at=analytics.get("processed_at", ""),
+        )
+
+    def get_student_performance(self, student_id: Optional[str], user: UserContext) -> StudentPerformanceResponse:
+        """Retrieves aggregated performance for the authenticated student."""
+        target_student_id = student_id or user.user_id
+        if target_student_id != user.user_id:
+            raise AuthorizationError(f"User '{user.user_id}' cannot access records for '{target_student_id}'.")
+
+        summary = self.storage.get_student_summary(target_student_id)
+        return StudentPerformanceResponse(**summary)
+
+    def get_topic_analytics(self, topic: str, student_id: Optional[str], user: UserContext) -> TopicAnalyticsResponse:
+        """Retrieves topic-specific analytics for the authenticated student."""
+        target_student_id = student_id or user.user_id
+        if target_student_id != user.user_id:
+            raise AuthorizationError(f"User '{user.user_id}' cannot access records for '{target_student_id}'.")
+
+        summary = self.storage.get_topic_summary(target_student_id, topic)
+        if not summary:
+            # Return empty structure
+            return TopicAnalyticsResponse(
+                topic=topic,
+                subject=None,
+                student_id=target_student_id,
+                total_sessions=0,
+                understanding_distribution={"understood": 0, "partial": 0, "confused": 0},
+                average_understanding_score=0.0,
+                quiz_performance={"average_score_percent": None, "quizzes_taken": 0},
+                expressed_confidence={"average_confidence_score": 0.0},
+                overall_topic_performance=None,
+                historical_trend=[],
+            )
+        return TopicAnalyticsResponse(**summary)
+
+    def list_learning_sessions(
+        self,
+        user: UserContext,
+        subject: Optional[str] = None,
+        topic: Optional[str] = None,
+        date_from: Optional[str] = None,
+        date_to: Optional[str] = None,
+        limit: int = 20,
+        offset: int = 0,
+    ) -> SessionListResponse:
+        """Lists ingested sessions with pagination, strictly scoped to user."""
+        total, items = self.storage.list_sessions(
+            user_id=user.user_id,
+            subject=subject,
+            topic=topic,
+            date_from=date_from,
+            date_to=date_to,
+            limit=limit,
+            offset=offset,
+        )
+        session_items = [
+            SessionListItem(
+                session_id=it["session_id"],
+                user_id=it["user_id"],
+                subject=it.get("subject"),
+                topic=it.get("topic"),
+                source_agent=it.get("source_agent", "chatgpt"),
+                status=it.get("status", "processed"),
+                understanding_class=it.get("understanding_class"),
+                overall_score=it.get("overall_score"),
+                ingested_at=it.get("ingested_at", ""),
+            )
+            for it in items
+        ]
+        return SessionListResponse(
+            total_count=total,
+            limit=limit,
+            offset=offset,
+            sessions=session_items,
+        )
+
+    def submit_quiz_results(self, request: QuizSubmissionRequest, user: UserContext) -> QuizSubmissionResult:
+        """
+        Evaluates submitted quiz questions deterministically and updates overall topic score if linked to a session.
+        """
+        eval_result = evaluate_quiz_submission(
+            questions=request.questions,
+            answer_key=request.answer_key,
+            student_answers=request.student_answers,
+        )
+
+        quiz_id = f"QZ_{uuid.uuid4().hex[:12].upper()}"
+
+        quiz_storage_payload = {
+            "quiz_id": quiz_id,
+            "session_id": request.session_id,
+            "user_id": user.user_id,
+            "subject": request.subject,
+            "topic": request.topic,
+            "total_questions": eval_result.get("total_questions", 0),
+            "correct_count": eval_result.get("correct_count", 0),
+            "incorrect_count": eval_result.get("incorrect_count", 0),
+            "unanswered_count": eval_result.get("unanswered_count", 0),
+            "actual_score_percent": eval_result.get("actual_score_percent", 0.0),
+            "question_breakdown": eval_result.get("question_breakdown", []),
+            "topic_breakdown": eval_result.get("topic_breakdown", {}),
+            "raw_submission": request.model_dump(),
+            "evaluated_at": datetime.now(timezone.utc).isoformat(),
+        }
+
+        self.storage.save_quiz_submission(quiz_storage_payload)
+
+        # If linked to a session, update the session analytics!
+        updated_overall = None
+        if request.session_id:
+            existing_analytics = self.storage.get_analytics(request.session_id, user.user_id)
+            if existing_analytics:
+                full_json = existing_analytics["full_analytics_json"]
+                u_score = full_json.get("topic_understanding", {}).get("understanding_score", 60.0)
+                c_score = full_json.get("learning_confidence", {}).get("expressed_confidence_score", 50.0)
+                q_score = eval_result["actual_score_percent"]
+
+                scoring_engine = TopicPerformanceScoringEngine()
+                new_overall = scoring_engine.compute_topic_performance(
+                    topic=request.topic or "General",
+                    understanding_input=u_score,
+                    actual_quiz_score=q_score,
+                    expressed_confidence_score=c_score,
+                    session_id=request.session_id,
+                    student_id=user.user_id,
+                )
+                full_json["actual_quiz_performance"] = {
+                    "status": "evaluated",
+                    "actual_score_percent": q_score,
+                    "correct_count": eval_result["correct_count"],
+                    "total_questions": eval_result["total_questions"],
+                    "incorrect_count": eval_result["incorrect_count"],
+                    "unanswered_count": eval_result["unanswered_count"],
+                }
+                full_json["overall_topic_performance"] = new_overall
+                self.storage.save_analytics(request.session_id, user.user_id, full_json)
+                updated_overall = new_overall
+
+        return QuizSubmissionResult(
+            quiz_id=quiz_id,
+            session_id=request.session_id,
+            user_id=user.user_id,
+            total_questions=eval_result.get("total_questions", 0),
+            correct_count=eval_result.get("correct_count", 0),
+            incorrect_count=eval_result.get("incorrect_count", 0),
+            unanswered_count=eval_result.get("unanswered_count", 0),
+            actual_score_percent=eval_result.get("actual_score_percent", 0.0),
+            question_breakdown=eval_result.get("question_breakdown", []),
+            topic_breakdown=eval_result.get("topic_breakdown", {}),
+            evaluated_at=quiz_storage_payload["evaluated_at"],
+            updated_overall_performance=updated_overall,
+        )
+
+
+# Global ingestion service singleton
+_ingestion_service: Optional[IngestionService] = None
+
+
+def get_ingestion_service() -> IngestionService:
+    global _ingestion_service
+    if _ingestion_service is None:
+        _ingestion_service = IngestionService()
+    return _ingestion_service

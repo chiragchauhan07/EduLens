@@ -13,8 +13,27 @@
 EduLens/
 ├── api/
 │   └── index.py                     # Vercel Serverless ASGI entrypoint (FastAPI app with /predict, /topics, /samples, /model-info)
+├── backend/
+│   └── mcp_server/                  # Official Model Context Protocol (MCP) Server package
+│       ├── auth/
+│       │   └── authentication.py    # TokenManager & ContextVar user context isolation
+│       ├── schemas/
+│       │   └── session_schema.py    # Pydantic schemas for all 6 tools, requests, responses
+│       ├── services/
+│       │   ├── ingestion_service.py # IngestionService connecting MCP tools to EduLensUnifiedPipeline
+│       │   └── storage_service.py   # SQLiteStorageService with WAL mode, raw_sessions & analytics
+│       ├── tools/
+│       │   ├── analytics.py         # get_session_analytics, get_student_performance, get_topic_analytics
+│       │   ├── ingestion.py         # ingest_learning_session tool implementation
+│       │   ├── quiz.py              # submit_quiz_results tool implementation
+│       │   └── sessions.py          # list_learning_sessions tool implementation
+│       ├── config.py                # Server configuration & environment defaults
+│       └── server.py                # FastMCP/MCPServer ASGI app, SSE & Stdio runners
 ├── data/
 │   ├── processed/                   # Intended for cleaned and prepared datasets (currently empty)
+│   ├── storage/
+│   │   ├── .gitkeep                 # Persistent storage directory anchor
+│   │   └── edulens.db               # SQLite database (WAL mode) for raw sessions & analytics
 │   └── raw/
 │       ├── edulens_chats_dataset.json           # Primary supervised dataset (430 sessions, 11 CS subjects, labeled with final_understanding)
 │       ├── edulens_chats_set1 (1).json          # Supplementary set (420 sessions with quiz, no final_understanding or topics)
@@ -241,10 +260,10 @@ EduLens/
 ## 9. Existing Tests and Verification Results
 
 Executed `pytest tests/ -v` using Python 3.12:
-- Total tests: **41**
-- **Passed: 41**
+- Total tests: **66**
+- **Passed: 66**
 - **Failed: 0**
-- Test execution time: ~2.85 seconds.
+- Test execution time: ~11.5 seconds.
 
 Breakdown across test modules:
 - **API Test Suite (`tests/test_api.py` — 11 tests):**
@@ -268,12 +287,30 @@ Breakdown across test modules:
   - Expressed confidence estimator heuristics and linguistic indicators — PASSED
   - Composite scoring engine 40/40/20 formula and discrepancy detection — PASSED
   - New API endpoints (`/api/pipeline`, `/api/evaluate-quiz`, `/api/confidence`) — PASSED
+- **MCP Server Suite (`tests/test_mcp_server.py` — 24 tests):**
+  - Server initialization and capabilities registration (all 6 tools, resources, prompts) — PASSED
+  - Tool execution: `ingest_learning_session` valid session — PASSED
+  - Idempotency & SHA-256 deduplication — PASSED
+  - Multi-topic learning session ingestion — PASSED
+  - Missing student utterances and invalid role validation — PASSED
+  - Storage persistence: raw session audit vs derived analytics separation — PASSED
+  - `get_session_analytics` existing session & not-found handling — PASSED
+  - `get_student_performance` aggregated metrics & topic filters — PASSED
+  - `get_topic_analytics` single topic mastery summaries — PASSED
+  - `list_learning_sessions` pagination (limit, offset) and ordering — PASSED
+  - `submit_quiz_results` grading, topic breakdown, and storage — PASSED
+  - Authentication: Bearer token validation, seed tokens, context isolation — PASSED
+  - Multi-user isolation: User A cannot read or list User B data — PASSED
+  - Direct pipeline execution without internal HTTP loops — PASSED
+  - Transport tests: Remote SSE streaming and ASGI middleware — PASSED
+- **MCP End-to-End Test (`tests/test_mcp_e2e.py` — 1 test):**
+  - Live subprocess execution with official `ClientSession` over Stdio transport invoking `ingest_learning_session`, `get_session_analytics`, and `get_student_performance` — PASSED
 
 ---
 
 ## 10. Completed Milestones & Current Project State
 
-All foundational, evaluation, explainability, and multi-dimensional analytics milestones have been achieved:
+All foundational, evaluation, explainability, multi-dimensional analytics, and MCP integration milestones have been achieved:
 1. **Four Core Performance Dimensions:**
    - Dimension 1: Topic Understanding (3-class ML model + calibrated probabilities + transparent 0-100 score mapping: Understood=90, Partial=60, Confused=25).
    - Dimension 2: Actual Quiz Performance (Deterministic rule-based grading of submitted questions vs answer key; strictly separated from conversational regression).
@@ -283,14 +320,21 @@ All foundational, evaluation, explainability, and multi-dimensional analytics mi
 3. **Unified Inference Pipeline:** `EduLensUnifiedPipeline` orchestrates full inference from raw conversational JSON to structured integration output.
 4. **Group-Aware Evaluation Across All Tasks:** Zero student leakage verified on both 3-class understanding (`StratifiedGroupKFold`, 357 train / 73 test) and quiz regression (`GroupShuffleSplit`, 1,394 train / 326 test).
 5. **Ablation & Explainability:** 6 ablation configurations evaluated, full mathematical coefficients exposed for all algorithms.
-6. **Production-Ready Test Suite:** 41 comprehensive automated tests covering all edge cases, errors, and acceptance criteria.
-7. **Documentation Synchronized:** `docs/DSP.md`, `docs/NLP.md`, `docs/ML.md`, `docs/DATASET.md`, `PROJECT_AUDIT.md`, `README.md` fully reflect the current repository.
+6. **Model Context Protocol (MCP) Server Delivered (Phase 2):**
+   - Official `mcp` 2.x SDK integration (`MCPServer`).
+   - 6 production tools: `ingest_learning_session`, `get_session_analytics`, `get_student_performance`, `get_topic_analytics`, `list_learning_sessions`, `submit_quiz_results`.
+   - Dual-transport: SSE (HTTP/remote) and Stdio (local Claude Desktop).
+   - Storage abstraction separating raw conversation JSON (`raw_sessions`) from derived analytics (`analytics_results`) and quizzes (`quiz_submissions`) using persistent SQLite in WAL mode.
+   - User authentication and multi-user data isolation via `TokenManager` and `ContextVar`.
+7. **Production-Ready Test Suite:** 66 comprehensive automated tests covering all edge cases, errors, and acceptance criteria.
+8. **Documentation Synchronized:** `docs/DSP.md`, `docs/NLP.md`, `docs/ML.md`, `docs/DATASET.md`, `docs/MCP.md`, `.env.example`, `PROJECT_AUDIT.md`, `README.md` fully reflect the current repository.
 
 ---
 
 ## 11. Technical Readiness for Subsequent Integration Phases
 
-The data-processing, NLP, and machine learning foundation is fully stabilized, verified, and ready for:
-1. **Phase 2 (MCP Integration):** The `EduLensUnifiedPipeline` and `/api/pipeline` endpoint provide a single, deterministic contract for MCP tools to submit conversations and receive standardized analytics.
-2. **Phase 3 (Frontend & Analytics Dashboard):** Streamlit and FastAPI backends return fully typed, documented response objects with all 4 dimensions, feature explanations, and discrepancy warnings.
+The data-processing, NLP, machine learning, and MCP server foundation is fully stabilized, verified, and ready for:
+1. **Phase 3 (Frontend & Analytics Dashboard):** Next.js / React educator and student dashboards consuming EduLens REST API or querying the persistent SQLite analytics database.
+2. **Phase 4 (Targeted Quiz Generation):** LLM integration (Gemini / Claude) generating tailored post-session validation quizzes based on predicted understanding weaknesses and confusion topics.
+
 
