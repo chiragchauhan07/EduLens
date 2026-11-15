@@ -58,6 +58,8 @@ class StorageService(ABC):
         date_to: Optional[str] = None,
         limit: int = 20,
         offset: int = 0,
+        search: Optional[str] = None,
+        class_filter: Optional[str] = None,
     ) -> Tuple[int, List[Dict[str, Any]]]:
         """Returns total count and list of sessions matching filters."""
         pass
@@ -80,6 +82,21 @@ class StorageService(ABC):
     @abstractmethod
     def get_quiz_submission(self, quiz_id: str, user_id: str) -> Optional[Dict[str, Any]]:
         """Retrieves quiz submission by ID."""
+        pass
+
+    @abstractmethod
+    def list_quiz_submissions(
+        self,
+        user_id: str,
+        limit: int = 20,
+        offset: int = 0,
+    ) -> Tuple[int, List[Dict[str, Any]]]:
+        """Returns total count and list of quiz submissions for user."""
+        pass
+
+    @abstractmethod
+    def get_all_students(self) -> List[str]:
+        """Returns list of distinct student/user IDs present in storage."""
         pass
 
 
@@ -333,11 +350,21 @@ class SQLiteStorageService(StorageService):
         date_to: Optional[str] = None,
         limit: int = 20,
         offset: int = 0,
+        search: Optional[str] = None,
+        class_filter: Optional[str] = None,
     ) -> Tuple[int, List[Dict[str, Any]]]:
         query = """
         SELECT r.session_id, r.user_id, r.subject, r.topic, r.source_agent,
-               r.status, r.ingested_at,
+               r.status, r.ingested_at, r.turns_count,
                a.predicted_class AS understanding_class,
+               a.understanding_score,
+               a.confidence AS model_confidence,
+               a.actual_quiz_score,
+               a.quiz_status,
+               a.expressed_confidence_level,
+               a.expressed_confidence_score,
+               a.discrepancy_detected,
+               a.pedagogical_feedback,
                a.overall_performance_score AS overall_score
         FROM raw_sessions r
         LEFT JOIN analytics_results a ON r.session_id = a.session_id
@@ -351,6 +378,13 @@ class SQLiteStorageService(StorageService):
         if topic:
             query += " AND r.topic = ?"
             params.append(topic)
+        if class_filter:
+            query += " AND a.predicted_class = ?"
+            params.append(class_filter)
+        if search:
+            query += " AND (r.topic LIKE ? OR r.subject LIKE ? OR r.session_id LIKE ?)"
+            term = f"%{search.strip()}%"
+            params.extend([term, term, term])
         if date_from:
             query += " AND r.ingested_at >= ?"
             params.append(date_from)
@@ -596,6 +630,41 @@ class SQLiteStorageService(StorageService):
             data["topic_breakdown"] = json.loads(data["topic_breakdown_json"])
             data["raw_submission"] = json.loads(data["raw_submission_json"])
             return data
+
+    def list_quiz_submissions(
+        self,
+        user_id: str,
+        limit: int = 20,
+        offset: int = 0,
+    ) -> Tuple[int, List[Dict[str, Any]]]:
+        with self._lock, self._connection() as conn:
+            count = conn.execute(
+                "SELECT COUNT(*) FROM quiz_submissions WHERE user_id = ?;", (user_id,)
+            ).fetchone()[0]
+            rows = conn.execute(
+                """
+                SELECT quiz_id, session_id, user_id, subject, topic,
+                       total_questions, correct_count, incorrect_count, unanswered_count,
+                       actual_score_percent, evaluated_at
+                FROM quiz_submissions
+                WHERE user_id = ?
+                ORDER BY evaluated_at DESC
+                LIMIT ? OFFSET ?;
+                """,
+                (user_id, limit, offset),
+            ).fetchall()
+            return count, [dict(r) for r in rows]
+
+    def get_all_students(self) -> List[str]:
+        with self._lock, self._connection() as conn:
+            users = set()
+            for r in conn.execute("SELECT DISTINCT user_id FROM raw_sessions;"):
+                if r[0]:
+                    users.add(r[0])
+            for r in conn.execute("SELECT DISTINCT user_id FROM quiz_submissions;"):
+                if r[0]:
+                    users.add(r[0])
+            return sorted(list(users)) if users else ["student_001"]
 
 
 # Global storage service instance

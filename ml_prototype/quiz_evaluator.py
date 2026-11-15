@@ -146,5 +146,6 @@ def evaluate_quiz_submission(
         "actual_score_percent": actual_score_percent,
         "topic_breakdown": topic_breakdown,
         "question_details": question_details,
+        "question_breakdown": question_details,
     }
 

@@ -384,7 +384,7 @@ class IngestionService:
             "incorrect_count": eval_result.get("incorrect_count", 0),
             "unanswered_count": eval_result.get("unanswered_count", 0),
             "actual_score_percent": eval_result.get("actual_score_percent", 0.0),
-            "question_breakdown": eval_result.get("question_breakdown", []),
+            "question_breakdown": eval_result.get("question_breakdown") or eval_result.get("question_details", []),
             "topic_breakdown": eval_result.get("topic_breakdown", {}),
             "raw_submission": request.model_dump(),
             "evaluated_at": datetime.now(timezone.utc).isoformat(),

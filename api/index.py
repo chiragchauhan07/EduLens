@@ -139,6 +139,28 @@ class ConfidenceRequest(BaseModel):
     text: Optional[str] = None
 
 
+class IngestRequest(BaseModel):
+    student_id: Optional[str] = Field("student_001", description="Student identifier")
+    messages: Optional[List[Dict[str, Any]]] = Field(None, description="List of turn dicts with 'role' and 'content'")
+    conversation: Optional[Union[str, List[str], Dict[str, Any]]] = Field(None, description="Transcript, list, or session dict")
+    text: Optional[str] = Field(None, description="Raw multiline transcript text")
+    subject: Optional[str] = Field(None, description="Academic subject")
+    topic: Optional[str] = Field(None, description="Learning topic")
+    source_agent: Optional[str] = Field("chatgpt", description="Source agent, e.g. chatgpt, claude, cursor")
+    quiz_submission: Optional[Dict[str, Any]] = Field(None, description="Optional quiz submission to evaluate concurrently")
+
+
+class SubmitQuizRequest(BaseModel):
+    student_id: Optional[str] = Field("student_001", description="Student identifier")
+    session_id: Optional[str] = Field(None, description="Optional linked session ID")
+    subject: Optional[str] = Field(None, description="Academic subject")
+    topic: Optional[str] = Field(None, description="Learning topic")
+    questions: Optional[List[Dict[str, Any]]] = Field(None, description="List of question dicts")
+    answer_key: Optional[Dict[Union[str, int], Any]] = Field(None, description="Mapping question_id -> correct answer")
+    student_answers: Optional[Dict[Union[str, int], Any]] = Field(None, description="Mapping question_id -> student answer")
+    submission_payload: Optional[Dict[str, Any]] = Field(None, description="Alternative raw submission dict")
+
+
 SAMPLE_CONVERSATIONS = [
     {
         "id": "sample-0",
@@ -221,7 +243,6 @@ SAMPLE_CONVERSATIONS = [
 router = APIRouter()
 
 
-@router.get("/")
 @router.get("/health")
 def health_check(request: Request):
     """Health check endpoint."""
@@ -457,6 +478,288 @@ def get_explainability_report():
         raise HTTPException(status_code=500, detail=f"Failed to load explainability report: {str(e)}")
 
 
+@router.get("/students")
+def list_students():
+    """Returns list of distinct student identifiers present in storage."""
+    from backend.mcp_server.services.storage_service import get_storage_service
+    storage = get_storage_service()
+    return {"students": storage.get_all_students()}
+
+
+@router.get("/dashboard")
+def get_dashboard(student_id: Optional[str] = "student_001"):
+    """
+    Returns aggregated KPI metrics, understanding distribution, recent sessions,
+    and areas of confusion for the student learning overview dashboard.
+    """
+    effective_id = student_id or "student_001"
+    from backend.mcp_server.services.storage_service import get_storage_service
+    storage = get_storage_service()
+    summary = storage.get_student_summary(effective_id)
+    total, recent_sessions = storage.list_sessions(effective_id, limit=6)
+    return {
+        "student_id": effective_id,
+        "summary": {
+            "total_sessions": summary.get("total_sessions", 0),
+            "topics_studied_count": len(summary.get("topics_studied", [])),
+            "average_understanding_score": summary.get("average_understanding_score", 0.0),
+            "average_actual_quiz_score": summary.get("average_actual_quiz_score"),
+            "average_confidence_score": summary.get("average_confidence_score", 0.0),
+            "average_overall_score": summary.get("average_overall_score"),
+        },
+        "understanding_distribution": summary.get("understanding_distribution", {"understood": 0, "partial": 0, "confused": 0}),
+        "areas_of_confusion": summary.get("areas_of_confusion", []),
+        "topic_wise_breakdown": summary.get("topic_wise_breakdown", []),
+        "trend": summary.get("learning_progress", []),
+        "recent_sessions": recent_sessions,
+    }
+
+
+@router.get("/sessions")
+def list_sessions(
+    student_id: Optional[str] = "student_001",
+    subject: Optional[str] = None,
+    topic: Optional[str] = None,
+    search: Optional[str] = None,
+    class_filter: Optional[str] = None,
+    limit: int = 10,
+    offset: int = 0,
+):
+    """
+    Returns filterable, searchable, paginated session list with understanding
+    classifications, quiz statuses, and composite performance scores.
+    """
+    effective_id = student_id or "student_001"
+    from backend.mcp_server.services.storage_service import get_storage_service
+    storage = get_storage_service()
+    total, items = storage.list_sessions(
+        user_id=effective_id,
+        subject=subject,
+        topic=topic,
+        search=search,
+        class_filter=class_filter,
+        limit=limit,
+        offset=offset,
+    )
+    return {
+        "total_count": total,
+        "sessions": items,
+        "limit": limit,
+        "offset": offset,
+        "student_id": effective_id,
+    }
+
+
+@router.get("/sessions/{session_id}")
+def get_session_detail(session_id: str, student_id: Optional[str] = "student_001"):
+    """
+    Returns full raw conversation dialogue, 4-dimension analytics,
+    feature attributions, pedagogical recommendations, and linked quiz.
+    """
+    effective_id = student_id or "student_001"
+    from backend.mcp_server.services.storage_service import get_storage_service
+    storage = get_storage_service()
+    raw = storage.get_raw_session(session_id, effective_id)
+    if not raw:
+        raise HTTPException(status_code=404, detail=f"Session '{session_id}' not found for student '{effective_id}'.")
+    analytics = storage.get_analytics(session_id, effective_id)
+
+    # Check for any linked quiz in quiz_submissions
+    quizzes_count, quizzes = storage.list_quiz_submissions(effective_id, limit=50)
+    linked_quiz = None
+    for q in quizzes:
+        if q.get("session_id") == session_id:
+            linked_quiz = storage.get_quiz_submission(q["quiz_id"], effective_id)
+            break
+
+    messages = []
+    if raw and "raw_json" in raw and "messages" in raw["raw_json"]:
+        messages = raw["raw_json"]["messages"]
+
+    return {
+        "session_id": session_id,
+        "user_id": effective_id,
+        "subject": raw.get("subject"),
+        "topic": raw.get("topic"),
+        "source_agent": raw.get("source_agent"),
+        "status": raw.get("status"),
+        "turns_count": raw.get("turns_count"),
+        "ingested_at": raw.get("ingested_at"),
+        "messages": messages,
+        "analytics": analytics.get("full_analytics_json") if analytics else None,
+        "summary_metrics": {
+            "predicted_class": analytics.get("predicted_class") if analytics else None,
+            "understanding_score": analytics.get("understanding_score") if analytics else None,
+            "actual_quiz_score": analytics.get("actual_quiz_score") if analytics else None,
+            "expressed_confidence_level": analytics.get("expressed_confidence_level") if analytics else None,
+            "expressed_confidence_score": analytics.get("expressed_confidence_score") if analytics else None,
+            "overall_performance_score": analytics.get("overall_performance_score") if analytics else None,
+            "performance_category": analytics.get("performance_category") if analytics else None,
+            "discrepancy_detected": bool(analytics.get("discrepancy_detected")) if analytics else False,
+            "discrepancy_details": analytics.get("discrepancy_details") if analytics else None,
+            "pedagogical_feedback": analytics.get("pedagogical_feedback") if analytics else None,
+        } if analytics else None,
+        "linked_quiz": linked_quiz,
+    }
+
+
+@router.get("/student-performance")
+def get_student_performance(student_id: Optional[str] = "student_001"):
+    """Returns longitudinal learning metrics and curriculum breakdown for the student."""
+    effective_id = student_id or "student_001"
+    from backend.mcp_server.services.storage_service import get_storage_service
+    storage = get_storage_service()
+    return storage.get_student_summary(effective_id)
+
+
+@router.get("/topic-summary")
+def get_topic_summary_endpoint(topic: str, student_id: Optional[str] = "student_001"):
+    """Returns topic-specific mastery, quiz performance, and progression trend."""
+    effective_id = student_id or "student_001"
+    from backend.mcp_server.services.storage_service import get_storage_service
+    storage = get_storage_service()
+    summary = storage.get_topic_summary(effective_id, topic)
+    if not summary:
+        return {
+            "topic": topic,
+            "student_id": effective_id,
+            "total_sessions": 0,
+            "understanding_distribution": {"understood": 0, "partial": 0, "confused": 0},
+            "average_understanding_score": 0.0,
+            "quiz_performance": {"average_score_percent": None, "quizzes_taken": 0},
+            "expressed_confidence": {"average_confidence_score": 0.0},
+            "overall_topic_performance": None,
+            "historical_trend": [],
+        }
+    return summary
+
+
+@router.get("/quizzes")
+def list_quizzes(student_id: Optional[str] = "student_001", limit: int = 20, offset: int = 0):
+    """Returns list of evaluated quiz submissions for the student."""
+    effective_id = student_id or "student_001"
+    from backend.mcp_server.services.storage_service import get_storage_service
+    storage = get_storage_service()
+    count, items = storage.list_quiz_submissions(effective_id, limit=limit, offset=offset)
+    return {"total_count": count, "quizzes": items, "student_id": effective_id}
+
+
+@router.get("/quizzes/{quiz_id}")
+def get_quiz_detail(quiz_id: str, student_id: Optional[str] = "student_001"):
+    """Returns full itemized question breakdown for a specific quiz submission."""
+    effective_id = student_id or "student_001"
+    from backend.mcp_server.services.storage_service import get_storage_service
+    storage = get_storage_service()
+    quiz = storage.get_quiz_submission(quiz_id, effective_id)
+    if not quiz:
+        raise HTTPException(status_code=404, detail=f"Quiz '{quiz_id}' not found for student '{effective_id}'.")
+    return quiz
+
+
+@router.post("/quizzes")
+def submit_quiz_endpoint(req: SubmitQuizRequest):
+    """
+    Deterministically evaluates submitted student answers against an answer key,
+    persists the graded submission to database, and updates session overall score.
+    """
+    from backend.mcp_server.services.ingestion_service import IngestionService
+    from backend.mcp_server.auth.authentication import UserContext
+    from backend.mcp_server.schemas.session_schema import QuizSubmissionRequest
+
+    effective_id = req.student_id or "student_001"
+    user = UserContext(user_id=effective_id, username=effective_id)
+    svc = IngestionService()
+
+    questions = req.questions or []
+    if not questions and req.submission_payload:
+        questions = req.submission_payload.get("questions", [])
+
+    if not questions:
+        raise HTTPException(status_code=400, detail="No quiz questions provided for evaluation.")
+
+    try:
+        submission_req = QuizSubmissionRequest(
+            questions=questions,
+            session_id=req.session_id,
+            subject=req.subject,
+            topic=req.topic,
+            answer_key=req.answer_key or (req.submission_payload.get("answer_key") if req.submission_payload else None),
+            student_answers=req.student_answers or (req.submission_payload.get("student_answers") if req.submission_payload else None),
+        )
+        res = svc.submit_quiz_results(submission_req, user)
+        return res.model_dump()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Quiz submission failed: {str(e)}")
+
+
+@router.post("/ingest")
+def ingest_session_endpoint(req: IngestRequest):
+    """
+    Ingests an external AI learning session (from ChatGPT, Claude, etc.),
+    persists raw conversation, executes unified ML analytics pipeline, and stores results.
+    """
+    from backend.mcp_server.services.ingestion_service import IngestionService
+    from backend.mcp_server.auth.authentication import UserContext
+    from backend.mcp_server.schemas.session_schema import SessionIngestRequest, MessageItem
+
+    effective_id = req.student_id or "student_001"
+    user = UserContext(user_id=effective_id, username=effective_id)
+    svc = IngestionService()
+
+    msg_items: List[MessageItem] = []
+    if req.messages:
+        for m in req.messages:
+            msg_items.append(MessageItem(
+                role=m.get("role", "user"),
+                content=m.get("content", ""),
+                timestamp=m.get("timestamp"),
+            ))
+    elif req.conversation:
+        if isinstance(req.conversation, list):
+            for item in req.conversation:
+                msg_items.append(MessageItem(role="user", content=str(item)))
+        elif isinstance(req.conversation, dict) and "messages" in req.conversation:
+            for m in req.conversation["messages"]:
+                msg_items.append(MessageItem(role=m.get("role", "user"), content=m.get("content", "")))
+        elif isinstance(req.conversation, dict) and "turns" in req.conversation:
+            for t in req.conversation["turns"]:
+                if t.get("student_message"):
+                    msg_items.append(MessageItem(role="user", content=t["student_message"]))
+                if t.get("teacher_message"):
+                    msg_items.append(MessageItem(role="assistant", content=t["teacher_message"]))
+        elif isinstance(req.conversation, str):
+            lines = [line.strip() for line in req.conversation.split("\n") if line.strip()]
+            for line in lines:
+                msg_items.append(MessageItem(role="user", content=line))
+    elif req.text:
+        lines = [line.strip() for line in req.text.split("\n") if line.strip()]
+        for line in lines:
+            msg_items.append(MessageItem(role="user", content=line))
+
+    if not msg_items:
+        raise HTTPException(status_code=400, detail="No student messages provided for ingestion.")
+
+    try:
+        ingest_req = SessionIngestRequest(
+            student_id=effective_id,
+            subject=req.subject or "Computer Science",
+            topic=req.topic or "General",
+            source_agent=req.source_agent or "chatgpt",
+            messages=msg_items,
+            quiz_submission=req.quiz_submission,
+        )
+        res = svc.ingest_session(ingest_req, user)
+        return res.model_dump()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Session ingestion failed: {str(e)}")
+
+
 # Mount router on both root and /api prefixes so any Vercel rewrite configuration works!
 app.include_router(router, prefix="")
 app.include_router(router, prefix="/api")
+
+# Mount static files directory for local development or full-stack execution
+from fastapi.staticfiles import StaticFiles
+public_dir = ROOT_DIR / "public"
+if public_dir.exists():
+    app.mount("/", StaticFiles(directory=str(public_dir), html=True), name="static")
