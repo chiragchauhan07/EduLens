@@ -7,7 +7,7 @@
 [![MCP](https://img.shields.io/badge/MCP-Official%202.x-purple.svg)](docs/MCP.md)
 [![Tests](https://img.shields.io/badge/Tests-78%20Passing-brightgreen.svg)](#running-tests)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Status](https://img.shields.io/badge/Status-MCP%20Production%20Ready-success.svg)](#project-status)
+[![Status](https://img.shields.io/badge/Status-MCP%20Server%20Verified-success.svg)](#run-model-context-protocol-mcp-server)
 
 **NLP and Machine Learning-Based Student Learning Intelligence and Performance Analytics Platform**
 
@@ -83,8 +83,8 @@ EduLens serves as the **intelligence and analytics layer** built around the stud
   - **Student Performance Analyzer:** Test real-time inference, optional quiz submission evaluation, discrepancy alerts, and feature attributions.
   - **Topic-Wise Performance:** Curriculum-level mastery aggregates, confusion rates, and topic difficulty rankings.
   - **Model Architecture & Viva Guide:** Multi-model benchmarks, 6 ablation experiments, explainability tabs, and defense Q&A.
-- **🛡️ 78 Automated Unit & Integration Tests:** Powered by `pytest` ensuring 100% end-to-end reliability across ML, API, security, multi-user isolation, Streamable HTTP, SSE, and Stdio Model Context Protocol integration.
-- **🔌 Official Model Context Protocol (MCP) Server:** Seamless integration with ChatGPT and Claude Desktop via both remote SSE/HTTP and local Stdio transports. Exposes 6 production tools for session ingestion, real-time analytics, longitudinal mastery, and quiz submission.
+- **🛡️ 78 Automated Unit & Integration Tests:** Powered by `pytest` verifying ML, API, security, multi-user isolation, Streamable HTTP, SSE, and Stdio Model Context Protocol integration with a 100% test suite pass rate.
+- **🔌 Model Context Protocol (MCP) Server:** Standard MCP 2.x server with 6 core tools for session ingestion, real-time analytics, longitudinal mastery, and quiz submission across Streamable HTTP (`/mcp`), SSE, and Stdio transports; verified with Claude Desktop and MCP Inspector.
 - **💾 Thread-Safe Persistent SQLite Storage:** Thread-safe WAL-mode SQLite storage separating audit-proof raw conversation transcripts (`raw_sessions`) from derived learning analytics (`analytics_results`) and quiz evaluations (`quiz_submissions`).
 - **🔐 Multi-User Isolation & Context Propagation:** Cryptographic bearer token management mapping requests to isolated student IDs with automatic deduplication via SHA-256 session hashing.
 

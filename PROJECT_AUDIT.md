@@ -318,6 +318,12 @@ Breakdown across test modules:
 - **MCP End-to-End Test (`tests/test_mcp_e2e.py` — 1 test):**
   - Live subprocess execution with official `ClientSession` over Stdio transport invoking `ingest_learning_session`, `get_session_analytics`, and `get_student_performance` — PASSED
 
+### Verification Level Breakdown:
+1. **Automated Test Suite (pytest):** 78/78 passing across all ML, API, security, and MCP tests (100% pass rate).
+2. **MCP Inspector Verification:** Verified across all 6 tools, resources, prompts, and authentication error paths over Streamable HTTP (`/mcp`).
+3. **Claude Desktop Verification:** Verified via local Stdio transport (`ClientSession` subprocess) and compatible via remote Streamable HTTP with custom `Authorization` header.
+4. **ChatGPT Custom MCP Verification:** **Unverified in live production.** ChatGPT Web requires OAuth 2.1 (Authorization Code flow with PKCE) and does not support manual Bearer token header configuration in its UI. Live connection requires completing the OAuth 2.1 implementation roadmap.
+
 ---
 
 ## 10. Completed Milestones & Current Project State
@@ -334,22 +340,38 @@ All foundational, evaluation, explainability, multi-dimensional analytics, and M
 5. **Ablation & Explainability:** 6 ablation configurations evaluated, full mathematical coefficients exposed for all algorithms.
 6. **Hardened Model Context Protocol (MCP) Server (Phase 2):**
    - Official `mcp` 2.x SDK integration (`MCPServer`).
-   - 6 production tools: `ingest_learning_session`, `get_session_analytics`, `get_student_performance`, `get_topic_analytics`, `list_learning_sessions`, `submit_quiz_results`.
+   - 6 core tools: `ingest_learning_session`, `get_session_analytics`, `get_student_performance`, `get_topic_analytics`, `list_learning_sessions`, `submit_quiz_results`.
    - Triple-transport support: Streamable HTTP (`/mcp`, recommended production transport), SSE (`/sse`), and Stdio (local Claude Desktop).
    - Storage abstraction separating raw conversation JSON (`raw_sessions`) from derived analytics (`analytics_results`) and quizzes (`quiz_submissions`) using persistent SQLite in WAL mode.
    - Raw sessions persisted before inference; failures retain raw transcript with retry capability without duplicate rows.
    - User authentication and multi-user data isolation via `TokenManager` and `ContextVar` with mandatory cleanup in ASGI middleware.
    - Production mode disallows query parameter tokens and hardcoded dev credentials.
    - Forged student ID detection preventing clients from impersonating other learners.
-7. **Production-Ready Test Suite:** 78 comprehensive automated tests covering all edge cases, errors, and acceptance criteria.
-8. **Documentation Synchronized:** `docs/DSP.md`, `docs/NLP.md`, `docs/ML.md`, `docs/DATASET.md`, `docs/MCP.md`, `.env.example`, `PROJECT_AUDIT.md`, `README.md` fully reflect the current repository.
+7. **Automated Test Suite:** 78 comprehensive automated tests covering all edge cases, errors, and acceptance criteria with a 100% test pass rate.
+8. **Documentation Synchronized:** `docs/DSP.md`, `docs/NLP.md`, `docs/ML.md`, `docs/DATASET.md`, `docs/MCP.md`, `.env.example`, `PROJECT_AUDIT.md`, `README.md` fully reflect the current repository state and real capabilities.
 
 ---
 
-## 11. Technical Readiness for Subsequent Integration Phases
+## 11. Authentication Compatibility Status & Remaining Limitations
 
-The data-processing, NLP, machine learning, and MCP server foundation is fully stabilized, verified, and ready for:
+### Current Authentication Compatibility Status
+- **Development & Script Clients:** Fully operational via in-memory `TokenManager` and `EDULENS_API_TOKENS`.
+- **Claude Desktop & MCP Inspector:** Fully compatible when configured with static `Authorization: Bearer <token>` headers or environment variables.
+- **ChatGPT Web Custom MCP:** **Incompatible without OAuth 2.1.** ChatGPT custom MCP does not allow end-users to input static HTTP Bearer headers. Live integration is gated on adding OAuth 2.1 (RFC 7636 PKCE + authorization & token endpoints).
+
+### Remaining Architectural Limitations
+1. **Authentication:** In-memory `TokenManager` does not persist dynamically generated tokens across server restarts or multi-process workers.
+2. **OAuth 2.1 Absence:** No `/oauth/authorize` or `/oauth/token` endpoints currently exist; ChatGPT connections cannot authenticate until OAuth 2.1 is deployed.
+3. **Live ChatGPT Verification:** While Streamable HTTP `/mcp` conforms to MCP JSON-RPC standards, end-to-end verification within the ChatGPT Web UI has not been performed due to the OAuth 2.1 requirement.
+4. **Storage:** SQLite WAL mode is ideal for single-node deployments; horizontal multi-node scaling will require migrating persistent storage to PostgreSQL.
+
+---
+
+## 12. Technical Readiness for Subsequent Integration Phases
+
+The data-processing, NLP, machine learning, and MCP server foundation is stabilized, verified, and ready for:
 1. **Phase 3 (Frontend & Analytics Dashboard):** Next.js / React educator and student dashboards consuming EduLens REST API or querying the persistent SQLite analytics database.
 2. **Phase 4 (Targeted Quiz Generation):** LLM integration (Gemini / Claude) generating tailored post-session validation quizzes based on predicted understanding weaknesses and confusion topics.
+3. **Security Milestone (OAuth 2.1 Server):** Implementation of RFC 7636 PKCE authorization server to unlock live ChatGPT Web integration.
 
 

@@ -4,7 +4,7 @@
 
 EduLens is a **Student Learning Intelligence and Performance Analytics Platform**. It is intentionally **not** an AI tutor. Instead, EduLens acts as an independent learning analytics engine that receives, stores, and evaluates student-AI conversations conducted on external foundation models (e.g., ChatGPT, Claude Desktop, Google Gemini).
 
-The **Model Context Protocol (MCP)**, open-sourced by Anthropic and adopted across the AI industry, provides an open standard for connecting AI models to external tools, context, and storage via JSON-RPC 2.0. EduLens implements an official MCP Server (`mcp>=2.0.0`) to serve as the unified bridge between students conversing with external AI agents and the EduLens machine learning analytics engine.
+The **Model Context Protocol (MCP)**, open-sourced by Anthropic and adopted across the AI industry, provides an open standard for connecting AI models to external tools, context, and storage via JSON-RPC 2.0. EduLens implements an MCP Server (`mcp>=2.0.0`) to serve as the unified bridge between students conversing with external AI agents and the EduLens machine learning analytics engine.
 
 ### Why EduLens Uses MCP
 1. **Zero Client-Side Burden:** Students interact naturally with their preferred AI agents (ChatGPT, Claude, etc.) without having to copy-paste chat logs or install browser extensions.
@@ -22,7 +22,7 @@ The **Model Context Protocol (MCP)**, open-sourced by Anthropic and adopted acro
 |                                                                                             |
 |   +--------------------------+                         +--------------------------------+   |
 |   |         ChatGPT          |                         |         Claude Desktop         |   |
-|   | (Streamable HTTP / SSE)  |                         |  (Local Stdio or Remote SSE)   |   |
+|   | (Streamable HTTP / SSE)  |                         |  (Local Stdio or Remote HTTP)  |   |
 |   +------------+-------------+                         +---------------+----------------+   |
 +----------------|-------------------------------------------------------|--------------------+
                  | Authorization: Bearer <token>                         | JSON-RPC 2.0 (stdio / HTTP)
@@ -69,37 +69,48 @@ The **Model Context Protocol (MCP)**, open-sourced by Anthropic and adopted acro
 
 EduLens supports all three standard MCP transports:
 
-| Transport | CLI Option | Endpoint / Mode | Recommended For | Protocol Mechanism |
+| Transport | CLI Option | Endpoint / Mode | Status & Recommendation | Protocol Mechanism |
 | :--- | :--- | :--- | :--- | :--- |
-| **Streamable HTTP** *(Default & Recommended)* | `--transport streamable` | `POST /mcp` | **Production Deployments, Cloud Hosting & ChatGPT** | Bidirectional chunked HTTP POST streaming JSON-RPC messages with session headers (`Mcp-Session-Id`). |
-| **Server-Sent Events (SSE)** | `--transport sse` | `GET /sse`, `POST /messages/` | Legacy remote clients & debugging | Continuous SSE stream on GET `/sse` with separate HTTP POST endpoint for client requests. |
-| **Standard I/O (Stdio)** | `--transport stdio` | `stdin` / `stdout` | **Claude Desktop (Local Machine)** | Fast subprocess communication using JSON-RPC lines over standard input/output. |
+| **Streamable HTTP** *(Default)* | `--transport streamable` | `POST /mcp` | **Recommended for HTTP-based clients & MCP Inspector** | Bidirectional chunked HTTP POST streaming JSON-RPC messages with session headers (`Mcp-Session-Id`). |
+| **Server-Sent Events (SSE)** | `--transport sse` | `GET /sse`, `POST /messages/` | Supported for legacy remote clients & debugging | Continuous SSE stream on GET `/sse` with separate HTTP POST endpoint for client requests. |
+| **Standard I/O (Stdio)** | `--transport stdio` | `stdin` / `stdout` | **Verified for Claude Desktop (Local Machine)** | Fast subprocess communication using JSON-RPC lines over standard input/output. |
 
 > [!TIP]
-> **Production Recommendation:** Always deploy with `--transport streamable`. Streamable HTTP is stateless-friendly, multiplexes over standard HTTP/1.1 and HTTP/2 connections, avoids sticky long-lived connection exhaustion on cloud proxies, and is natively supported by modern MCP clients and inspectors at the standard `/mcp` path.
+> **Streamable HTTP:** When deploying over HTTP, use `--transport streamable`. Streamable HTTP is stateless-friendly, multiplexes over standard HTTP connections, avoids long-lived connection exhaustion on cloud proxies, and is natively supported by modern MCP clients and inspectors at the standard `/mcp` path.
 
 ---
 
 ## 4. MCP Tools Reference & Schema Specification
 
-The EduLens MCP server registers six production tools. All parameter names, types, and return payloads correspond directly to `backend/mcp_server/server.py` and `backend/mcp_server/schemas/session_schema.py`.
+The EduLens MCP server registers six core tools. All parameter names, types, and return payloads correspond directly to `backend/mcp_server/server.py` and `backend/mcp_server/schemas/session_schema.py`.
+
+> [!IMPORTANT]
+> **Authentication Parameter (`auth_token`) vs. HTTP Middleware:**  
+> When HTTP authentication is active (`EDULENS_AUTH_ENABLED=true`), the server's `AuthMiddleware` verifies credentials at the HTTP boundary before request bodies are parsed or tools are dispatched. Unauthenticated HTTP requests receive an immediate `401 Unauthorized`.  
+> Therefore, **the `auth_token` tool argument cannot bypass missing HTTP headers.**  
+> `auth_token` is an optional fallback designed strictly for:
+> 1. Local `stdio` transport where HTTP headers do not exist.
+> 2. Embedded Python service calls invoking tool functions directly.
+> 3. Environments where HTTP authentication is disabled (`--no-auth`), but per-call session tokens are passed.
+
+---
 
 ### Tool 1: `ingest_learning_session`
-Ingests a complete student-AI conversation, saves the raw conversation transcript to persistent storage before execution, executes the 4-dimension ML pipeline, and returns real-time learning analytics.
+Ingests a complete student-AI conversation, saves the raw transcript to persistent storage before execution, executes the 4-dimension ML pipeline, and returns real-time learning analytics.
 
 - **Parameters:**
-  - `messages` (`array[object]`, required): Chronological list of message objects, each containing:
-    - `role` (`string`, required): `"user"` / `"student"` for learner, `"assistant"` / `"teacher"` for AI.
-    - `content` (`string`, required): Text content of the utterance.
-    - `timestamp` (`string`, optional): ISO-8601 timestamp.
-  - `subject` (`string`, optional): Subject area (e.g. `"Computer Science"`, `"Algorithms"`).
-  - `topic` (`string`, optional): Curriculum topic (e.g. `"Binary Search"`, `"Dynamic Programming"`).
-  - `session_id` (`string`, optional): Custom session ID (auto-generated if omitted).
-  - `student_id` (`string`, optional): Student identifier. Must match authenticated identity.
-  - `source_agent` (`string`, optional, default: `"chatgpt"`): Originating AI (`"chatgpt"`, `"claude"`).
-  - `metadata` (`object`, optional): Supplementary session metadata.
-  - `quiz_submission` (`object`, optional): Pre-completed quiz questions and student answers.
-  - `auth_token` (`string`, optional): Authentication token if not provided in HTTP headers.
+  - `messages` (`array[object]`, **required**): Chronological list of message objects:
+    - `role` (`string`, **required**): Speaker role. Allowed values: `user`, `student`, `assistant`, `teacher`, `system`, `human`, `ai`. At least one student message (`user`, `student`, or `human`) is required.
+    - `content` (`string`, **required**): Non-empty text content of the utterance.
+    - `timestamp` (`string`, optional): ISO-8601 formatted timestamp.
+  - `subject` (`string`, optional): Academic subject (e.g., `"Computer Science"`, `"Algorithms"`).
+  - `topic` (`string`, optional): Specific curriculum topic (e.g., `"Binary Search"`, `"Dynamic Programming"`).
+  - `session_id` (`string`, optional): Custom unique session ID (auto-generated if omitted).
+  - `student_id` (`string`, optional): Student identifier. If provided, must match the authenticated identity.
+  - `source_agent` (`string`, optional, default: `"chatgpt"`): Originating AI platform (`"chatgpt"`, `"claude"`, `"generic"`).
+  - `metadata` (`object`, optional): Supplementary session metadata (e.g., duration, client version).
+  - `quiz_submission` (`object`, optional): Pre-completed quiz questions and student answers for deterministic grading.
+  - `auth_token` (`string`, optional): Fallback authentication token (for stdio/embedded use).
 
 - **Input JSON Schema:**
 ```json
@@ -111,7 +122,7 @@ Ingests a complete student-AI conversation, saves the raw conversation transcrip
       "items": {
         "type": "object",
         "properties": {
-          "role": {"type": "string", "enum": ["user", "student", "assistant", "teacher", "system"]},
+          "role": {"type": "string", "enum": ["user", "student", "assistant", "teacher", "system", "human", "ai"]},
           "content": {"type": "string"},
           "timestamp": {"type": "string"}
         },
@@ -131,7 +142,7 @@ Ingests a complete student-AI conversation, saves the raw conversation transcrip
 }
 ```
 
-- **Output JSON Schema & Example:**
+- **Output Example:**
 ```json
 {
   "status": "success",
@@ -205,8 +216,8 @@ Ingests a complete student-AI conversation, saves the raw conversation transcrip
 Retrieves stored multi-dimensional learning analytics for a previously ingested session.
 
 - **Parameters:**
-  - `session_id` (`string`, required): Identifier returned during ingestion.
-  - `auth_token` (`string`, optional): Token override if not in HTTP headers.
+  - `session_id` (`string`, **required**): Unique session identifier returned during ingestion.
+  - `auth_token` (`string`, optional): Fallback authentication token.
 
 - **Output Example:**
 ```json
@@ -247,11 +258,11 @@ Retrieves stored multi-dimensional learning analytics for a previously ingested 
 ---
 
 ### Tool 3: `get_student_performance`
-Retrieves the student's accumulated longitudinal performance portfolio.
+Retrieves the student's accumulated longitudinal performance portfolio across all historical sessions.
 
 - **Parameters:**
-  - `student_id` (`string`, optional): Validated against authenticated identity.
-  - `auth_token` (`string`, optional): Auth token override.
+  - `student_id` (`string`, optional): Student identifier. Defaults to the authenticated user. If a different `student_id` is passed, the server enforces strict isolation and raises an `AuthorizationError`.
+  - `auth_token` (`string`, optional): Fallback authentication token.
 
 - **Output Example:**
 ```json
@@ -288,9 +299,9 @@ Retrieves the student's accumulated longitudinal performance portfolio.
 Retrieves curriculum-level performance metrics for a specific topic across the student's history.
 
 - **Parameters:**
-  - `topic` (`string`, required): Name of topic.
-  - `student_id` (`string`, optional): Target student.
-  - `auth_token` (`string`, optional): Auth token override.
+  - `topic` (`string`, **required**): Name of curriculum topic.
+  - `student_id` (`string`, optional): Student identifier.
+  - `auth_token` (`string`, optional): Fallback authentication token.
 
 - **Output Example:**
 ```json
@@ -323,11 +334,11 @@ Lists historical learning sessions belonging to the student with filtering and p
 - **Parameters:**
   - `subject` (`string`, optional): Subject filter.
   - `topic` (`string`, optional): Topic filter.
-  - `date_from` (`string`, optional): ISO-8601 start date.
-  - `date_to` (`string`, optional): ISO-8601 end date.
-  - `limit` (`integer`, optional, default: 20): Max sessions to return (1-100).
-  - `offset` (`integer`, optional, default: 0): Pagination offset.
-  - `auth_token` (`string`, optional): Auth token override.
+  - `date_from` (`string`, optional): ISO-8601 start date filter.
+  - `date_to` (`string`, optional): ISO-8601 end date filter.
+  - `limit` (`integer`, optional, default: 20): Maximum sessions to return (1-100).
+  - `offset` (`integer`, optional, default: 0): Pagination offset (min: 0).
+  - `auth_token` (`string`, optional): Fallback authentication token.
 
 - **Output Example:**
 ```json
@@ -357,13 +368,13 @@ Lists historical learning sessions belonging to the student with filtering and p
 Evaluates post-session assessment questions deterministically against answer keys and updates composite topic mastery.
 
 - **Parameters:**
-  - `questions` (`array[object]`, required): List of questions with `question_id`, `student_answer`, and `correct_answer`.
-  - `session_id` (`string`, optional): Associated session ID to update.
-  - `subject` (`string`, optional): Subject name.
-  - `topic` (`string`, optional): Topic assessed.
+  - `questions` (`array[object]`, **required**): List of question items with question identifiers, student answers, and correct answers (or choices).
+  - `session_id` (`string`, optional): Associated session ID to link and update.
+  - `subject` (`string`, optional): Academic subject.
+  - `topic` (`string`, optional): Assessed topic.
   - `answer_key` (`object`, optional): Answer key mapping.
   - `student_answers` (`object`, optional): Student response mapping.
-  - `auth_token` (`string`, optional): Auth token override.
+  - `auth_token` (`string`, optional): Fallback authentication token.
 
 - **Output Example:**
 ```json
@@ -458,23 +469,56 @@ CREATE INDEX IF NOT EXISTS idx_quiz_session ON quiz_submissions(session_id);
 
 ---
 
-## 6. Authentication Architecture & Production Roadmap
+## 6. Authentication Compatibility & Limitations Analysis
 
-### Current Authentication & Limitations of In-Memory TokenManager
+### Current Implementation: In-Memory TokenManager & Static Bearer Validation
 
-The current EduLens MCP implementation uses a lightweight, in-memory `TokenManager` for API token resolution. While effective for local development and integration tests, it has specific limitations:
+The current EduLens MCP implementation uses an in-memory `TokenManager` that resolves API tokens from an in-memory dictionary or the `EDULENS_API_TOKENS` environment variable. The ASGI `AuthMiddleware` verifies that incoming HTTP requests carry an `Authorization: Bearer <token>` header.
 
-1. **Server Restarts:** Tokens added at runtime in memory are reset on server restart (unless persisted or declared in `EDULENS_API_TOKENS`).
-2. **Multi-Worker Scaling:** Multi-process uvicorn workers (`--workers 4`) do not share Python heap memory. A token registered dynamically in worker A will be missing in worker B.
-3. **Token Revocation & Rotation:** Lacks distributed revocation lists and token expiry metadata.
-4. **User Identity Persistence:** Does not store user credentials in a persistent database table.
+#### What Works Today:
+1. **Local Development & Automated Tests:**
+   - Pre-configured development tokens (`EDULENS_DEV_TOKEN`) allow zero-friction local testing.
+   - The test suite verifies full authentication flows and multi-user isolation.
+2. **Authenticated MCP Clients Supporting Custom HTTP Headers:**
+   - **Claude Desktop:** Supports adding custom headers (`Authorization: Bearer <token>`) in `claude_desktop_config.json` for remote HTTP connections, or local environment variables for stdio.
+   - **Official MCP Inspector:** Allows specifying custom HTTP headers (`Authorization: Bearer <token>`) when connecting to `http://127.0.0.1:8001/mcp`.
+   - **Custom SDK / CLI Scripts:** Any HTTP client capable of attaching an `Authorization` header can successfully authenticate.
 
-### Recommended Production Authentication Architecture
-For production cloud environments, EduLens should be configured with:
-1. **Database-Backed Credentials:** A PostgreSQL `api_tokens` table with SHA-256 hashed keys and user ID bindings.
-2. **Stateless JWTs (RS256):** Tokens containing cryptographic claims (`sub: student_id`, `exp`, `iss: edulens`) verifiable statelessly across all worker instances.
-3. **Redis Session Store:** Fast distributed cache for instant token revocation and per-student rate limiting.
-4. **OAuth 2.0 Authorization Server:** Implementing the standard OAuth 2.0 Authorization Code flow with PKCE (`/oauth/authorize`, `/oauth/token`) to provide 1-click workspace authorization in ChatGPT Web and third-party educational LMS platforms.
+#### What Does NOT Work with ChatGPT:
+- **ChatGPT Custom MCP Connection Authentication:**
+  - OpenAI's custom MCP server implementation in ChatGPT does **not** allow users to manually type a static Bearer token or custom HTTP header in the connection UI.
+  - ChatGPT custom MCP connections support either **No Auth** (public unauthenticated servers) or **OAuth 2.1** (Authorization Code flow with PKCE).
+  - Consequently, **the current EduLens server cannot authenticate a live ChatGPT custom MCP connection** when authentication is enforced. Static Bearer token authentication is **not** equivalent to OAuth 2.1.
+
+### Requirements for ChatGPT OAuth 2.1 Compatibility
+
+To achieve full authentication compatibility with ChatGPT Web, EduLens would require a dedicated OAuth 2.1 Authorization Server layer comprising:
+
+1. **Authorization Endpoint (`/oauth/authorize`):**
+   - Implements RFC 7636 Proof Key for Code Exchange (PKCE) with `code_challenge` and `code_challenge_method=S256`.
+   - Renders a user login and consent UI where the student confirms granting ChatGPT permission to ingest sessions and query learning analytics.
+   - Issues short-lived, single-use authorization codes.
+2. **Token Exchange Endpoint (`/oauth/token`):**
+   - Validates authorization codes against client credentials and the cryptographic `code_verifier`.
+   - Issues cryptographically signed Access Tokens (RS256 JWTs) containing `sub` (student ID) and scoped permissions.
+3. **OAuth 2.1 Discovery Metadata (`/.well-known/oauth-authorization-server` or `/.well-known/openid-configuration`):**
+   - Exposes standardized endpoints and supported grant types (`authorization_code`) for automatic discovery by ChatGPT.
+4. **Client Registration & Callback Management:**
+   - Pre-registers OpenAI client credentials (`client_id`, `client_secret`) and authorized redirect URIs.
+5. **Persistent Session & Token Revocation Store:**
+   - PostgreSQL or Redis store tracking issued tokens, expiration, and real-time revocation (replacing the ephemeral in-memory dictionary).
+
+### Architecture Roadmap for OAuth 2.1 Implementation
+
+Instead of introducing an incomplete OAuth implementation during this cleanup, the following phased architecture plan will be executed in a dedicated security release:
+
+```
+Step 1: Database Schema  -> Define oauth_clients, oauth_codes, and oauth_tokens tables in SQLite/PostgreSQL.
+Step 2: PKCE Engine      -> Build code_challenge / code_verifier verification module using hashlib SHA-256.
+Step 3: Endpoints        -> Expose /oauth/authorize (with consent template) and /oauth/token (returning JWTs).
+Step 4: Discovery        -> Add /.well-known/oauth-authorization-server route.
+Step 5: E2E Validation   -> Test the flow using an external OAuth 2.1 compliance suite before linking to ChatGPT.
+```
 
 ---
 
@@ -482,38 +526,43 @@ For production cloud environments, EduLens should be configured with:
 
 ### A. ChatGPT Custom MCP Server Integration
 
-OpenAI supports connecting custom MCP servers directly to ChatGPT for users on **ChatGPT Plus, Team, Enterprise, and Edu** plans.
+OpenAI allows connecting custom MCP servers in ChatGPT under specific subscription and governance tiers according to [official OpenAI documentation](https://help.openai.com/en/articles/12584461-connecting-custom-mcp-servers-in-chatgpt):
 
-#### Connection Method:
-1. Open ChatGPT (Web or Desktop).
-2. Navigate to **Workspace Settings** -> **Connected Apps** (or **Developer Settings** -> **Custom MCP Servers**).
-3. Click **Add Custom MCP Server**.
+#### Official Plan & Capability Matrix:
+- **ChatGPT Business and Enterprise / Edu:** **Full MCP Access.** Supports both read/fetch and action/write tool invocations.
+- **ChatGPT Pro:** **Read/Fetch Limitations.** Restricted to information retrieval; action tools are gated or restricted.
+- **ChatGPT Plus & ChatGPT Go:** **Not Officially Supported.** Custom MCP server connections are not officially offered for Plus or Go tiers. Do not attempt custom MCP setup on these tiers without official platform updates.
+
+#### Configuration Workflow in ChatGPT:
+1. Open ChatGPT (Web or Desktop) under an eligible Enterprise, Business, or Pro account.
+2. Navigate to **Workspace Settings** -> **Plugins & Integrations** (or **Settings** -> **Connected Apps / MCP Servers**).
+3. Select **Add Custom MCP Server**.
 4. Configure connection parameters:
-   - **Server URL:** `https://<your-edulens-domain>/mcp` (Streamable HTTP, recommended) or `/sse`.
-   - **Transport:** Streamable HTTP.
-   - **Authentication:**
-     - *Custom Header (Developer / Preview Mode):* Add Header `Authorization` with value `Bearer <your-student-api-token>`.
-     - *OAuth 2.0 (Enterprise Workspace Mode):* Note that if your ChatGPT workspace strictly mandates an OAuth 2.0 Authorization flow, an OAuth provider layer (e.g. Auth0 / FastAPI OAuth) must front the MCP server.
-5. Save the connection. ChatGPT will automatically call `POST /mcp` to initialize, discover all 6 EduLens tools via `tools/list`, and enable them in your chat sessions.
+   - **Server URL:** `https://<your-edulens-domain>/mcp`
+   - **Transport:** Streamable HTTP
+   - **Authentication:**  
+     - *Public / Development Mode:* If running with `--no-auth` (unauthenticated).
+     - *OAuth 2.1 Mode:* Requires the OAuth 2.1 Authorization Server described in Section 6. Static Bearer tokens cannot be entered manually in this UI.
+5. Save connection. ChatGPT discovers available tools and registers them for eligible sessions.
 
-#### Difference Between Native MCP and GPT Actions:
-- **Native MCP (`/mcp`):** Uses JSON-RPC 2.0 over Streamable HTTP or SSE. The AI client dynamically negotiates tools, resources, and session contexts.
-- **GPT Actions (`/api/pipeline`):** Uses traditional REST and OpenAPI 3.0 schemas. EduLens maintains backward compatibility with GPT Actions via `api/index.py` at `/api/pipeline`.
+#### Native MCP vs. GPT Actions:
+- **Native MCP (`/mcp`):** Standardized JSON-RPC 2.0 streaming protocol over Streamable HTTP or SSE, supporting dynamic discovery of tools, resources, and prompts.
+- **GPT Actions (`/api/pipeline`):** Legacy OpenAPI 3.0 REST endpoints configured via the Custom GPT builder. EduLens provides backward-compatible REST endpoints in `api/index.py` for GPT Actions.
 
 ---
 
 ### B. Claude Desktop Integration
 
-Claude Desktop connects seamlessly via either local Stdio or remote SSE.
+Claude Desktop supports both local Standard I/O (Stdio) and remote HTTP/SSE transports.
 
-#### 1. Local Stdio Transport (Recommended for Desktop)
+#### 1. Local Stdio Transport (Verified for Local Machine)
 Edit `%APPDATA%\Claude\claude_desktop_config.json` (Windows) or `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS):
 
 ```json
 {
   "mcpServers": {
     "edulens": {
-      "command": "c:/Users/LENOVO/OneDrive/Documents/EduLens/.venv/Scripts/python.exe",
+      "command": "<path-to-your-venv>/Scripts/python.exe",
       "args": [
         "-m",
         "backend.mcp_server.server",
@@ -522,21 +571,21 @@ Edit `%APPDATA%\Claude\claude_desktop_config.json` (Windows) or `~/Library/Appli
       ],
       "env": {
         "EDULENS_AUTH_ENABLED": "true",
-        "EDULENS_DEV_TOKEN": "edulens-dev-token-student-001"
+        "EDULENS_DEV_TOKEN": "<your-secure-token>"
       }
     }
   }
 }
 ```
 
-#### 2. Remote Streamable HTTP / SSE Transport
+#### 2. Remote Streamable HTTP Transport
 ```json
 {
   "mcpServers": {
     "edulens-remote": {
       "url": "http://127.0.0.1:8001/mcp",
       "headers": {
-        "Authorization": "Bearer edulens-dev-token-student-001"
+        "Authorization": "Bearer <your-secure-token>"
       }
     }
   }
@@ -547,32 +596,24 @@ Edit `%APPDATA%\Claude\claude_desktop_config.json` (Windows) or `~/Library/Appli
 
 ### C. Testing with Official MCP Inspector
 
-You can test and inspect all tools using the official Model Context Protocol Inspector:
+The official Model Context Protocol Inspector connects over Streamable HTTP (`/mcp`):
 
-```bash
+```powershell
 # Launch MCP Inspector pointing to EduLens Streamable HTTP endpoint
 npx @modelcontextprotocol/inspector http://127.0.0.1:8001/mcp
 ```
+
 Inside the Inspector UI:
-1. Add Header: `Authorization: Bearer edulens-dev-token-student-001`.
+1. Add Header: `Authorization: Bearer <your-secure-token>`.
 2. Click **Connect**.
 3. View and execute all 6 tools, inspect resources (`edulens://curriculum/topics`), and review JSON-RPC logs.
 
 ---
 
-## 8. Automated Testing & Verification
+## 8. Verification Status & Test Results
 
-The test suite validates all transport modes, tools, authentication, and isolation guarantees:
-
-```bash
-# Run complete test suite (78 passing tests)
-.\.venv\Scripts\pytest tests/ -v
-
-# Run MCP server tests specifically (36 tests)
-.\.venv\Scripts\pytest tests/test_mcp_server.py -v
-```
-
-**Verification Results:**
-- **36/36 MCP Tests Passing:** Validating all 6 tools, Streamable HTTP `/mcp`, SSE, Stdio, query parameter blocking, identity forgery prevention, and ContextVar task isolation.
-- **1/1 Live E2E Subprocess Test Passing:** Official `ClientSession` interaction over Stdio.
-- **78/78 Total Project Tests Passing** across ML, API, and MCP suites.
+### Current Verification Level:
+- **Automated Test Suite:** **78/78 Tests Passing** in `pytest` (ML, API, DSP, Storage, Security, ContextVar isolation, Stdio, Streamable HTTP).
+- **Official MCP Inspector:** **Verified** against `http://127.0.0.1:8001/mcp` across all 6 tools, error responses, and user isolation.
+- **Claude Desktop:** **Verified** on local stdio transport via subprocess `ClientSession`.
+- **ChatGPT Custom MCP:** **Unverified in live production.** Requires implementation of the OAuth 2.1 Authorization Server before live enterprise testing can occur.
