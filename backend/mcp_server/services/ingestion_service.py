@@ -15,6 +15,7 @@ from ml_prototype.scoring_engine import TopicPerformanceScoringEngine
 
 from backend.mcp_server.auth.authentication import AuthorizationError, UserContext
 from backend.mcp_server.schemas.session_schema import (
+    MessageItem,
     QuizSubmissionRequest,
     QuizSubmissionResult,
     SessionAnalyticsResponse,
@@ -67,6 +68,12 @@ class IngestionService:
         # User isolation: use authenticated user identity
         effective_user_id = user.user_id
 
+        # Verify client-supplied student_id cannot forge or override authenticated identity
+        if request.student_id and request.student_id.strip() != effective_user_id:
+            raise AuthorizationError(
+                f"Client supplied student_id '{request.student_id}' does not match authenticated user identity '{effective_user_id}'."
+            )
+
         # Verify idempotency
         content_hash = self._compute_content_hash(request.messages, effective_user_id)
         existing = self.storage.find_session_by_content_hash(content_hash, effective_user_id)
@@ -86,8 +93,11 @@ class IngestionService:
                 analytics=existing_analytics.get("full_analytics_json") if existing_analytics else None,
             )
 
-        # Generate unique session identifier if not supplied
-        session_id = request.session_id or f"SES_{uuid.uuid4().hex[:12].upper()}"
+        # Reuse session identifier on retry of previously failed session to avoid duplicate raw records
+        if existing and existing.get("status") != "processed":
+            session_id = request.session_id or existing["session_id"]
+        else:
+            session_id = request.session_id or f"SES_{uuid.uuid4().hex[:12].upper()}"
 
         # Filter out system messages / developer instructions for privacy and safety
         cleaned_turns: List[Dict[str, Any]] = []
@@ -236,11 +246,12 @@ class IngestionService:
                 "status": c.get("status", "experimental_heuristic_baseline"),
             }
             o = top_topic.get("overall_performance", {}) or {}
+            overall_score = o.get("overall_performance_score") if o.get("overall_performance_score") is not None else o.get("score")
             overall_topic_performance = {
-                "overall_performance_score": o.get("score"),
+                "overall_performance_score": overall_score,
                 "status": o.get("status", "awaiting_quiz_submission"),
-                "formula": o.get("formula", ""),
-                "explanation": o.get("explanation", ""),
+                "formula": o.get("calculation_formula") or o.get("formula", ""),
+                "explanation": o.get("score_explanation") or o.get("explanation", ""),
             }
             discrepancy_analysis = {
                 "discrepancy_detected": bool(o.get("discrepancies")),
@@ -387,8 +398,16 @@ class IngestionService:
             existing_analytics = self.storage.get_analytics(request.session_id, user.user_id)
             if existing_analytics:
                 full_json = existing_analytics["full_analytics_json"]
-                u_score = full_json.get("topic_understanding", {}).get("understanding_score", 60.0)
-                c_score = full_json.get("learning_confidence", {}).get("expressed_confidence_score", 50.0)
+                
+                # Check whether full_json uses multi-topic format or flat format
+                if "topics" in full_json and full_json["topics"]:
+                    top = full_json["topics"][0]
+                    u_score = top.get("understanding", {}).get("score_index", 60.0)
+                    c_score = top.get("expressed_confidence", {}).get("score", 50.0)
+                else:
+                    u_score = full_json.get("topic_understanding", {}).get("understanding_score", 60.0)
+                    c_score = full_json.get("learning_confidence", {}).get("expressed_confidence_score", 50.0)
+                
                 q_score = eval_result["actual_score_percent"]
 
                 scoring_engine = TopicPerformanceScoringEngine()
@@ -400,7 +419,8 @@ class IngestionService:
                     session_id=request.session_id,
                     student_id=user.user_id,
                 )
-                full_json["actual_quiz_performance"] = {
+
+                quiz_perf_dict = {
                     "status": "evaluated",
                     "actual_score_percent": q_score,
                     "correct_count": eval_result["correct_count"],
@@ -408,7 +428,14 @@ class IngestionService:
                     "incorrect_count": eval_result["incorrect_count"],
                     "unanswered_count": eval_result["unanswered_count"],
                 }
+
+                if "topics" in full_json and full_json["topics"]:
+                    full_json["topics"][0]["actual_quiz_performance"] = quiz_perf_dict
+                    full_json["topics"][0]["overall_performance"] = new_overall
+                
+                full_json["actual_quiz_performance"] = quiz_perf_dict
                 full_json["overall_topic_performance"] = new_overall
+                
                 self.storage.save_analytics(request.session_id, user.user_id, full_json)
                 updated_overall = new_overall
 
@@ -426,6 +453,31 @@ class IngestionService:
             evaluated_at=quiz_storage_payload["evaluated_at"],
             updated_overall_performance=updated_overall,
         )
+
+    def retry_failed_session(self, session_id: str, user: UserContext) -> SessionIngestResult:
+        """
+        Retries ML analytics processing for an existing raw session without creating duplicate raw records.
+        """
+        raw = self.storage.get_raw_session(session_id, user.user_id)
+        if not raw:
+            raise KeyError(f"Session '{session_id}' not found for user '{user.user_id}'.")
+
+        raw_json = raw.get("raw_json", {})
+        messages = raw_json.get("messages", [])
+        quiz_submission = raw_json.get("quiz_submission")
+
+        req = SessionIngestRequest(
+            messages=[MessageItem(**m) for m in messages],
+            subject=raw.get("subject"),
+            topic=raw.get("topic"),
+            session_id=session_id,
+            student_id=user.user_id,
+            source_agent=raw.get("source_agent", "chatgpt"),
+            metadata=raw_json.get("metadata", {}),
+            quiz_submission=quiz_submission,
+        )
+        return self.ingest_session(req, user)
+
 
 
 # Global ingestion service singleton

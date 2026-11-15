@@ -55,10 +55,20 @@ class MCPSettings(BaseModel):
         description="Default transport: 'sse' (Server-Sent Events), 'streamable' (Streamable HTTP), or 'stdio'",
     )
 
+    # Environment
+    environment: str = Field(
+        default=os.getenv("EDULENS_ENVIRONMENT", "development").lower(),
+        description="Runtime environment: 'development', 'test', or 'production'",
+    )
+
     # Authentication & Security
     auth_enabled: bool = Field(
         default=os.getenv("EDULENS_AUTH_ENABLED", "true").lower() in ("1", "true", "yes"),
         description="Whether to enforce API key / Bearer token authentication",
+    )
+    allow_query_token: bool = Field(
+        default=os.getenv("EDULENS_ALLOW_QUERY_TOKEN", "false").lower() in ("1", "true", "yes"),
+        description="Whether to allow auth token in query parameters (strictly disabled in production)",
     )
     default_dev_user: str = Field(
         default=os.getenv("EDULENS_DEV_USER", "student_001"),
@@ -78,6 +88,16 @@ class MCPSettings(BaseModel):
         default=int(os.getenv("EDULENS_MAX_MESSAGES", "200")),
         description="Maximum turns/messages accepted in a single conversation",
     )
+
+    @property
+    def is_production(self) -> bool:
+        """Returns True if running in production environment."""
+        return self.environment == "production"
+
+    @property
+    def is_development(self) -> bool:
+        """Returns True if running in development or testing environment."""
+        return self.environment in ("development", "dev", "test")
 
     @property
     def database_path(self) -> Path:

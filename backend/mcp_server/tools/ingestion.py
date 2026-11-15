@@ -7,6 +7,7 @@ from backend.mcp_server.auth.authentication import (
     authenticate_token,
     get_current_user,
     AuthenticationError,
+    AuthorizationError,
 )
 from backend.mcp_server.schemas.session_schema import MessageItem, SessionIngestRequest
 from backend.mcp_server.services.ingestion_service import get_ingestion_service
@@ -55,6 +56,12 @@ def ingest_learning_session(
         user = authenticate_token(auth_token)
     else:
         user = get_current_user()
+
+    # Verify student_id cannot override authenticated identity
+    if student_id and student_id.strip() != user.user_id:
+        raise AuthorizationError(
+            f"Client supplied student_id '{student_id}' does not match authenticated identity '{user.user_id}'."
+        )
 
     # 2. Convert and validate message items
     parsed_messages: List[MessageItem] = []

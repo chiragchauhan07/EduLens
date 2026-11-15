@@ -301,104 +301,157 @@ Ingests and evaluates a student's post-session quiz responses, updating topic ma
 
 ---
 
-## 6. Storage Architecture & Schema
+## 6. Storage Architecture & Persistence Strategy
 
-All persistent data is stored in `data/storage/edulens.db` using SQLite in **Write-Ahead Logging (WAL)** mode for concurrent, thread-safe access.
+EduLens implements a modular storage abstraction (`StorageService`) separating raw audit-proof conversation transcripts from derived analytical indicators.
+
+### A. Local Development: SQLite in WAL Mode
+By default, the server writes to `data/storage/edulens.db` using SQLite in **Write-Ahead Logging (WAL)** mode with immediate foreign key enforcement.
 
 ```sql
 -- Raw Conversational Records (Audit-Proof)
 CREATE TABLE IF NOT EXISTS raw_sessions (
     session_id TEXT PRIMARY KEY,
-    student_id TEXT NOT NULL,
+    user_id TEXT NOT NULL,
+    source_agent TEXT NOT NULL,
+    subject TEXT,
     topic TEXT,
-    duration_minutes REAL,
-    raw_conversation_json TEXT NOT NULL,
-    metadata_json TEXT,
     content_hash TEXT NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    turns_count INTEGER NOT NULL,
+    raw_json TEXT NOT NULL,
+    created_at TEXT,
+    ingested_at TEXT NOT NULL,
+    status TEXT NOT NULL,
+    error_message TEXT
 );
-CREATE INDEX IF NOT EXISTS idx_raw_student ON raw_sessions(student_id);
-CREATE INDEX IF NOT EXISTS idx_raw_hash ON raw_sessions(content_hash);
+CREATE INDEX IF NOT EXISTS idx_raw_sessions_user ON raw_sessions(user_id);
+CREATE INDEX IF NOT EXISTS idx_raw_sessions_hash ON raw_sessions(user_id, content_hash);
+CREATE INDEX IF NOT EXISTS idx_raw_sessions_topic ON raw_sessions(user_id, topic);
 
 -- Derived Machine Learning Analytics
 CREATE TABLE IF NOT EXISTS analytics_results (
     session_id TEXT PRIMARY KEY,
-    student_id TEXT NOT NULL,
-    topic TEXT,
-    predicted_understanding TEXT NOT NULL,
-    understanding_probabilities_json TEXT,
-    confidence_score REAL,
-    predicted_quiz_score REAL,
-    expressed_confidence_json TEXT,
-    overall_performance_json TEXT,
-    feature_explanation_json TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY(session_id) REFERENCES raw_sessions(session_id) ON DELETE CASCADE
+    user_id TEXT NOT NULL,
+    predicted_class TEXT NOT NULL,
+    understanding_score REAL NOT NULL,
+    confidence REAL NOT NULL,
+    actual_quiz_score REAL,
+    quiz_status TEXT NOT NULL,
+    expressed_confidence_level TEXT NOT NULL,
+    expressed_confidence_score REAL NOT NULL,
+    overall_performance_score REAL,
+    performance_category TEXT,
+    discrepancy_detected INTEGER NOT NULL,
+    discrepancy_details TEXT,
+    pedagogical_feedback TEXT NOT NULL,
+    full_analytics_json TEXT NOT NULL,
+    processed_at TEXT NOT NULL,
+    FOREIGN KEY (session_id) REFERENCES raw_sessions(session_id) ON DELETE CASCADE
 );
-CREATE INDEX IF NOT EXISTS idx_analytics_student ON analytics_results(student_id);
-CREATE INDEX IF NOT EXISTS idx_analytics_topic ON analytics_results(topic);
+CREATE INDEX IF NOT EXISTS idx_analytics_user ON analytics_results(user_id);
 
 -- Quiz Submissions & Performance
 CREATE TABLE IF NOT EXISTS quiz_submissions (
-    submission_id TEXT PRIMARY KEY,
+    quiz_id TEXT PRIMARY KEY,
     session_id TEXT,
-    student_id TEXT NOT NULL,
-    topic TEXT NOT NULL,
-    score_percentage REAL NOT NULL,
+    user_id TEXT NOT NULL,
+    subject TEXT,
+    topic TEXT,
     total_questions INTEGER NOT NULL,
-    correct_questions INTEGER NOT NULL,
-    question_details_json TEXT,
-    submitted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    correct_count INTEGER NOT NULL,
+    incorrect_count INTEGER NOT NULL,
+    unanswered_count INTEGER NOT NULL,
+    actual_score_percent REAL NOT NULL,
+    question_breakdown_json TEXT NOT NULL,
+    topic_breakdown_json TEXT NOT NULL,
+    raw_submission_json TEXT NOT NULL,
+    evaluated_at TEXT NOT NULL
 );
-CREATE INDEX IF NOT EXISTS idx_quiz_student ON quiz_submissions(student_id);
+CREATE INDEX IF NOT EXISTS idx_quiz_user ON quiz_submissions(user_id);
+CREATE INDEX IF NOT EXISTS idx_quiz_session ON quiz_submissions(session_id);
 ```
+
+### Storage Reliability Guarantees
+1. **Raw Transcript Persistence First:** In `IngestionService`, the raw conversation is persisted to `raw_sessions` **before** the ML pipeline executes. If machine learning inference fails or throws an exception, the raw session is marked as `processing_failed` with the error trace, but the student's conversation is never lost.
+2. **Zero-Duplication Retries:** When a failed session is retried via `retry_failed_session()` or re-ingested with identical content, EduLens reuses the existing `session_id`, updating the existing record without creating duplicate raw rows.
+3. **Deterministic Idempotency:** A SHA-256 hash of student messages scoped by `user_id` detects duplicate submissions instantly, returning cached analytics in sub-millisecond time.
+
+### B. Production Persistence: PostgreSQL Architecture
+For cloud deployments requiring horizontal scaling across multiple container instances, EduLens's `StorageService` is designed to map directly to PostgreSQL:
+- `raw_json`, `full_analytics_json`, and `question_breakdown_json` map directly to PostgreSQL `JSONB` columns with GIN indexing for fast nested queries.
+- Thread-safe connection pooling is handled via `asyncpg` / `psycopg3` and PgBouncer.
+- Row-Level Security (RLS) can be enabled on `user_id` to guarantee database-level tenant isolation.
 
 ---
 
-## 7. Authentication & Multi-User Isolation
+## 7. Authentication, Multi-User Isolation & Security
 
-Authentication is enforced across both remote HTTP and Stdio transports:
+EduLens enforces strict user boundaries across all operations.
 
-1. **Bearer Token Validation:** Remote HTTP/SSE requests require standard `Authorization: Bearer <token>` headers.
-2. **TokenManager Resolution:** The token is resolved to a `UserContext(student_id=...)`.
-3. **Async Context Isolation:** Python's `contextvars.ContextVar` binds the authenticated `student_id` to the request coroutine.
-4. **Data Isolation:** All storage queries filter by `student_id = :authenticated_student_id`. A student cannot access, list, or overwrite another student's sessions.
-5. **Pre-Seeded Development Keys:**
-   - `edulens-dev-token-student-001` -> mapped to `student_001`
-   - `edulens-dev-token-student-002` -> mapped to `student_002`
+### Development Mode vs. Production Configuration
+
+| Security Feature | Development / Test Mode (`EDULENS_ENVIRONMENT=development`) | Production Mode (`EDULENS_ENVIRONMENT=production`) |
+| :--- | :--- | :--- |
+| **Default Dev Tokens** | Seeded (`edulens-dev-token-student-001`, `student_002`) | **NEVER seeded.** Missing token rejects request. |
+| **Token Sources** | `Authorization` header, Stdio env, or `?token=` if explicitly allowed | **ONLY `Authorization: Bearer <token>` header.** |
+| **Query Parameter Auth** | Allowed only if `EDULENS_ALLOW_QUERY_TOKEN=true` | **STRICTLY REJECTED with HTTP 401.** |
+| **Unauthenticated Fallback** | Allowed only if `--no-auth` CLI flag is set | **Forbidden.** Always requires valid credentials. |
+| **Multi-User Provisioning** | In-memory token manager | Configured via `EDULENS_API_TOKENS="tok1:uid1,tok2:uid2"` |
+
+### Multi-User Isolation Architecture
+1. **Header-Based Authentication:** Remote requests must include `Authorization: Bearer <token>`.
+2. **Task-Local User Context (`contextvars`):** Python's `contextvars.ContextVar` binds the authenticated `UserContext` exclusively to the current async task.
+3. **Automatic Context Reset:** `AuthMiddleware` sets the context token and enforces `reset_current_user()` inside a `finally` block, ensuring no context bleeding between recycled threads or async tasks.
+4. **Forged `student_id` Protection:** If a client passes a `student_id` parameter that differs from the authenticated user identity, the server raises `AuthorizationError` immediately.
+5. **Data Access Isolation:** All database reads and writes filter by `user_id = :auth_user_id`. Student A cannot view, list, or modify Student B's data.
 
 ---
 
 ## 8. Client Setup Guides
 
-### A. ChatGPT Configuration (Custom GPT / Action)
+### A. ChatGPT Integration: Native MCP vs. GPT Actions
 
-1. Navigate to **ChatGPT** -> **Explore GPTs** -> **Create a GPT**.
-2. Under the **Configure** tab:
-   - **Name:** EduLens Learning Companion
-   - **Instructions:**
-     ```
-     You are an educational AI tutor. Help students explore topics deeply.
-     When a student completes a discussion on a concept or asks to conclude the session,
-     call the ingest_learning_session tool to save the conversation and review their
-     understanding metrics with them.
-     ```
-3. Under **Actions**, click **Create new action**:
-   - **Authentication:** `API Key` -> Auth Type: `Bearer`.
-   - **API Key:** Paste your student token (e.g. `edulens-dev-token-student-001`).
-   - **Server URL:** `http://your-server-ip:8001/` (or your deployed domain).
-   - **OpenAPI Schema / Action URL:** Import the MCP OpenAPI specification from your running EduLens server endpoint (`/openapi.json`).
+> [!IMPORTANT]
+> **Understanding Native MCP vs. GPT Actions:**
+> - **Native MCP (Desktop Developer Mode):** Connects to EduLens's MCP server over Server-Sent Events (SSE). Requires ChatGPT Desktop App (macOS or Windows) with Developer Mode enabled (available to Plus, Team, Enterprise, and Edu plans).
+> - **GPT Actions (Web Custom GPTs):** Standard ChatGPT Web Custom GPTs do **not** speak the JSON-RPC 2.0 MCP protocol. They communicate via REST OpenAPI 3.0. For web users, EduLens exposes standard REST endpoints at `/api/pipeline` and `/api/predict` described below.
+
+#### Option 1: Native MCP Connectivity (ChatGPT Desktop Developer Mode)
+1. Launch **ChatGPT Desktop App** on macOS or Windows.
+2. Go to **Settings** -> **Developer** -> **MCP Servers** -> **Add Server**.
+3. Fill in the connection parameters:
+   - **Name:** `EduLens Learning Analytics`
+   - **Transport:** `Server-Sent Events (SSE)`
+   - **URL:** `http://127.0.0.1:8001/sse` (or your deployed `https://<your-domain>/sse`)
+   - **Headers:**
+     - Key: `Authorization`
+     - Value: `Bearer <your-student-api-token>`
+4. Click **Save**. ChatGPT initiates the MCP protocol handshake, queries `tools/list`, and discovers all 6 EduLens tools.
+5. In your conversation prompt:
+   ```text
+   You are an educational AI tutor. When we finish discussing a topic,
+   call the ingest_learning_session tool to save the conversation to EduLens
+   and review my learning analytics with me.
+   ```
+
+#### Option 2: GPT Actions Bridge (ChatGPT Web Custom GPTs)
+For standard web accounts without MCP developer mode:
+1. Open **Explore GPTs** -> **Create a GPT** -> **Configure** -> **Actions** -> **Create new action**.
+2. Set Authentication to `API Key` (Type: `Bearer`) and provide your API token.
+3. Import the OpenAPI specification from `http://<your-server>:8000/openapi.json`.
+4. ChatGPT will invoke EduLens's `/api/pipeline` REST endpoint.
+
+---
 
 ### B. Claude Desktop Configuration
 
-Claude Desktop connects seamlessly via either local Stdio or remote SSE.
+Claude Desktop supports native MCP out-of-the-box via both local Stdio and remote SSE transports.
 
 #### 1. Local Stdio Transport (Recommended for Desktop)
-Edit your Claude Desktop configuration file:
-- **macOS:** `~/Library/Application Support/Claude/claude_desktop_config.json`
+Edit your Claude Desktop configuration:
 - **Windows:** `%APPDATA%\Claude\claude_desktop_config.json`
+- **macOS:** `~/Library/Application Support/Claude/claude_desktop_config.json`
 
-Add the EduLens MCP server entry:
 ```json
 {
   "mcpServers": {
@@ -420,6 +473,7 @@ Add the EduLens MCP server entry:
 ```
 
 #### 2. Remote SSE Transport
+For connecting Claude Desktop to a hosted remote EduLens server:
 ```json
 {
   "mcpServers": {
@@ -441,9 +495,9 @@ Add the EduLens MCP server entry:
 
 ```bash
 # Activate virtual environment
-source .venv/bin/activate  # Or on Windows: .venv\Scripts\Activate.ps1
+source .venv/bin/activate  # Windows: .\.venv\Scripts\Activate.ps1
 
-# 1. Start with SSE Transport (Default on port 8001)
+# 1. Start with SSE Transport (Default for remote clients / ChatGPT)
 python -m backend.mcp_server.server --transport sse --port 8001
 
 # 2. Start with Streamable HTTP Transport
@@ -453,7 +507,7 @@ python -m backend.mcp_server.server --transport streamable --port 8001
 python -m backend.mcp_server.server --transport stdio
 ```
 
-### Production Deployment (Railway / Docker / VPS)
+### Production Deployment (Docker / VPS / Cloud)
 
 ```dockerfile
 FROM python:3.12-slim
@@ -461,8 +515,10 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
+ENV EDULENS_ENVIRONMENT=production
 ENV EDULENS_MCP_TRANSPORT=sse
 ENV EDULENS_MCP_PORT=8001
+ENV EDULENS_AUTH_ENABLED=true
 ENV EDULENS_STORAGE_DIR=/app/data/storage
 EXPOSE 8001
 CMD ["python", "-m", "backend.mcp_server.server", "--transport", "sse", "--host", "0.0.0.0", "--port", "8001"]
@@ -472,21 +528,21 @@ CMD ["python", "-m", "backend.mcp_server.server", "--transport", "sse", "--host"
 
 ## 10. Automated Testing & Verification
 
-EduLens includes a full test suite verifying all MCP endpoints, transport layers, and end-to-end client sessions.
+EduLens includes a full test suite verifying all MCP endpoints, transport layers, security isolation, and live client sessions.
 
 ```bash
-# Run all tests
-pytest tests/ -v
+# Run all tests (75 passing tests)
+.\.venv\Scripts\pytest tests/ -v
 
-# Run MCP server unit & integration tests
-pytest tests/test_mcp_server.py -v
+# Run MCP server unit & integration tests (33 tests)
+.\.venv\Scripts\pytest tests/test_mcp_server.py -v
 
 # Run live MCP client session E2E test
-pytest tests/test_mcp_e2e.py -v
+.\.venv\Scripts\pytest tests/test_mcp_e2e.py -v
 ```
 
 **Verification Results:**
-- `tests/test_mcp_server.py`: 24/24 tests passing.
-- `tests/test_mcp_e2e.py`: Live subprocess ClientSession passing.
-- **Overall Project Suite:** 66/66 tests passing with 0 errors.
+- `tests/test_mcp_server.py`: **33/33 tests passing** (authentication, tool discovery, multi-user isolation, concurrency, retry resilience, quiz updates).
+- `tests/test_mcp_e2e.py`: **1/1 test passing** (live subprocess client session over Stdio).
+- **Overall Project Suite:** **75/75 tests passing with 0 errors**.
 

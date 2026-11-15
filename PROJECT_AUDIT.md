@@ -260,10 +260,10 @@ EduLens/
 ## 9. Existing Tests and Verification Results
 
 Executed `pytest tests/ -v` using Python 3.12:
-- Total tests: **66**
-- **Passed: 66**
+- Total tests: **75**
+- **Passed: 75**
 - **Failed: 0**
-- Test execution time: ~11.5 seconds.
+- Test execution time: ~20.2 seconds.
 
 Breakdown across test modules:
 - **API Test Suite (`tests/test_api.py` — 11 tests):**
@@ -287,7 +287,7 @@ Breakdown across test modules:
   - Expressed confidence estimator heuristics and linguistic indicators — PASSED
   - Composite scoring engine 40/40/20 formula and discrepancy detection — PASSED
   - New API endpoints (`/api/pipeline`, `/api/evaluate-quiz`, `/api/confidence`) — PASSED
-- **MCP Server Suite (`tests/test_mcp_server.py` — 24 tests):**
+- **MCP Server Suite (`tests/test_mcp_server.py` — 33 tests):**
   - Server initialization and capabilities registration (all 6 tools, resources, prompts) — PASSED
   - Tool execution: `ingest_learning_session` valid session — PASSED
   - Idempotency & SHA-256 deduplication — PASSED
@@ -303,6 +303,15 @@ Breakdown across test modules:
   - Multi-user isolation: User A cannot read or list User B data — PASSED
   - Direct pipeline execution without internal HTTP loops — PASSED
   - Transport tests: Remote SSE streaming and ASGI middleware — PASSED
+  - HTTP 401 on missing Authorization header — PASSED
+  - HTTP 401 on invalid/expired Bearer token — PASSED
+  - Query parameter token rejection in production mode — PASSED
+  - Forged `student_id` parameter rejection (`AuthorizationError`) — PASSED
+  - Concurrent user requests async isolation with zero ContextVar leak — PASSED
+  - Raw session retention upon ML pipeline failure & zero-duplicate retry — PASSED
+  - Quiz result submission updating session analytics and composite mastery — PASSED
+  - Production environment configuration never seeding development tokens — PASSED
+  - Resource (`curriculum/topics`, `health`) and prompt (`save_learning_session`) discovery — PASSED
 - **MCP End-to-End Test (`tests/test_mcp_e2e.py` — 1 test):**
   - Live subprocess execution with official `ClientSession` over Stdio transport invoking `ingest_learning_session`, `get_session_analytics`, and `get_student_performance` — PASSED
 
@@ -310,7 +319,7 @@ Breakdown across test modules:
 
 ## 10. Completed Milestones & Current Project State
 
-All foundational, evaluation, explainability, multi-dimensional analytics, and MCP integration milestones have been achieved:
+All foundational, evaluation, explainability, multi-dimensional analytics, and MCP hardening milestones have been achieved:
 1. **Four Core Performance Dimensions:**
    - Dimension 1: Topic Understanding (3-class ML model + calibrated probabilities + transparent 0-100 score mapping: Understood=90, Partial=60, Confused=25).
    - Dimension 2: Actual Quiz Performance (Deterministic rule-based grading of submitted questions vs answer key; strictly separated from conversational regression).
@@ -320,13 +329,16 @@ All foundational, evaluation, explainability, multi-dimensional analytics, and M
 3. **Unified Inference Pipeline:** `EduLensUnifiedPipeline` orchestrates full inference from raw conversational JSON to structured integration output.
 4. **Group-Aware Evaluation Across All Tasks:** Zero student leakage verified on both 3-class understanding (`StratifiedGroupKFold`, 357 train / 73 test) and quiz regression (`GroupShuffleSplit`, 1,394 train / 326 test).
 5. **Ablation & Explainability:** 6 ablation configurations evaluated, full mathematical coefficients exposed for all algorithms.
-6. **Model Context Protocol (MCP) Server Delivered (Phase 2):**
+6. **Hardened Model Context Protocol (MCP) Server (Phase 2):**
    - Official `mcp` 2.x SDK integration (`MCPServer`).
    - 6 production tools: `ingest_learning_session`, `get_session_analytics`, `get_student_performance`, `get_topic_analytics`, `list_learning_sessions`, `submit_quiz_results`.
    - Dual-transport: SSE (HTTP/remote) and Stdio (local Claude Desktop).
    - Storage abstraction separating raw conversation JSON (`raw_sessions`) from derived analytics (`analytics_results`) and quizzes (`quiz_submissions`) using persistent SQLite in WAL mode.
-   - User authentication and multi-user data isolation via `TokenManager` and `ContextVar`.
-7. **Production-Ready Test Suite:** 66 comprehensive automated tests covering all edge cases, errors, and acceptance criteria.
+   - Raw sessions persisted before inference; failures retain raw transcript with retry capability without duplicate rows.
+   - User authentication and multi-user data isolation via `TokenManager` and `ContextVar` with mandatory cleanup in ASGI middleware.
+   - Production mode disallows query parameter tokens and hardcoded dev credentials.
+   - Forged student ID detection preventing clients from impersonating other learners.
+7. **Production-Ready Test Suite:** 75 comprehensive automated tests covering all edge cases, errors, and acceptance criteria.
 8. **Documentation Synchronized:** `docs/DSP.md`, `docs/NLP.md`, `docs/ML.md`, `docs/DATASET.md`, `docs/MCP.md`, `.env.example`, `PROJECT_AUDIT.md`, `README.md` fully reflect the current repository.
 
 ---

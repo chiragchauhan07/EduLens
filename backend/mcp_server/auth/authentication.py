@@ -54,23 +54,43 @@ class TokenManager:
         self._seed_default_tokens()
 
     def _seed_default_tokens(self) -> None:
-        """Seed default tokens for development and testing."""
-        # 1. Primary dev token
-        self._tokens[settings.default_dev_token] = UserContext(
-            user_id=settings.default_dev_user,
-            username="Local Developer",
-            client_type="developer",
-        )
-        # 2. Secondary test user for cross-user isolation tests
-        self._tokens["edulens-test-token-student-002"] = UserContext(
-            user_id="student_002",
-            username="Secondary Test Student",
-            client_type="test",
-        )
-        # 3. Environment variable override
+        """
+        Seeds tokens based on the active runtime environment.
+        In production, development test tokens are NEVER seeded.
+        """
+        # 1. Seed development tokens ONLY when not in production
+        if not settings.is_production:
+            self._tokens[settings.default_dev_token] = UserContext(
+                user_id=settings.default_dev_user,
+                username="Local Developer",
+                client_type="developer",
+            )
+            self._tokens["edulens-test-token-student-002"] = UserContext(
+                user_id="student_002",
+                username="Secondary Test Student",
+                client_type="test",
+            )
+
+        # 2. Parse multi-user production tokens from EDULENS_API_TOKENS (e.g. "tok1:usr1,tok2:usr2")
+        env_tokens = os.getenv("EDULENS_API_TOKENS")
+        if env_tokens:
+            for item in env_tokens.split(","):
+                item = item.strip()
+                if ":" in item:
+                    tok, uid = item.split(":", 1)
+                    tok = tok.strip()
+                    uid = uid.strip()
+                    if tok and uid:
+                        self._tokens[tok] = UserContext(
+                            user_id=uid,
+                            username=f"Student {uid}",
+                            client_type="api_token",
+                        )
+
+        # 3. Environment variable single key override
         custom_key = os.getenv("EDULENS_API_KEY")
         if custom_key:
-            self._tokens[custom_key] = UserContext(
+            self._tokens[custom_key.strip()] = UserContext(
                 user_id=os.getenv("EDULENS_USER_ID", "student_production"),
                 username="Production User",
                 client_type="production",
@@ -97,6 +117,8 @@ class TokenManager:
         """
         if not token:
             if not settings.auth_enabled:
+                if settings.is_production:
+                    raise AuthenticationError("Authentication cannot be disabled in production mode.")
                 # Local development fallback
                 return UserContext(
                     user_id=settings.default_dev_user,
@@ -105,8 +127,7 @@ class TokenManager:
                     is_authenticated=False,
                 )
             raise AuthenticationError(
-                "Missing authentication token. Provide an 'Authorization: Bearer <token>' header, "
-                "?token=<token> parameter, or 'auth_token' argument."
+                "Missing authentication credentials. Provide an 'Authorization: Bearer <token>' header."
             )
 
         # Normalize token: strip 'Bearer ' prefix if present
@@ -117,16 +138,25 @@ class TokenManager:
         if clean_token in self._tokens:
             return self._tokens[clean_token]
 
-        raise AuthenticationError("Invalid or expired authentication token.")
+        raise AuthenticationError("Invalid or expired authentication credentials.")
 
 
 # Global singleton token manager
 token_manager = TokenManager()
 
 
-def set_current_user(user: UserContext):
-    """Sets the active UserContext in the current async context."""
+def set_current_user(user: Optional[UserContext]):
+    """Sets the active UserContext in the current async context and returns the contextvar token."""
     return _current_user_context.set(user)
+
+
+def reset_current_user(token) -> None:
+    """Safely resets the active UserContext using the contextvar token."""
+    if token is not None:
+        try:
+            _current_user_context.reset(token)
+        except Exception:
+            pass
 
 
 def get_current_user() -> UserContext:

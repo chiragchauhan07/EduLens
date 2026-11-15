@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Any, Dict, List
 import pytest
 
-from backend.mcp_server.config import MCPSettings
+from backend.mcp_server.config import MCPSettings, settings
 from backend.mcp_server.auth.authentication import (
     AuthenticationError,
     AuthorizationError,
@@ -262,7 +262,7 @@ def test_case_11_user_authentication():
 def test_case_12_unauthorized_request():
     """Test 12: Missing or invalid token raises AuthenticationError when auth is enabled."""
     mgr = TokenManager()
-    with pytest.raises(AuthenticationError, match="Missing authentication token"):
+    with pytest.raises(AuthenticationError, match="Missing authentication credentials"):
         mgr.validate_token(None)
 
     with pytest.raises(AuthenticationError, match="Invalid or expired"):
@@ -540,3 +540,202 @@ def test_case_24_transport_compatibility():
     app_streamable = create_http_app(transport="streamable")
     assert app_sse is not None
     assert app_streamable is not None
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 25. HTTP Missing Authorization Rejection
+# ─────────────────────────────────────────────────────────────────────────────
+def test_case_25_missing_authorization_header_rejected():
+    """Test 25: Unauthenticated HTTP request to protected MCP endpoint returns 401."""
+    from starlette.testclient import TestClient
+    app = create_http_app(transport="sse")
+    client = TestClient(app)
+    res = client.get("/sse")
+    assert res.status_code == 401
+    data = res.json()
+    assert data["error"] == "AuthenticationError"
+    assert "Missing authentication credentials" in data["detail"]
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 26. HTTP Invalid Bearer Token Rejection
+# ─────────────────────────────────────────────────────────────────────────────
+def test_case_26_invalid_token_rejected():
+    """Test 26: Request with invalid Bearer token returns 401."""
+    from starlette.testclient import TestClient
+    app = create_http_app(transport="sse")
+    client = TestClient(app)
+    res = client.get("/sse", headers={"Authorization": "Bearer invalid_secret_token_xyz"})
+    assert res.status_code == 401
+    data = res.json()
+    assert data["error"] == "AuthenticationError"
+    assert "Invalid or expired" in data["detail"]
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 27. Query Parameter Token Rejected in Production
+# ─────────────────────────────────────────────────────────────────────────────
+def test_case_27_query_parameter_token_rejected_in_production(monkeypatch):
+    """Test 27: Passing token in query parameters is strictly forbidden in production."""
+    from starlette.testclient import TestClient
+    monkeypatch.setattr(settings, "environment", "production")
+    app = create_http_app(transport="sse")
+    client = TestClient(app)
+    res = client.get("/sse?token=edulens-dev-token-student-001")
+    assert res.status_code == 401
+    data = res.json()
+    assert "URL query parameters is forbidden" in data["detail"]
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 28. Forged student_id Rejection
+# ─────────────────────────────────────────────────────────────────────────────
+def test_case_28_forged_student_id_rejected(ingestion_service, student_user_1):
+    """Test 28: A client cannot forge or supply a student_id different from authenticated user."""
+    req = SessionIngestRequest(
+        topic="Security Isolation",
+        student_id="victim_student_999",  # Forged identity attempt
+        messages=[
+            MessageItem(role="user", content="Trying to log as victim."),
+            MessageItem(role="assistant", content="Response."),
+            MessageItem(role="user", content="Understood."),
+        ],
+    )
+    with pytest.raises(AuthorizationError, match="does not match authenticated"):
+        ingestion_service.ingest_session(req, student_user_1)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 29. Concurrent Users - ContextVar Isolation
+# ─────────────────────────────────────────────────────────────────────────────
+@pytest.mark.anyio
+async def test_case_29_concurrent_users_no_context_leak():
+    """Test 29: Concurrent asynchronous tasks execute with strict UserContext isolation."""
+    import asyncio
+    from backend.mcp_server.auth.authentication import get_current_user, set_current_user, reset_current_user
+
+    async def user_task(user_id: str, delay: float):
+        user = UserContext(user_id=user_id, username=f"User {user_id}")
+        ctx_token = set_current_user(user)
+        try:
+            await asyncio.sleep(delay)
+            active_user = get_current_user()
+            assert active_user.user_id == user_id
+            return active_user.user_id
+        finally:
+            reset_current_user(ctx_token)
+
+    results = await asyncio.gather(
+        user_task("student_A", 0.05),
+        user_task("student_B", 0.02),
+        user_task("student_C", 0.04),
+    )
+    assert results == ["student_A", "student_B", "student_C"]
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 30. Retry Failed Analytics Without Duplicating Raw Records
+# ─────────────────────────────────────────────────────────────────────────────
+def test_case_30_retry_failed_analytics_without_duplicate_raw_records(ingestion_service, student_user_1, monkeypatch):
+    """Test 30: When pipeline fails, raw conversation is kept and can be retried without duplicate records."""
+    broken_process = lambda *args, **kwargs: (_ for _ in ()).throw(RuntimeError("Temporary out of memory"))
+    monkeypatch.setattr(ingestion_service, "_get_pipeline", lambda: type("Broken", (), {"process_session": broken_process})())
+
+    req = SessionIngestRequest(
+        topic="Graph Traversal",
+        messages=[
+            MessageItem(role="user", content="How does DFS differ from BFS?"),
+            MessageItem(role="assistant", content="DFS uses a stack; BFS uses a queue."),
+            MessageItem(role="user", content="Understood completely!"),
+        ],
+    )
+    res_failed = ingestion_service.ingest_session(req, student_user_1)
+    assert res_failed.status == "processing_failed"
+    failed_session_id = res_failed.session_id
+
+    # Verify 1 raw session stored
+    total_before, _ = ingestion_service.storage.list_sessions(student_user_1.user_id)
+    assert total_before == 1
+
+    # Second: fix pipeline and retry
+    monkeypatch.undo()
+    res_retry = ingestion_service.retry_failed_session(failed_session_id, student_user_1)
+    assert res_retry.status == "success"
+    assert res_retry.session_id == failed_session_id
+
+    # Verify still exactly 1 raw session (no duplicates!)
+    total_after, _ = ingestion_service.storage.list_sessions(student_user_1.user_id)
+    assert total_after == 1
+    analytics = ingestion_service.get_session_analytics(failed_session_id, student_user_1)
+    assert analytics.status == "processed"
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 31. Quiz Update Updates Session & Composite Score
+# ─────────────────────────────────────────────────────────────────────────────
+def test_case_31_quiz_update_updates_session_and_composite_score(ingestion_service, student_user_1):
+    """Test 31: Submitting quiz results updates linked session's actual quiz score and composite mastery."""
+    # 1. Ingest session without quiz
+    req = SessionIngestRequest(
+        topic="Recursion",
+        messages=[
+            MessageItem(role="user", content="What is the base case in recursion?"),
+            MessageItem(role="assistant", content="The terminating condition that stops recursion."),
+            MessageItem(role="user", content="Got it, prevents stack overflow!"),
+        ],
+    )
+    res = ingestion_service.ingest_session(req, student_user_1)
+    sess_id = res.session_id
+
+    # Check initial analytics: quiz status is awaiting
+    ana_before = ingestion_service.get_session_analytics(sess_id, student_user_1)
+    assert ana_before.actual_quiz_performance.get("status") == "awaiting_quiz_submission"
+
+    # 2. Submit quiz linked to this session
+    quiz_req = QuizSubmissionRequest(
+        session_id=sess_id,
+        topic="Recursion",
+        questions=[
+            {"question_id": "q1", "student_answer": "base case", "correct_answer": "base case"},
+            {"question_id": "q2", "student_answer": "stack", "correct_answer": "stack"},
+        ],
+    )
+    quiz_res = ingestion_service.submit_quiz_results(quiz_req, student_user_1)
+    assert quiz_res.actual_score_percent == 100.0
+    assert quiz_res.updated_overall_performance is not None
+    assert quiz_res.updated_overall_performance["dimension_scores"]["actual_quiz_performance"]["score"] == 100.0
+
+    # 3. Verify session analytics in storage was updated
+    ana_after = ingestion_service.get_session_analytics(sess_id, student_user_1)
+    assert ana_after.actual_quiz_performance.get("status") == "evaluated"
+    assert ana_after.actual_quiz_performance.get("actual_score_percent") == 100.0
+    assert ana_after.overall_topic_performance.get("overall_performance_score") is not None
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 32. Production Config Does Not Seed Dev Tokens
+# ─────────────────────────────────────────────────────────────────────────────
+def test_case_32_production_config_does_not_seed_dev_tokens(monkeypatch):
+    """Test 32: In production environment, development test tokens are never seeded."""
+    monkeypatch.setattr(settings, "environment", "production")
+    prod_mgr = TokenManager()
+    with pytest.raises(AuthenticationError, match="Invalid or expired"):
+        prod_mgr.validate_token("edulens-dev-token-student-001")
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 33. MCP Resources and Prompts Discovery
+# ─────────────────────────────────────────────────────────────────────────────
+@pytest.mark.anyio
+async def test_case_33_mcp_resources_and_prompts():
+    """Test 33: MCP server lists and serves curriculum topics resource and save prompt."""
+    server = create_mcp_server()
+    resources = await server.list_resources()
+    resource_uris = {str(r.uri) for r in resources}
+    assert "edulens://curriculum/topics" in resource_uris
+    assert "edulens://health" in resource_uris
+
+    prompts = await server.list_prompts()
+    prompt_names = {p.name for p in prompts}
+    assert "save_learning_session" in prompt_names
+

@@ -28,6 +28,7 @@ from backend.mcp_server.config import settings
 from backend.mcp_server.auth.authentication import (
     AuthenticationError,
     set_current_user,
+    reset_current_user,
     token_manager,
     get_current_user,
 )
@@ -243,8 +244,9 @@ import urllib.parse
 
 class AuthMiddleware:
     """
-    Raw ASGI middleware verifying Bearer token in HTTP header or query parameters
+    Raw ASGI middleware verifying Bearer tokens in Authorization header
     and populating UserContext into async task context without buffering response streams.
+    Enforces strict security: query parameter tokens are rejected in production.
     """
 
     def __init__(self, app):
@@ -261,22 +263,48 @@ class AuthMiddleware:
             auth_header = headers.get(b"authorization", b"").decode("utf-8")
             query_str = scope.get("query_string", b"").decode("utf-8")
             params = dict(urllib.parse.parse_qsl(query_str))
-            token = auth_header or params.get("token") or params.get("api_key")
 
-            try:
-                user = token_manager.validate_token(token)
-                set_current_user(user)
-            except AuthenticationError as auth_err:
+            # Query token security audit check
+            has_query_token = bool(params.get("token") or params.get("api_key"))
+            if has_query_token and (settings.is_production or not settings.allow_query_token):
                 response = JSONResponse(
                     {
                         "error": "AuthenticationError",
-                        "detail": str(auth_err),
-                        "hint": "Set Authorization: Bearer <token> or append ?token=<token>",
+                        "detail": (
+                            "Passing authentication tokens via URL query parameters is forbidden for security. "
+                            "Please provide an 'Authorization: Bearer <token>' header."
+                        ),
                     },
                     status_code=401,
                 )
                 await response(scope, receive, send)
                 return
+
+            token = auth_header
+            if not token and settings.allow_query_token and not settings.is_production:
+                token = params.get("token") or params.get("api_key")
+
+            token_ctx = None
+            try:
+                user = token_manager.validate_token(token)
+                token_ctx = set_current_user(user)
+            except AuthenticationError as auth_err:
+                response = JSONResponse(
+                    {
+                        "error": "AuthenticationError",
+                        "detail": str(auth_err),
+                    },
+                    status_code=401,
+                )
+                await response(scope, receive, send)
+                return
+
+            try:
+                await self.app(scope, receive, send)
+            finally:
+                if token_ctx is not None:
+                    reset_current_user(token_ctx)
+            return
 
         await self.app(scope, receive, send)
 
@@ -343,6 +371,15 @@ def main():
         print("[INFO] Authentication disabled via --no-auth flag. Running in open local dev mode.", file=sys.stderr)
 
     if args.transport == "stdio":
+        import os
+        token_env = os.getenv("EDULENS_API_KEY") or os.getenv("EDULENS_DEV_TOKEN")
+        if token_env:
+            try:
+                user = token_manager.validate_token(token_env)
+                set_current_user(user)
+                print(f"[INFO] Stdio session authenticated as user: {user.user_id}", file=sys.stderr)
+            except Exception as e:
+                print(f"[WARN] Failed to authenticate stdio session from environment token: {e}", file=sys.stderr)
         print("[INFO] Starting EduLens MCP Server on stdio transport (Claude Desktop mode)...", file=sys.stderr)
         server = create_mcp_server()
         asyncio.run(server.run_stdio_async())
