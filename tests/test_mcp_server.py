@@ -739,3 +739,135 @@ async def test_case_33_mcp_resources_and_prompts():
     prompt_names = {p.name for p in prompts}
     assert "save_learning_session" in prompt_names
 
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 34. Streamable HTTP Transport Initialization & Tool Discovery
+# ─────────────────────────────────────────────────────────────────────────────
+def test_case_34_streamable_http_initialization_and_tool_discovery():
+    """Test 34: Streamable HTTP /mcp endpoint initializes and discovers all 6 tools."""
+    from starlette.testclient import TestClient
+    app = create_http_app(transport="streamable")
+    with TestClient(app, base_url="http://127.0.0.1:8001") as client:
+        # 1. MCP initialize request
+        init_res = client.post(
+            "/mcp",
+            headers={"Authorization": "Bearer edulens-dev-token-student-001"},
+            json={
+                "jsonrpc": "2.0",
+                "id": 1,
+                "method": "initialize",
+                "params": {
+                    "protocolVersion": "2024-11-05",
+                    "capabilities": {},
+                    "clientInfo": {"name": "test-inspector", "version": "1.0"},
+                },
+            },
+        )
+        assert init_res.status_code == 200
+        assert "edulens-mcp-server" in init_res.text
+        session_id = init_res.headers.get("mcp-session-id")
+        assert session_id is not None
+
+        # 2. Client initialized notification
+        client.post(
+            "/mcp",
+            headers={"Authorization": "Bearer edulens-dev-token-student-001", "mcp-session-id": session_id},
+            json={"jsonrpc": "2.0", "method": "notifications/initialized"},
+        )
+
+        # 3. Tool discovery
+        tools_res = client.post(
+            "/mcp",
+            headers={"Authorization": "Bearer edulens-dev-token-student-001", "mcp-session-id": session_id},
+            json={"jsonrpc": "2.0", "id": 2, "method": "tools/list", "params": {}},
+        )
+        assert tools_res.status_code == 200
+        assert "ingest_learning_session" in tools_res.text
+        assert "get_session_analytics" in tools_res.text
+        assert "get_student_performance" in tools_res.text
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 35. Streamable HTTP Tool Execution
+# ─────────────────────────────────────────────────────────────────────────────
+def test_case_35_streamable_http_tool_execution():
+    """Test 35: Executes ingest_learning_session via Streamable HTTP /mcp endpoint."""
+    from starlette.testclient import TestClient
+    import uuid
+    run_id = uuid.uuid4().hex[:6]
+    app = create_http_app(transport="streamable")
+    with TestClient(app, base_url="http://127.0.0.1:8001") as client:
+        init_res = client.post(
+            "/mcp",
+            headers={"Authorization": "Bearer edulens-dev-token-student-001"},
+            json={
+                "jsonrpc": "2.0",
+                "id": 1,
+                "method": "initialize",
+                "params": {
+                    "protocolVersion": "2024-11-05",
+                    "capabilities": {},
+                    "clientInfo": {"name": "test-inspector", "version": "1.0"},
+                },
+            },
+        )
+        session_id = init_res.headers.get("mcp-session-id")
+
+        client.post(
+            "/mcp",
+            headers={"Authorization": "Bearer edulens-dev-token-student-001", "mcp-session-id": session_id},
+            json={"jsonrpc": "2.0", "method": "notifications/initialized"},
+        )
+
+        call_res = client.post(
+            "/mcp",
+            headers={"Authorization": "Bearer edulens-dev-token-student-001", "mcp-session-id": session_id},
+            json={
+                "jsonrpc": "2.0",
+                "id": 3,
+                "method": "tools/call",
+                "params": {
+                    "name": "ingest_learning_session",
+                    "arguments": {
+                        "topic": "Graph BFS",
+                        "subject": "Computer Science",
+                        "messages": [
+                            {"role": "user", "content": f"How does BFS traverse levels? (run {run_id})"},
+                            {"role": "assistant", "content": "BFS uses a FIFO queue to visit nodes level by level."},
+                            {"role": "user", "content": "Clear now, level by level ensures shortest path on unweighted graphs!"},
+                        ],
+                    },
+                },
+            },
+        )
+        assert call_res.status_code == 200
+        assert "SES_" in call_res.text
+        assert "success" in call_res.text
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 36. Streamable HTTP Authentication Failure
+# ─────────────────────────────────────────────────────────────────────────────
+def test_case_36_streamable_http_authentication_failure():
+    """Test 36: Streamable HTTP rejects requests without Bearer token or with invalid credentials."""
+    from starlette.testclient import TestClient
+    app = create_http_app(transport="streamable")
+    with TestClient(app, base_url="http://127.0.0.1:8001") as client:
+        # Request with no header
+        res_no_auth = client.post(
+            "/mcp",
+            json={"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {}},
+        )
+        assert res_no_auth.status_code == 401
+        assert "AuthenticationError" in res_no_auth.text
+
+        # Request with invalid token
+        res_bad_auth = client.post(
+            "/mcp",
+            headers={"Authorization": "Bearer invalid_secret_token_123"},
+            json={"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {}},
+        )
+        assert res_bad_auth.status_code == 401
+        assert "Invalid or expired" in res_bad_auth.text
+
+

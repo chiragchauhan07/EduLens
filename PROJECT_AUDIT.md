@@ -260,10 +260,10 @@ EduLens/
 ## 9. Existing Tests and Verification Results
 
 Executed `pytest tests/ -v` using Python 3.12:
-- Total tests: **75**
-- **Passed: 75**
+- Total tests: **78**
+- **Passed: 78**
 - **Failed: 0**
-- Test execution time: ~20.2 seconds.
+- Test execution time: ~12.9 seconds.
 
 Breakdown across test modules:
 - **API Test Suite (`tests/test_api.py` — 11 tests):**
@@ -287,7 +287,7 @@ Breakdown across test modules:
   - Expressed confidence estimator heuristics and linguistic indicators — PASSED
   - Composite scoring engine 40/40/20 formula and discrepancy detection — PASSED
   - New API endpoints (`/api/pipeline`, `/api/evaluate-quiz`, `/api/confidence`) — PASSED
-- **MCP Server Suite (`tests/test_mcp_server.py` — 33 tests):**
+- **MCP Server Suite (`tests/test_mcp_server.py` — 36 tests):**
   - Server initialization and capabilities registration (all 6 tools, resources, prompts) — PASSED
   - Tool execution: `ingest_learning_session` valid session — PASSED
   - Idempotency & SHA-256 deduplication — PASSED
@@ -312,6 +312,9 @@ Breakdown across test modules:
   - Quiz result submission updating session analytics and composite mastery — PASSED
   - Production environment configuration never seeding development tokens — PASSED
   - Resource (`curriculum/topics`, `health`) and prompt (`save_learning_session`) discovery — PASSED
+  - Streamable HTTP `/mcp` initialization and tool discovery — PASSED
+  - Streamable HTTP `/mcp` tool execution (`ingest_learning_session`) — PASSED
+  - Streamable HTTP `/mcp` authentication failure (missing/invalid token) — PASSED
 - **MCP End-to-End Test (`tests/test_mcp_e2e.py` — 1 test):**
   - Live subprocess execution with official `ClientSession` over Stdio transport invoking `ingest_learning_session`, `get_session_analytics`, and `get_student_performance` — PASSED
 
@@ -332,13 +335,13 @@ All foundational, evaluation, explainability, multi-dimensional analytics, and M
 6. **Hardened Model Context Protocol (MCP) Server (Phase 2):**
    - Official `mcp` 2.x SDK integration (`MCPServer`).
    - 6 production tools: `ingest_learning_session`, `get_session_analytics`, `get_student_performance`, `get_topic_analytics`, `list_learning_sessions`, `submit_quiz_results`.
-   - Dual-transport: SSE (HTTP/remote) and Stdio (local Claude Desktop).
+   - Triple-transport support: Streamable HTTP (`/mcp`, recommended production transport), SSE (`/sse`), and Stdio (local Claude Desktop).
    - Storage abstraction separating raw conversation JSON (`raw_sessions`) from derived analytics (`analytics_results`) and quizzes (`quiz_submissions`) using persistent SQLite in WAL mode.
    - Raw sessions persisted before inference; failures retain raw transcript with retry capability without duplicate rows.
    - User authentication and multi-user data isolation via `TokenManager` and `ContextVar` with mandatory cleanup in ASGI middleware.
    - Production mode disallows query parameter tokens and hardcoded dev credentials.
    - Forged student ID detection preventing clients from impersonating other learners.
-7. **Production-Ready Test Suite:** 75 comprehensive automated tests covering all edge cases, errors, and acceptance criteria.
+7. **Production-Ready Test Suite:** 78 comprehensive automated tests covering all edge cases, errors, and acceptance criteria.
 8. **Documentation Synchronized:** `docs/DSP.md`, `docs/NLP.md`, `docs/ML.md`, `docs/DATASET.md`, `docs/MCP.md`, `.env.example`, `PROJECT_AUDIT.md`, `README.md` fully reflect the current repository.
 
 ---

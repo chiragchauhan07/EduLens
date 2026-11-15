@@ -5,9 +5,9 @@
 [![Python](https://img.shields.io/badge/Python-3.10%2B-blue.svg)](https://www.python.org/)
 [![scikit-learn](https://img.shields.io/badge/scikit--learn-1.3%2B-orange.svg)](https://scikit-learn.org/)
 [![MCP](https://img.shields.io/badge/MCP-Official%202.x-purple.svg)](docs/MCP.md)
-[![Tests](https://img.shields.io/badge/Tests-75%20Passing-brightgreen.svg)](#running-tests)
+[![Tests](https://img.shields.io/badge/Tests-78%20Passing-brightgreen.svg)](#running-tests)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Status](https://img.shields.io/badge/Status-MCP%20Hardened-success.svg)](#project-status)
+[![Status](https://img.shields.io/badge/Status-MCP%20Production%20Ready-success.svg)](#project-status)
 
 **NLP and Machine Learning-Based Student Learning Intelligence and Performance Analytics Platform**
 
@@ -83,7 +83,7 @@ EduLens serves as the **intelligence and analytics layer** built around the stud
   - **Student Performance Analyzer:** Test real-time inference, optional quiz submission evaluation, discrepancy alerts, and feature attributions.
   - **Topic-Wise Performance:** Curriculum-level mastery aggregates, confusion rates, and topic difficulty rankings.
   - **Model Architecture & Viva Guide:** Multi-model benchmarks, 6 ablation experiments, explainability tabs, and defense Q&A.
-- **🛡️ 75 Automated Unit & Integration Tests:** Powered by `pytest` ensuring 100% end-to-end reliability across ML, API, security, multi-user isolation, and the official Model Context Protocol server.
+- **🛡️ 78 Automated Unit & Integration Tests:** Powered by `pytest` ensuring 100% end-to-end reliability across ML, API, security, multi-user isolation, Streamable HTTP, SSE, and Stdio Model Context Protocol integration.
 - **🔌 Official Model Context Protocol (MCP) Server:** Seamless integration with ChatGPT and Claude Desktop via both remote SSE/HTTP and local Stdio transports. Exposes 6 production tools for session ingestion, real-time analytics, longitudinal mastery, and quiz submission.
 - **💾 Thread-Safe Persistent SQLite Storage:** Thread-safe WAL-mode SQLite storage separating audit-proof raw conversation transcripts (`raw_sessions`) from derived learning analytics (`analytics_results`) and quiz evaluations (`quiz_submissions`).
 - **🔐 Multi-User Isolation & Context Propagation:** Cryptographic bearer token management mapping requests to isolated student IDs with automatic deduplication via SHA-256 session hashing.
@@ -260,20 +260,23 @@ python ml_prototype/predict.py
 ```
 
 ### Run Model Context Protocol (MCP) Server
-EduLens includes a standard MCP 2.x server allowing Claude Desktop and ChatGPT to interact directly with the learning analytics engine:
+EduLens includes a standard MCP 2.x server allowing Claude Desktop, ChatGPT, and MCP Inspector to interact directly with the learning analytics engine:
 
 ```powershell
-# Run with Server-Sent Events (SSE) for remote clients / ChatGPT (default port 8001)
+# Run with Streamable HTTP for production deployments & ChatGPT (Recommended, port 8001, endpoint /mcp)
+python -m backend.mcp_server.server --transport streamable --port 8001
+
+# Run with Server-Sent Events (SSE) for legacy remote clients (port 8001, endpoint /sse)
 python -m backend.mcp_server.server --transport sse --port 8001
 
 # Run with Stdio for local Claude Desktop
 python -m backend.mcp_server.server --transport stdio
 ```
 
-See [docs/MCP.md](docs/MCP.md) for full Claude Desktop and ChatGPT configuration guides.
+See [docs/MCP.md](docs/MCP.md) for full Claude Desktop, ChatGPT, and MCP Inspector configuration guides.
 
 ### Run Automated Tests
-Verify code integrity across the full test suite (75 tests):
+Verify code integrity across the full test suite (78 tests):
 ```powershell
 pytest
 ```

@@ -309,7 +309,7 @@ class AuthMiddleware:
         await self.app(scope, receive, send)
 
 
-def create_http_app(transport: str = "sse") -> Starlette:
+def create_http_app(transport: str = "streamable") -> Starlette:
     """
     Wraps the MCP server inside a Starlette HTTP application with
     authentication, health checks, and CORS headers.
@@ -356,9 +356,9 @@ def main():
     parser = argparse.ArgumentParser(description="EduLens Model Context Protocol (MCP) Server")
     parser.add_argument(
         "--transport",
-        choices=["sse", "streamable", "stdio"],
+        choices=["streamable", "sse", "stdio"],
         default=settings.transport,
-        help="Transport mechanism: 'sse', 'streamable', or 'stdio' (default: sse)",
+        help="Transport mechanism: 'streamable' (Streamable HTTP, default), 'sse' (Server-Sent Events), or 'stdio'",
     )
     parser.add_argument("--host", default=settings.host, help="Bind host address")
     parser.add_argument("--port", type=int, default=settings.port, help="Bind port")

@@ -4,7 +4,7 @@
 
 EduLens is a **Student Learning Intelligence and Performance Analytics Platform**. It is intentionally **not** an AI tutor. Instead, EduLens acts as an independent learning analytics engine that receives, stores, and evaluates student-AI conversations conducted on external foundation models (e.g., ChatGPT, Claude Desktop, Google Gemini).
 
-The **Model Context Protocol (MCP)**, open-sourced by Anthropic, provides an open standard for connecting AI models to external tools, context, and storage. EduLens implements an official MCP Server (`mcp>=2.0.0`) to serve as the unified bridge between students conversing with external AI agents and the EduLens machine learning analytics engine.
+The **Model Context Protocol (MCP)**, open-sourced by Anthropic and adopted across the AI industry, provides an open standard for connecting AI models to external tools, context, and storage via JSON-RPC 2.0. EduLens implements an official MCP Server (`mcp>=2.0.0`) to serve as the unified bridge between students conversing with external AI agents and the EduLens machine learning analytics engine.
 
 ### Why EduLens Uses MCP
 1. **Zero Client-Side Burden:** Students interact naturally with their preferred AI agents (ChatGPT, Claude, etc.) without having to copy-paste chat logs or install browser extensions.
@@ -22,18 +22,19 @@ The **Model Context Protocol (MCP)**, open-sourced by Anthropic, provides an ope
 |                                                                                             |
 |   +--------------------------+                         +--------------------------------+   |
 |   |         ChatGPT          |                         |         Claude Desktop         |   |
-|   |  (Remote SSE / HTTP)     |                         |  (Local Stdio or Remote SSE)   |   |
+|   | (Streamable HTTP / SSE)  |                         |  (Local Stdio or Remote SSE)   |   |
 |   +------------+-------------+                         +---------------+----------------+   |
 +----------------|-------------------------------------------------------|--------------------+
-                 | Authorization: Bearer <token>                         | JSON-RPC 2.0 (stdio / SSE)
+                 | Authorization: Bearer <token>                         | JSON-RPC 2.0 (stdio / HTTP)
                  v                                                       v
 +---------------------------------------------------------------------------------------------+
 |                                  EDULENS MCP SERVER LAYER                                   |
 |                                                                                             |
 |   +-------------------------------------------------------------------------------------+   |
 |   |                   Authentication & Context Layer (TokenManager)                     |   |
-|   |      - Validates Bearer tokens and seeds (dev-token-student-001, etc.)              |   |
+|   |      - Validates Bearer tokens in Authorization headers                             |   |
 |   |      - ContextVar-driven user session isolation (UserContext: student_id)           |   |
+|   |      - Automatic context cleanup preventing cross-task leakage                      |   |
 |   +------------------------------------------+------------------------------------------+   |
 |                                              |                                              |
 |   +------------------------------------------v------------------------------------------+   |
@@ -48,7 +49,7 @@ The **Model Context Protocol (MCP)**, open-sourced by Anthropic, provides an ope
 |   +---------------------+------------------------------------+--------------------------+   |
 +-------------------------|------------------------------------|------------------------------+
                           |                                    |
-                          v Direct Invocation                  v Thread-Safe Operations
+                          v Direct Service Call                v Thread-Safe Operations
 +-----------------------------------------------+   +-----------------------------------------+
 |        DSP / NLP / ML ANALYTICS ENGINE        |   |         PERSISTENT SQLITE STORAGE       |
 |                                               |   |             (data/storage/edulens.db)   |
@@ -64,52 +65,69 @@ The **Model Context Protocol (MCP)**, open-sourced by Anthropic, provides an ope
 
 ---
 
-## 3. Supported Transports
+## 3. Supported Transports & Production Recommendations
 
-EduLens supports three standard transport protocols compliant with the MCP specification:
+EduLens supports all three standard MCP transports:
 
-| Transport | CLI Option | Target Environment | Communication Channel |
-| :--- | :--- | :--- | :--- |
-| **Server-Sent Events (SSE)** | `--transport sse` | Remote deployment / ChatGPT | HTTP POST for JSON-RPC messages; continuous HTTP GET `/sse` stream for server push. |
-| **Streamable HTTP** | `--transport streamable`| Cloud hosting / Modern HTTP | Bidirectional streaming HTTP endpoints via ASGI. |
-| **Standard I/O (Stdio)**| `--transport stdio` | Local Claude Desktop / CLI tools| Standard input (`stdin`) and standard output (`stdout`) communicating via JSON-RPC lines. |
+| Transport | CLI Option | Endpoint / Mode | Recommended For | Protocol Mechanism |
+| :--- | :--- | :--- | :--- | :--- |
+| **Streamable HTTP** *(Default & Recommended)* | `--transport streamable` | `POST /mcp` | **Production Deployments, Cloud Hosting & ChatGPT** | Bidirectional chunked HTTP POST streaming JSON-RPC messages with session headers (`Mcp-Session-Id`). |
+| **Server-Sent Events (SSE)** | `--transport sse` | `GET /sse`, `POST /messages/` | Legacy remote clients & debugging | Continuous SSE stream on GET `/sse` with separate HTTP POST endpoint for client requests. |
+| **Standard I/O (Stdio)** | `--transport stdio` | `stdin` / `stdout` | **Claude Desktop (Local Machine)** | Fast subprocess communication using JSON-RPC lines over standard input/output. |
+
+> [!TIP]
+> **Production Recommendation:** Always deploy with `--transport streamable`. Streamable HTTP is stateless-friendly, multiplexes over standard HTTP/1.1 and HTTP/2 connections, avoids sticky long-lived connection exhaustion on cloud proxies, and is natively supported by modern MCP clients and inspectors at the standard `/mcp` path.
 
 ---
 
-## 4. MCP Tools Reference
+## 4. MCP Tools Reference & Schema Specification
+
+The EduLens MCP server registers six production tools. All parameter names, types, and return payloads correspond directly to `backend/mcp_server/server.py` and `backend/mcp_server/schemas/session_schema.py`.
 
 ### Tool 1: `ingest_learning_session`
-Ingests a complete student-AI conversation, saves the raw conversation transcript to persistent storage, runs the DSP/NLP/ML inference pipeline, and returns real-time learning analytics.
+Ingests a complete student-AI conversation, saves the raw conversation transcript to persistent storage before execution, executes the 4-dimension ML pipeline, and returns real-time learning analytics.
 
 - **Parameters:**
-  - `session_id` (`string`, required): Unique identifier for the learning session.
-  - `conversation` (`array[object]`, required): List of turns. Each turn must have `role` (`"student"` or `"assistant"`) and `content` (`string`).
-  - `topic` (`string`, optional): Curriculum topic discussed (e.g., `"photosynthesis"`, `"calculus"`).
-  - `duration_minutes` (`number`, optional): Total session duration.
-  - `metadata` (`object`, optional): Supplementary context (e.g., subject, client version).
+  - `messages` (`array[object]`, required): Chronological list of message objects, each containing:
+    - `role` (`string`, required): `"user"` / `"student"` for learner, `"assistant"` / `"teacher"` for AI.
+    - `content` (`string`, required): Text content of the utterance.
+    - `timestamp` (`string`, optional): ISO-8601 timestamp.
+  - `subject` (`string`, optional): Subject area (e.g. `"Computer Science"`, `"Algorithms"`).
+  - `topic` (`string`, optional): Curriculum topic (e.g. `"Binary Search"`, `"Dynamic Programming"`).
+  - `session_id` (`string`, optional): Custom session ID (auto-generated if omitted).
+  - `student_id` (`string`, optional): Student identifier. Must match authenticated identity.
+  - `source_agent` (`string`, optional, default: `"chatgpt"`): Originating AI (`"chatgpt"`, `"claude"`).
+  - `metadata` (`object`, optional): Supplementary session metadata.
+  - `quiz_submission` (`object`, optional): Pre-completed quiz questions and student answers.
+  - `auth_token` (`string`, optional): Authentication token if not provided in HTTP headers.
 
 - **Input JSON Schema:**
 ```json
 {
   "type": "object",
   "properties": {
-    "session_id": {"type": "string"},
-    "conversation": {
+    "messages": {
       "type": "array",
       "items": {
         "type": "object",
         "properties": {
-          "role": {"type": "string", "enum": ["student", "assistant"]},
-          "content": {"type": "string"}
+          "role": {"type": "string", "enum": ["user", "student", "assistant", "teacher", "system"]},
+          "content": {"type": "string"},
+          "timestamp": {"type": "string"}
         },
         "required": ["role", "content"]
       }
     },
+    "subject": {"type": "string"},
     "topic": {"type": "string"},
-    "duration_minutes": {"type": "number"},
-    "metadata": {"type": "object"}
+    "session_id": {"type": "string"},
+    "student_id": {"type": "string"},
+    "source_agent": {"type": "string", "default": "chatgpt"},
+    "metadata": {"type": "object"},
+    "quiz_submission": {"type": "object"},
+    "auth_token": {"type": "string"}
   },
-  "required": ["session_id", "conversation"]
+  "required": ["messages"]
 }
 ```
 
@@ -117,32 +135,65 @@ Ingests a complete student-AI conversation, saves the raw conversation transcrip
 ```json
 {
   "status": "success",
-  "session_id": "sess_101",
-  "student_id": "student_001",
-  "topic": "photosynthesis",
-  "understanding": {
-    "predicted_class": "deep_understanding",
-    "class_probabilities": {
-      "deep_understanding": 0.88,
-      "partial_understanding": 0.10,
-      "superficial_understanding": 0.02
-    },
-    "confidence_score": 0.88
-  },
-  "predicted_quiz_score": 88.5,
-  "expressed_confidence": {
-    "confidence_score": 0.85,
-    "confidence_level": "high"
-  },
-  "overall_topic_performance": {
-    "topic_name": "photosynthesis",
-    "composite_score": 86.2,
-    "mastery_tier": "proficient"
-  },
-  "feature_explanation": {
-    "top_contributing_features": [
-      {"feature": "vocab_diversity", "direction": "positive"},
-      {"feature": "student_word_count", "direction": "positive"}
+  "session_id": "SES_1E28D28D503C",
+  "user_id": "student_001",
+  "source_agent": "chatgpt",
+  "subject": "Computer Science",
+  "topic": "Binary Search",
+  "ingested_at": "2026-11-15T23:30:00Z",
+  "turns_count": 3,
+  "is_duplicate": false,
+  "message": "Learning conversation successfully ingested and evaluated across 4 dimensions.",
+  "analytics": {
+    "status": "success",
+    "topics": [
+      {
+        "topic": "Binary Search",
+        "understanding": {
+          "classification": "understood",
+          "score_index": 90.0,
+          "confidence": 0.958,
+          "probabilities": {
+            "understood": 0.958,
+            "partial": 0.032,
+            "confused": 0.010
+          },
+          "display_name": "Understood (Demonstrated Conceptual Clarity)",
+          "pedagogical_feedback": "Student demonstrated solid understanding. Ready for advanced variations."
+        },
+        "actual_quiz_performance": {
+          "status": "awaiting_quiz_submission"
+        },
+        "expressed_confidence": {
+          "classification": "high",
+          "score": 85.0,
+          "status": "experimental_heuristic_baseline"
+        },
+        "overall_performance": {
+          "score": 88.5,
+          "status": "awaiting_quiz_submission",
+          "formula": "(90.0 * 0.70) + (85.0 * 0.30) = 88.5/100",
+          "explanation": "Calculated using available conversational dimensions awaiting quiz.",
+          "discrepancies": []
+        },
+        "conversational_signals": {
+          "num_turns": 2.0,
+          "total_words": 18.0,
+          "avg_turn_length": 9.0,
+          "question_count": 1.0,
+          "confusion_markers": 0.0,
+          "clarification_markers": 0.0,
+          "understanding_markers": 1.0,
+          "code_indicators": 0.0
+        },
+        "feature_explanation": {
+          "predicted_class": "understood",
+          "top_positive_features": [
+            {"feature": "signal_understanding_markers", "contribution": 2.14},
+            {"feature": "signal_total_words", "contribution": 0.85}
+          ]
+        }
+      }
     ]
   }
 }
@@ -151,109 +202,150 @@ Ingests a complete student-AI conversation, saves the raw conversation transcrip
 ---
 
 ### Tool 2: `get_session_analytics`
-Retrieves stored analysis results for a previously ingested learning session.
+Retrieves stored multi-dimensional learning analytics for a previously ingested session.
 
 - **Parameters:**
-  - `session_id` (`string`, required): Identifier of the session.
+  - `session_id` (`string`, required): Identifier returned during ingestion.
+  - `auth_token` (`string`, optional): Token override if not in HTTP headers.
 
 - **Output Example:**
 ```json
 {
-  "session_id": "sess_101",
-  "student_id": "student_001",
-  "topic": "photosynthesis",
-  "predicted_understanding": "deep_understanding",
-  "understanding_probabilities": {"deep_understanding": 0.88},
-  "predicted_quiz_score": 88.5,
-  "confidence_level": "high",
-  "mastery_tier": "proficient",
-  "analyzed_at": "2026-11-15T22:30:00Z"
+  "session_id": "SES_1E28D28D503C",
+  "user_id": "student_001",
+  "subject": "Computer Science",
+  "topic": "Binary Search",
+  "source_agent": "chatgpt",
+  "status": "processed",
+  "topic_understanding": {
+    "predicted_class": "understood",
+    "understanding_score": 90.0,
+    "confidence": 0.958,
+    "display_name": "Understood"
+  },
+  "actual_quiz_performance": {
+    "status": "awaiting_quiz_submission"
+  },
+  "learning_confidence": {
+    "expressed_confidence_level": "high",
+    "expressed_confidence_score": 85.0,
+    "status": "experimental_heuristic_baseline"
+  },
+  "overall_topic_performance": {
+    "overall_performance_score": 88.5,
+    "status": "awaiting_quiz_submission"
+  },
+  "discrepancy_analysis": {
+    "discrepancy_detected": false,
+    "details": null
+  },
+  "pedagogical_feedback": "Student demonstrated solid understanding.",
+  "processed_at": "2026-11-15T23:30:00Z"
 }
 ```
 
 ---
 
 ### Tool 3: `get_student_performance`
-Retrieves aggregated longitudinal learning metrics across all sessions and quizzes for the student.
+Retrieves the student's accumulated longitudinal performance portfolio.
 
 - **Parameters:**
-  - `student_id` (`string`, optional): In multi-user mode, validated against the authenticated context.
-  - `topic` (`string`, optional): Filter metrics by specific curriculum topic.
+  - `student_id` (`string`, optional): Validated against authenticated identity.
+  - `auth_token` (`string`, optional): Auth token override.
 
 - **Output Example:**
 ```json
 {
   "student_id": "student_001",
-  "total_sessions": 12,
-  "total_quizzes": 4,
-  "average_understanding": "deep_understanding",
-  "average_quiz_score": 84.5,
+  "total_sessions": 14,
+  "topics_studied": ["Binary Search", "Quicksort", "Recursion", "Trees"],
   "understanding_distribution": {
-    "deep_understanding": 8,
-    "partial_understanding": 3,
-    "superficial_understanding": 1
+    "understood": 10,
+    "partial": 3,
+    "confused": 1
   },
-  "topics_covered": ["photosynthesis", "cellular_respiration", "genetics"],
-  "mastery_summary": {
-    "photosynthesis": {"composite_score": 86.2, "tier": "proficient"},
-    "genetics": {"composite_score": 78.0, "tier": "competent"}
-  }
+  "average_understanding_score": 82.5,
+  "average_actual_quiz_score": 88.0,
+  "average_confidence_score": 76.4,
+  "average_overall_score": 84.1,
+  "topic_wise_breakdown": [
+    {
+      "topic": "Binary Search",
+      "subject": "Computer Science",
+      "sessions": 4,
+      "mastery_rate": 100.0,
+      "latest_understanding": "understood"
+    }
+  ],
+  "areas_of_confusion": ["Dynamic Programming"],
+  "learning_progress": []
 }
 ```
 
 ---
 
 ### Tool 4: `get_topic_analytics`
-Retrieves curriculum-level analytics for a specific topic across the student's history.
+Retrieves curriculum-level performance metrics for a specific topic across the student's history.
 
 - **Parameters:**
   - `topic` (`string`, required): Name of topic.
   - `student_id` (`string`, optional): Target student.
+  - `auth_token` (`string`, optional): Auth token override.
 
 - **Output Example:**
 ```json
 {
-  "topic": "photosynthesis",
+  "topic": "Binary Search",
+  "subject": "Computer Science",
   "student_id": "student_001",
-  "sessions_count": 3,
-  "latest_understanding": "deep_understanding",
-  "average_predicted_quiz": 87.2,
-  "actual_quiz_average": 85.0,
-  "composite_mastery_score": 86.2,
-  "mastery_tier": "proficient"
+  "total_sessions": 4,
+  "understanding_distribution": {"understood": 4, "partial": 0, "confused": 0},
+  "average_understanding_score": 90.0,
+  "quiz_performance": {
+    "average_score_percent": 95.0,
+    "quizzes_taken": 2
+  },
+  "expressed_confidence": {
+    "average_confidence_score": 88.0
+  },
+  "overall_topic_performance": {
+    "composite_score": 91.5
+  },
+  "historical_trend": []
 }
 ```
 
 ---
 
 ### Tool 5: `list_learning_sessions`
-Lists historical learning sessions belonging to the authenticated student with pagination.
+Lists historical learning sessions belonging to the student with filtering and pagination.
 
 - **Parameters:**
-  - `student_id` (`string`, optional): Validated against user context.
+  - `subject` (`string`, optional): Subject filter.
   - `topic` (`string`, optional): Topic filter.
-  - `limit` (`integer`, optional, default: 20): Maximum items to return.
+  - `date_from` (`string`, optional): ISO-8601 start date.
+  - `date_to` (`string`, optional): ISO-8601 end date.
+  - `limit` (`integer`, optional, default: 20): Max sessions to return (1-100).
   - `offset` (`integer`, optional, default: 0): Pagination offset.
+  - `auth_token` (`string`, optional): Auth token override.
 
 - **Output Example:**
 ```json
 {
-  "student_id": "student_001",
-  "total_count": 2,
+  "total_count": 1,
+  "limit": 20,
+  "offset": 0,
   "sessions": [
     {
-      "session_id": "sess_102",
-      "topic": "genetics",
-      "created_at": "2026-11-15T21:00:00Z",
-      "turns_count": 6,
-      "predicted_understanding": "partial_understanding"
-    },
-    {
-      "session_id": "sess_101",
-      "topic": "photosynthesis",
-      "created_at": "2026-11-15T19:30:00Z",
-      "turns_count": 8,
-      "predicted_understanding": "deep_understanding"
+      "session_id": "SES_1E28D28D503C",
+      "user_id": "student_001",
+      "subject": "Computer Science",
+      "topic": "Binary Search",
+      "source_agent": "chatgpt",
+      "status": "processed",
+      "understanding_class": "understood",
+      "overall_score": 88.5,
+      "ingested_at": "2026-11-15T23:30:00Z"
     }
   ]
 }
@@ -262,51 +354,45 @@ Lists historical learning sessions belonging to the authenticated student with p
 ---
 
 ### Tool 6: `submit_quiz_results`
-Ingests and evaluates a student's post-session quiz responses, updating topic mastery and comparing predicted scores to actual results.
+Evaluates post-session assessment questions deterministically against answer keys and updates composite topic mastery.
 
 - **Parameters:**
-  - `session_id` (`string`, optional): Associated learning session.
-  - `topic` (`string`, required): Topic assessed.
-  - `answers` (`array[object]`, required): List of questions and chosen answers.
-  - `quiz_id` (`string`, optional): Optional quiz identifier.
+  - `questions` (`array[object]`, required): List of questions with `question_id`, `student_answer`, and `correct_answer`.
+  - `session_id` (`string`, optional): Associated session ID to update.
+  - `subject` (`string`, optional): Subject name.
+  - `topic` (`string`, optional): Topic assessed.
+  - `answer_key` (`object`, optional): Answer key mapping.
+  - `student_answers` (`object`, optional): Student response mapping.
+  - `auth_token` (`string`, optional): Auth token override.
 
 - **Output Example:**
 ```json
 {
-  "quiz_id": "quiz_001",
-  "session_id": "sess_101",
-  "student_id": "student_001",
-  "topic": "photosynthesis",
-  "score_percentage": 90.0,
-  "total_questions": 5,
-  "correct_questions": 4,
-  "topic_breakdown": {
-    "light_reactions": {"score": 100.0},
-    "calvin_cycle": {"score": 80.0}
-  },
-  "recorded_at": "2026-11-15T22:45:00Z"
+  "quiz_id": "QZ_DDC1FD8BD214",
+  "session_id": "SES_1E28D28D503C",
+  "user_id": "student_001",
+  "total_questions": 2,
+  "correct_count": 2,
+  "incorrect_count": 0,
+  "unanswered_count": 0,
+  "actual_score_percent": 100.0,
+  "question_breakdown": [],
+  "topic_breakdown": {"General": {"score_percent": 100.0}},
+  "evaluated_at": "2026-11-15T23:35:00Z",
+  "updated_overall_performance": {
+    "topic": "Binary Search",
+    "overall_performance_score": 92.0,
+    "status": "complete",
+    "calculation_formula": "(90.0 * 0.40) + (100.0 * 0.40) + (85.0 * 0.20) = 92.0/100"
+  }
 }
 ```
 
 ---
 
-## 5. Resources & Prompts
+## 5. Storage Architecture & Schema
 
-### Resources
-- `edulens://curriculum/topics`: Returns standard curriculum topics recognized by EduLens.
-- `edulens://health`: Returns server status, active transport, and database connection status.
-
-### Prompts
-- `save_learning_session`: Pre-packaged prompt instruction for external AI clients instructing the agent how and when to summarize conversations and invoke `ingest_learning_session`.
-
----
-
-## 6. Storage Architecture & Persistence Strategy
-
-EduLens implements a modular storage abstraction (`StorageService`) separating raw audit-proof conversation transcripts from derived analytical indicators.
-
-### A. Local Development: SQLite in WAL Mode
-By default, the server writes to `data/storage/edulens.db` using SQLite in **Write-Ahead Logging (WAL)** mode with immediate foreign key enforcement.
+Persistent storage separates audit-proof raw logs from computed analytics using SQLite in WAL mode (`data/storage/edulens.db`).
 
 ```sql
 -- Raw Conversational Records (Audit-Proof)
@@ -326,7 +412,6 @@ CREATE TABLE IF NOT EXISTS raw_sessions (
 );
 CREATE INDEX IF NOT EXISTS idx_raw_sessions_user ON raw_sessions(user_id);
 CREATE INDEX IF NOT EXISTS idx_raw_sessions_hash ON raw_sessions(user_id, content_hash);
-CREATE INDEX IF NOT EXISTS idx_raw_sessions_topic ON raw_sessions(user_id, topic);
 
 -- Derived Machine Learning Analytics
 CREATE TABLE IF NOT EXISTS analytics_results (
@@ -371,86 +456,58 @@ CREATE INDEX IF NOT EXISTS idx_quiz_user ON quiz_submissions(user_id);
 CREATE INDEX IF NOT EXISTS idx_quiz_session ON quiz_submissions(session_id);
 ```
 
-### Storage Reliability Guarantees
-1. **Raw Transcript Persistence First:** In `IngestionService`, the raw conversation is persisted to `raw_sessions` **before** the ML pipeline executes. If machine learning inference fails or throws an exception, the raw session is marked as `processing_failed` with the error trace, but the student's conversation is never lost.
-2. **Zero-Duplication Retries:** When a failed session is retried via `retry_failed_session()` or re-ingested with identical content, EduLens reuses the existing `session_id`, updating the existing record without creating duplicate raw rows.
-3. **Deterministic Idempotency:** A SHA-256 hash of student messages scoped by `user_id` detects duplicate submissions instantly, returning cached analytics in sub-millisecond time.
+---
 
-### B. Production Persistence: PostgreSQL Architecture
-For cloud deployments requiring horizontal scaling across multiple container instances, EduLens's `StorageService` is designed to map directly to PostgreSQL:
-- `raw_json`, `full_analytics_json`, and `question_breakdown_json` map directly to PostgreSQL `JSONB` columns with GIN indexing for fast nested queries.
-- Thread-safe connection pooling is handled via `asyncpg` / `psycopg3` and PgBouncer.
-- Row-Level Security (RLS) can be enabled on `user_id` to guarantee database-level tenant isolation.
+## 6. Authentication Architecture & Production Roadmap
+
+### Current Authentication & Limitations of In-Memory TokenManager
+
+The current EduLens MCP implementation uses a lightweight, in-memory `TokenManager` for API token resolution. While effective for local development and integration tests, it has specific limitations:
+
+1. **Server Restarts:** Tokens added at runtime in memory are reset on server restart (unless persisted or declared in `EDULENS_API_TOKENS`).
+2. **Multi-Worker Scaling:** Multi-process uvicorn workers (`--workers 4`) do not share Python heap memory. A token registered dynamically in worker A will be missing in worker B.
+3. **Token Revocation & Rotation:** Lacks distributed revocation lists and token expiry metadata.
+4. **User Identity Persistence:** Does not store user credentials in a persistent database table.
+
+### Recommended Production Authentication Architecture
+For production cloud environments, EduLens should be configured with:
+1. **Database-Backed Credentials:** A PostgreSQL `api_tokens` table with SHA-256 hashed keys and user ID bindings.
+2. **Stateless JWTs (RS256):** Tokens containing cryptographic claims (`sub: student_id`, `exp`, `iss: edulens`) verifiable statelessly across all worker instances.
+3. **Redis Session Store:** Fast distributed cache for instant token revocation and per-student rate limiting.
+4. **OAuth 2.0 Authorization Server:** Implementing the standard OAuth 2.0 Authorization Code flow with PKCE (`/oauth/authorize`, `/oauth/token`) to provide 1-click workspace authorization in ChatGPT Web and third-party educational LMS platforms.
 
 ---
 
-## 7. Authentication, Multi-User Isolation & Security
+## 7. Client Setup Guides
 
-EduLens enforces strict user boundaries across all operations.
+### A. ChatGPT Custom MCP Server Integration
 
-### Development Mode vs. Production Configuration
+OpenAI supports connecting custom MCP servers directly to ChatGPT for users on **ChatGPT Plus, Team, Enterprise, and Edu** plans.
 
-| Security Feature | Development / Test Mode (`EDULENS_ENVIRONMENT=development`) | Production Mode (`EDULENS_ENVIRONMENT=production`) |
-| :--- | :--- | :--- |
-| **Default Dev Tokens** | Seeded (`edulens-dev-token-student-001`, `student_002`) | **NEVER seeded.** Missing token rejects request. |
-| **Token Sources** | `Authorization` header, Stdio env, or `?token=` if explicitly allowed | **ONLY `Authorization: Bearer <token>` header.** |
-| **Query Parameter Auth** | Allowed only if `EDULENS_ALLOW_QUERY_TOKEN=true` | **STRICTLY REJECTED with HTTP 401.** |
-| **Unauthenticated Fallback** | Allowed only if `--no-auth` CLI flag is set | **Forbidden.** Always requires valid credentials. |
-| **Multi-User Provisioning** | In-memory token manager | Configured via `EDULENS_API_TOKENS="tok1:uid1,tok2:uid2"` |
+#### Connection Method:
+1. Open ChatGPT (Web or Desktop).
+2. Navigate to **Workspace Settings** -> **Connected Apps** (or **Developer Settings** -> **Custom MCP Servers**).
+3. Click **Add Custom MCP Server**.
+4. Configure connection parameters:
+   - **Server URL:** `https://<your-edulens-domain>/mcp` (Streamable HTTP, recommended) or `/sse`.
+   - **Transport:** Streamable HTTP.
+   - **Authentication:**
+     - *Custom Header (Developer / Preview Mode):* Add Header `Authorization` with value `Bearer <your-student-api-token>`.
+     - *OAuth 2.0 (Enterprise Workspace Mode):* Note that if your ChatGPT workspace strictly mandates an OAuth 2.0 Authorization flow, an OAuth provider layer (e.g. Auth0 / FastAPI OAuth) must front the MCP server.
+5. Save the connection. ChatGPT will automatically call `POST /mcp` to initialize, discover all 6 EduLens tools via `tools/list`, and enable them in your chat sessions.
 
-### Multi-User Isolation Architecture
-1. **Header-Based Authentication:** Remote requests must include `Authorization: Bearer <token>`.
-2. **Task-Local User Context (`contextvars`):** Python's `contextvars.ContextVar` binds the authenticated `UserContext` exclusively to the current async task.
-3. **Automatic Context Reset:** `AuthMiddleware` sets the context token and enforces `reset_current_user()` inside a `finally` block, ensuring no context bleeding between recycled threads or async tasks.
-4. **Forged `student_id` Protection:** If a client passes a `student_id` parameter that differs from the authenticated user identity, the server raises `AuthorizationError` immediately.
-5. **Data Access Isolation:** All database reads and writes filter by `user_id = :auth_user_id`. Student A cannot view, list, or modify Student B's data.
-
----
-
-## 8. Client Setup Guides
-
-### A. ChatGPT Integration: Native MCP vs. GPT Actions
-
-> [!IMPORTANT]
-> **Understanding Native MCP vs. GPT Actions:**
-> - **Native MCP (Desktop Developer Mode):** Connects to EduLens's MCP server over Server-Sent Events (SSE). Requires ChatGPT Desktop App (macOS or Windows) with Developer Mode enabled (available to Plus, Team, Enterprise, and Edu plans).
-> - **GPT Actions (Web Custom GPTs):** Standard ChatGPT Web Custom GPTs do **not** speak the JSON-RPC 2.0 MCP protocol. They communicate via REST OpenAPI 3.0. For web users, EduLens exposes standard REST endpoints at `/api/pipeline` and `/api/predict` described below.
-
-#### Option 1: Native MCP Connectivity (ChatGPT Desktop Developer Mode)
-1. Launch **ChatGPT Desktop App** on macOS or Windows.
-2. Go to **Settings** -> **Developer** -> **MCP Servers** -> **Add Server**.
-3. Fill in the connection parameters:
-   - **Name:** `EduLens Learning Analytics`
-   - **Transport:** `Server-Sent Events (SSE)`
-   - **URL:** `http://127.0.0.1:8001/sse` (or your deployed `https://<your-domain>/sse`)
-   - **Headers:**
-     - Key: `Authorization`
-     - Value: `Bearer <your-student-api-token>`
-4. Click **Save**. ChatGPT initiates the MCP protocol handshake, queries `tools/list`, and discovers all 6 EduLens tools.
-5. In your conversation prompt:
-   ```text
-   You are an educational AI tutor. When we finish discussing a topic,
-   call the ingest_learning_session tool to save the conversation to EduLens
-   and review my learning analytics with me.
-   ```
-
-#### Option 2: GPT Actions Bridge (ChatGPT Web Custom GPTs)
-For standard web accounts without MCP developer mode:
-1. Open **Explore GPTs** -> **Create a GPT** -> **Configure** -> **Actions** -> **Create new action**.
-2. Set Authentication to `API Key` (Type: `Bearer`) and provide your API token.
-3. Import the OpenAPI specification from `http://<your-server>:8000/openapi.json`.
-4. ChatGPT will invoke EduLens's `/api/pipeline` REST endpoint.
+#### Difference Between Native MCP and GPT Actions:
+- **Native MCP (`/mcp`):** Uses JSON-RPC 2.0 over Streamable HTTP or SSE. The AI client dynamically negotiates tools, resources, and session contexts.
+- **GPT Actions (`/api/pipeline`):** Uses traditional REST and OpenAPI 3.0 schemas. EduLens maintains backward compatibility with GPT Actions via `api/index.py` at `/api/pipeline`.
 
 ---
 
-### B. Claude Desktop Configuration
+### B. Claude Desktop Integration
 
-Claude Desktop supports native MCP out-of-the-box via both local Stdio and remote SSE transports.
+Claude Desktop connects seamlessly via either local Stdio or remote SSE.
 
 #### 1. Local Stdio Transport (Recommended for Desktop)
-Edit your Claude Desktop configuration:
-- **Windows:** `%APPDATA%\Claude\claude_desktop_config.json`
-- **macOS:** `~/Library/Application Support/Claude/claude_desktop_config.json`
+Edit `%APPDATA%\Claude\claude_desktop_config.json` (Windows) or `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS):
 
 ```json
 {
@@ -472,13 +529,12 @@ Edit your Claude Desktop configuration:
 }
 ```
 
-#### 2. Remote SSE Transport
-For connecting Claude Desktop to a hosted remote EduLens server:
+#### 2. Remote Streamable HTTP / SSE Transport
 ```json
 {
   "mcpServers": {
     "edulens-remote": {
-      "url": "http://127.0.0.1:8001/sse",
+      "url": "http://127.0.0.1:8001/mcp",
       "headers": {
         "Authorization": "Bearer edulens-dev-token-student-001"
       }
@@ -489,60 +545,34 @@ For connecting Claude Desktop to a hosted remote EduLens server:
 
 ---
 
-## 9. Local Development & Deployment
+### C. Testing with Official MCP Inspector
 
-### Running the Server Locally
+You can test and inspect all tools using the official Model Context Protocol Inspector:
 
 ```bash
-# Activate virtual environment
-source .venv/bin/activate  # Windows: .\.venv\Scripts\Activate.ps1
-
-# 1. Start with SSE Transport (Default for remote clients / ChatGPT)
-python -m backend.mcp_server.server --transport sse --port 8001
-
-# 2. Start with Streamable HTTP Transport
-python -m backend.mcp_server.server --transport streamable --port 8001
-
-# 3. Start with Stdio Transport (For Claude Desktop integration)
-python -m backend.mcp_server.server --transport stdio
+# Launch MCP Inspector pointing to EduLens Streamable HTTP endpoint
+npx @modelcontextprotocol/inspector http://127.0.0.1:8001/mcp
 ```
-
-### Production Deployment (Docker / VPS / Cloud)
-
-```dockerfile
-FROM python:3.12-slim
-WORKDIR /app
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
-COPY . .
-ENV EDULENS_ENVIRONMENT=production
-ENV EDULENS_MCP_TRANSPORT=sse
-ENV EDULENS_MCP_PORT=8001
-ENV EDULENS_AUTH_ENABLED=true
-ENV EDULENS_STORAGE_DIR=/app/data/storage
-EXPOSE 8001
-CMD ["python", "-m", "backend.mcp_server.server", "--transport", "sse", "--host", "0.0.0.0", "--port", "8001"]
-```
+Inside the Inspector UI:
+1. Add Header: `Authorization: Bearer edulens-dev-token-student-001`.
+2. Click **Connect**.
+3. View and execute all 6 tools, inspect resources (`edulens://curriculum/topics`), and review JSON-RPC logs.
 
 ---
 
-## 10. Automated Testing & Verification
+## 8. Automated Testing & Verification
 
-EduLens includes a full test suite verifying all MCP endpoints, transport layers, security isolation, and live client sessions.
+The test suite validates all transport modes, tools, authentication, and isolation guarantees:
 
 ```bash
-# Run all tests (75 passing tests)
+# Run complete test suite (78 passing tests)
 .\.venv\Scripts\pytest tests/ -v
 
-# Run MCP server unit & integration tests (33 tests)
+# Run MCP server tests specifically (36 tests)
 .\.venv\Scripts\pytest tests/test_mcp_server.py -v
-
-# Run live MCP client session E2E test
-.\.venv\Scripts\pytest tests/test_mcp_e2e.py -v
 ```
 
 **Verification Results:**
-- `tests/test_mcp_server.py`: **33/33 tests passing** (authentication, tool discovery, multi-user isolation, concurrency, retry resilience, quiz updates).
-- `tests/test_mcp_e2e.py`: **1/1 test passing** (live subprocess client session over Stdio).
-- **Overall Project Suite:** **75/75 tests passing with 0 errors**.
-
+- **36/36 MCP Tests Passing:** Validating all 6 tools, Streamable HTTP `/mcp`, SSE, Stdio, query parameter blocking, identity forgery prevention, and ContextVar task isolation.
+- **1/1 Live E2E Subprocess Test Passing:** Official `ClientSession` interaction over Stdio.
+- **78/78 Total Project Tests Passing** across ML, API, and MCP suites.

@@ -51,8 +51,8 @@ class MCPSettings(BaseModel):
         description="Port for HTTP/SSE transport",
     )
     transport: str = Field(
-        default=os.getenv("EDULENS_MCP_TRANSPORT", "sse"),
-        description="Default transport: 'sse' (Server-Sent Events), 'streamable' (Streamable HTTP), or 'stdio'",
+        default=os.getenv("EDULENS_MCP_TRANSPORT", "streamable"),
+        description="Default transport: 'streamable' (Streamable HTTP, recommended for production), 'sse' (Server-Sent Events), or 'stdio'",
     )
 
     # Environment
