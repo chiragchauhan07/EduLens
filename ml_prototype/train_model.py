@@ -43,7 +43,7 @@ from sklearn.metrics import (
     r2_score,
     recall_score,
 )
-from sklearn.model_selection import StratifiedGroupKFold, cross_val_score, train_test_split
+from sklearn.model_selection import StratifiedGroupKFold, GroupShuffleSplit, cross_val_score, train_test_split
 from sklearn.naive_bayes import MultinomialNB
 from sklearn.pipeline import Pipeline
 from sklearn.svm import LinearSVC
@@ -328,9 +328,27 @@ def train_quiz_regressor(
 
     X = df[["full_text", "student_messages"]]
     y = df["quiz_score_percent"]
+    groups = df["student_id"]
 
-    X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=0.20, random_state=random_state
+    # Group-Aware Split on student_id to prevent student persona leakage in regression
+    gss = GroupShuffleSplit(n_splits=1, test_size=0.20, random_state=random_state)
+    train_idx, test_idx = next(gss.split(X, y, groups))
+
+    X_train, X_test = X.iloc[train_idx], X.iloc[test_idx]
+    y_train, y_test = y.iloc[train_idx], y.iloc[test_idx]
+    train_students = set(groups.iloc[train_idx])
+    test_students = set(groups.iloc[test_idx])
+
+    print(f"\nGroup-Aware Regression Split (Zero Student Leakage):")
+    print(f"  Training Set : {len(X_train)} sessions ({len(train_students)} unique students)")
+    print(f"  Test Set     : {len(X_test)} sessions ({len(test_students)} unique students)")
+    print(f"  Training Student IDs : {sorted(list(train_students))}")
+    print(f"  Testing Student IDs  : {sorted(list(test_students))}")
+    print(f"  Student Overlap: {len(train_students & test_students)}")
+
+    # Strict assertion verifying zero leakage
+    assert len(train_students & test_students) == 0, (
+        f"Data leakage detected! Overlapping students: {train_students & test_students}"
     )
 
     regressors = {
@@ -390,6 +408,11 @@ def train_quiz_regressor(
         "dataset_records": len(df),
         "train_records": len(X_train),
         "test_records": len(X_test),
+        "train_students": len(train_students),
+        "test_students": len(test_students),
+        "train_student_ids": sorted(list(train_students)),
+        "test_student_ids": sorted(list(test_students)),
+        "split_strategy": "GroupShuffleSplit on student_id (Zero persona leakage)",
         "models": eval_results,
         "selected_model": best_reg_key,
     }

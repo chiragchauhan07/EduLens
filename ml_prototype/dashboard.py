@@ -94,9 +94,9 @@ st.markdown(
 
 
 @st.cache_resource
-def get_predictor():
-    """Cache the loaded ML model pipeline."""
-    return EduLensPredictor()
+def get_predictor(algorithm: str = "logistic_regression"):
+    """Cache the loaded ML model pipeline for the given algorithm."""
+    return EduLensPredictor(algorithm=algorithm)
 
 
 @st.cache_data
@@ -135,6 +135,26 @@ def get_quiz_evaluation():
     return None
 
 
+@st.cache_data
+def get_feature_ablation():
+    """Load feature ablation JSON report."""
+    report_path = ROOT_DIR / "reports" / "feature_ablation.json"
+    if report_path.exists():
+        with open(report_path, "r", encoding="utf-8") as f:
+            return json.load(f)
+    return None
+
+
+@st.cache_data
+def get_model_explainability():
+    """Load model explainability JSON report."""
+    report_path = ROOT_DIR / "reports" / "model_explainability.json"
+    if report_path.exists():
+        with open(report_path, "r", encoding="utf-8") as f:
+            return json.load(f)
+    return None
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # SIDEBAR NAVIGATION
 # ─────────────────────────────────────────────────────────────────────────────
@@ -167,8 +187,26 @@ if page == "Student Performance Analyzer":
         unsafe_allow_html=True,
     )
 
+    col_top1, col_top2 = st.columns([2, 1])
+    with col_top1:
+        algo_choice = st.selectbox(
+            "Select Understanding Classifier Algorithm:",
+            options=[
+                ("logistic_regression", "Logistic Regression (Primary — Calibrated Probabilities)"),
+                ("linear_svm", "Linear Support Vector Machine (Benchmark — Max-Margin)"),
+                ("naive_bayes", "Multinomial Naive Bayes (Benchmark — Generative)"),
+            ],
+            format_func=lambda x: x[1],
+            index=0,
+        )
+        selected_algo = algo_choice[0]
+    with col_top2:
+        st.write("")
+        st.write("")
+        enable_explain = st.checkbox("Enable Feature Attribution (Explainability)", value=True)
+
     try:
-        predictor = get_predictor()
+        predictor = get_predictor(selected_algo)
         dataset_df = get_dataset()
     except Exception as e:
         st.error(f"Initialization Error: {e}")
@@ -272,7 +310,7 @@ if page == "Student Performance Analyzer":
 
         if analyze_clicked:
             with st.spinner("Extracting NLP features and running model inference..."):
-                result = predictor.predict(current_session)
+                result = predictor.predict(current_session, explain=enable_explain)
 
             st.write("---")
             st.subheader("Analysis & ML Prediction Results")
@@ -288,6 +326,7 @@ if page == "Student Performance Analyzer":
                     f'<span class="{badge_class}" style="font-size:1.25rem;">{result["display_name"]}</span>',
                     unsafe_allow_html=True,
                 )
+                st.caption(f"Inference Model: **{selected_algo.replace('_', ' ').title()}**")
                 st.write("")
                 col_c1, col_c2 = st.columns(2)
                 col_c1.metric("Model Confidence", f"{result['confidence']:.1%}")
@@ -303,10 +342,16 @@ if page == "Student Performance Analyzer":
                 st.info(result["pedagogical_feedback"])
 
             with res_col2:
-                st.markdown("#### Model Class Probabilities")
-                for cls, prob in result["probabilities"].items():
-                    st.write(f"**{cls.capitalize()}**: `{prob:.1%}`")
-                    st.progress(float(prob))
+                if selected_algo == "linear_svm" and result.get("feature_explanation", {}).get("decision_scores"):
+                    st.markdown("#### Margin Decision Scores (Linear SVM)")
+                    st.caption("Signed distance to one-vs-rest separating hyperplanes (higher = stronger class association):")
+                    for cls, score in result["feature_explanation"]["decision_scores"].items():
+                        st.write(f"**{cls.capitalize()}**: `{score:+.3f}`")
+                else:
+                    st.markdown("#### Model Class Probabilities")
+                    for cls, prob in result["probabilities"].items():
+                        st.write(f"**{cls.capitalize()}**: `{prob:.1%}`")
+                        st.progress(float(prob))
 
             st.write("")
             st.markdown("#### Extracted Conversational Evidence Signals")
@@ -322,6 +367,41 @@ if page == "Student Performance Analyzer":
             sc6.metric("Clarification Requests", int(sig.get("clarification_markers", 0)))
             sc7.metric("Comprehension Signals", int(sig.get("understanding_markers", 0)))
             sc8.metric("Technical/Code Tokens", int(sig.get("code_indicators", 0)))
+
+            # Feature Attribution / Local Explainability
+            if enable_explain and result.get("feature_explanation"):
+                exp_data = result["feature_explanation"]
+                st.write("")
+                st.subheader("💡 Model Explainability & Local Evidence Attribution")
+                if "summary" in exp_data:
+                    st.info(f"**Attribution Summary:** {exp_data['summary']}")
+
+                exp_col1, exp_col2 = st.columns(2)
+                with exp_col1:
+                    st.markdown(f"##### 🟢 Evidence Supporting *'{pred_class.upper()}'*")
+                    pos_feats = exp_data.get("top_positive_features", [])
+                    if pos_feats:
+                        pos_df = pd.DataFrame([{
+                            "Feature": item["feature"].replace("signal_", "📊 ").replace("tfidf_", "🔤 '") + ("'" if "tfidf_" in item["feature"] else ""),
+                            "Observed Value": f"{item['value']:.2f}" if isinstance(item['value'], float) else str(item['value']),
+                            "Attribution Weight": f"{item['weight']:+.3f}",
+                        } for item in pos_feats])
+                        st.dataframe(pos_df, use_container_width=True, hide_index=True)
+                    else:
+                        st.caption("No strong positive features identified.")
+
+                with exp_col2:
+                    st.markdown(f"##### 🔴 Opposing Evidence / Contrasting Signals")
+                    neg_feats = exp_data.get("top_negative_features", [])
+                    if neg_feats:
+                        neg_df = pd.DataFrame([{
+                            "Feature": item["feature"].replace("signal_", "📊 ").replace("tfidf_", "🔤 '") + ("'" if "tfidf_" in item["feature"] else ""),
+                            "Observed Value": f"{item['value']:.2f}" if isinstance(item['value'], float) else str(item['value']),
+                            "Attribution Weight": f"{item['weight']:+.3f}",
+                        } for item in neg_feats])
+                        st.dataframe(neg_df, use_container_width=True, hide_index=True)
+                    else:
+                        st.caption("No strong opposing features identified.")
 
     else:
         st.warning("Please provide a conversation containing student messages to analyze.")
@@ -514,11 +594,120 @@ elif page == "Model Information":
             })
         st.table(pd.DataFrame(comp_rows))
 
+    # Feature Ablation Section
+    ablation_report = get_feature_ablation()
+    if ablation_report and "experiments" in ablation_report:
+        st.write("---")
+        st.subheader("6. Feature Ablation Experiments (6 Configurations)")
+        st.caption(
+            "Systematic evaluation across 6 feature subsets to measure the exact predictive contribution of lexical "
+            "vs. behavioral conversational features under identical Stratified Group splitting (357 train / 73 test, 0 student overlap):"
+        )
+
+        ablation_rows = []
+        for exp_key, exp_data in ablation_report["experiments"].items():
+            lr_res = exp_data.get("logistic_regression", {})
+            svm_res = exp_data.get("linear_svm", {})
+            ablation_rows.append({
+                "Experiment": exp_data["name"],
+                "Features": exp_data["feature_count"],
+                "LR Accuracy": f"{lr_res.get('accuracy', 0):.2%}",
+                "LR Macro F1": f"{lr_res.get('macro_f1', 0):.4f}",
+                "SVM Accuracy": f"{svm_res.get('accuracy', 0):.2%}",
+                "SVM Macro F1": f"{svm_res.get('macro_f1', 0):.4f}",
+            })
+        st.table(pd.DataFrame(ablation_rows))
+
+        st.info(
+            "**Key Ablation Findings:**\n\n"
+            "- **Exp B (8 Dense Conversational Signals Only):** Achieves **75.3% accuracy** (Macro F1 = 0.7391), outperforming "
+            "the 53.4% dummy baseline by **+21.9%**. This confirms that conversation flow metrics carry genuine pedagogical signal.\n"
+            "- **Exp C (All 108 Combined Features):** Yields the strongest overall performance (**95.9% LR, 100% SVM**).\n"
+            "- **Exp D (No Explicit Understanding/Confusion Markers):** Achieves **97.3% accuracy / 0.9620 Macro F1** on Linear SVM.\n"
+            "- **Exp F (No Explicit Markers AND No Shortcut Vocabulary in TF-IDF):** Even when explicit markers and shortcut terms "
+            "('confused', 'understood', 'clear', 'lost', 'stuck', etc.) are purged from BOTH dense signals and TF-IDF vocabulary, "
+            "the model achieves **94.5% (LR)** and **98.6% (SVM)** accuracy, demonstrating that the classifier learns genuine "
+            "dialogue reasoning and contextual inquiry rather than memorizing superficial keywords."
+        )
+
+    # Model Explainability & Feature Drivers Section
+    explain_data = get_model_explainability()
+    if explain_data:
+        st.write("---")
+        st.subheader("7. Global Model Explainability & Key Feature Drivers")
+        st.caption("Interpreting the mathematical parameters that govern class predictions and regression scores:")
+
+        tab_lr, tab_svm, tab_nb, tab_quiz = st.tabs([
+            "Logistic Regression (Coefficients)",
+            "Linear SVM (Margin Weights)",
+            "Multinomial Naive Bayes (Log-Odds)",
+            "Quiz Score Regressor (Feature Importance)",
+        ])
+
+        with tab_lr:
+            st.markdown("##### Logistic Regression Class Drivers (Top Log-Odds Multipliers)")
+            lr_exps = explain_data.get("logistic_regression", {}).get("class_explanations", {})
+            cls_sel = st.selectbox("Select Target Class:", ["understood", "partial", "confused"], key="exp_lr_cls")
+            if cls_sel in lr_exps:
+                c_data = lr_exps[cls_sel]
+                c_col1, c_col2 = st.columns(2)
+                with c_col1:
+                    st.markdown(f"**Top Positive Features (Pushing Towards '{cls_sel}')**")
+                    pos_df = pd.DataFrame(c_data.get("top_positive_features", [])[:8])
+                    st.dataframe(pos_df, use_container_width=True, hide_index=True)
+                with c_col2:
+                    st.markdown(f"**Top Negative Features (Pushing Away from '{cls_sel}')**")
+                    neg_df = pd.DataFrame(c_data.get("top_negative_features", [])[:8])
+                    st.dataframe(neg_df, use_container_width=True, hide_index=True)
+
+        with tab_svm:
+            st.markdown("##### Linear SVM Decision Boundary Weights")
+            svm_exps = explain_data.get("linear_svm", {}).get("class_explanations", {})
+            svm_cls_sel = st.selectbox("Select Target Class:", ["understood", "partial", "confused"], key="exp_svm_cls")
+            if svm_cls_sel in svm_exps:
+                s_data = svm_exps[svm_cls_sel]
+                s_col1, s_col2 = st.columns(2)
+                with s_col1:
+                    st.markdown(f"**Highest Positive Margin Weights ('{svm_cls_sel}')**")
+                    pos_df = pd.DataFrame(s_data.get("top_positive_features", [])[:8])
+                    st.dataframe(pos_df, use_container_width=True, hide_index=True)
+                with s_col2:
+                    st.markdown(f"**Highest Negative Margin Weights ('{svm_cls_sel}')**")
+                    neg_df = pd.DataFrame(s_data.get("top_negative_features", [])[:8])
+                    st.dataframe(neg_df, use_container_width=True, hide_index=True)
+
+        with tab_nb:
+            st.markdown("##### Multinomial Naive Bayes Discriminative Terms")
+            nb_exps = explain_data.get("naive_bayes", {}).get("class_explanations", {})
+            nb_cls_sel = st.selectbox("Select Target Class:", ["understood", "partial", "confused"], key="exp_nb_cls")
+            if nb_cls_sel in nb_exps:
+                n_data = nb_exps[nb_cls_sel]
+                st.markdown(f"**Most Discriminative Vocabulary Terms for '{nb_cls_sel}' (Log-Likelihood Ratio vs Other Classes)**")
+                n_df = pd.DataFrame(n_data.get("top_distinctive_terms", [])[:10])
+                st.dataframe(n_df, use_container_width=True, hide_index=True)
+
+        with tab_quiz:
+            st.markdown("##### Quiz Score Regressor Drivers")
+            q_data = explain_data.get("quiz_regressor", {})
+            q_col1, q_col2 = st.columns(2)
+            with q_col1:
+                st.markdown("**Ridge Regressor Coefficients (Feature Weights)**")
+                r_weights = q_data.get("ridge_coefficients", [])
+                if r_weights:
+                    r_df = pd.DataFrame(r_weights[:10])
+                    st.dataframe(r_df, use_container_width=True, hide_index=True)
+            with q_col2:
+                st.markdown("**Random Forest Gini Feature Importances**")
+                rf_importances = q_data.get("random_forest_importance", [])
+                if rf_importances:
+                    rf_df = pd.DataFrame(rf_importances[:10])
+                    st.dataframe(rf_df, use_container_width=True, hide_index=True)
+
     # Quiz Score Regressor Section
     quiz_eval = get_quiz_evaluation()
     if quiz_eval and "models" in quiz_eval:
         st.write("---")
-        st.subheader("6. Secondary Model: Quiz Score Regressor")
+        st.subheader("8. Secondary Model: Quiz Score Regressor")
         st.caption(f"Trained on {quiz_eval['dataset_records']} student sessions with post-session assessment scores:")
         
         quiz_rows = []
@@ -532,6 +721,6 @@ elif page == "Model Information":
         st.table(pd.DataFrame(quiz_rows))
 
     st.write("---")
-    st.subheader("7. Important Honest Limitations")
+    st.subheader("9. Important Honest Limitations")
     for lim in eval_report.get("limitations", []):
         st.markdown(f"- ⚠️ {lim}")

@@ -92,3 +92,27 @@ def test_api_quiz_model_info():
 def test_api_predict_empty_fails():
     res = client.post("/api/predict", json={})
     assert res.status_code == 400
+
+
+def test_api_predict_with_explain():
+    payload = {
+        "text": "I really don't understand how recursion works. I am lost and confused.",
+        "explain": True,
+    }
+    res = client.post("/api/predict", json=payload)
+    assert res.status_code == 200
+    data = res.json()
+    assert "feature_explanation" in data
+    assert data["feature_explanation"] is not None
+    assert "top_positive_features" in data["feature_explanation"]
+    assert "top_negative_features" in data["feature_explanation"]
+
+
+def test_api_explainability_endpoint():
+    res = client.get("/api/explainability")
+    assert res.status_code == 200
+    data = res.json()
+    assert "logistic_regression" in data
+    assert "linear_svm" in data
+    assert "naive_bayes" in data
+    assert "quiz_regressor" in data

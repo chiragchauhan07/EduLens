@@ -219,42 +219,53 @@ EduLens/
 ## 9. Existing Tests and Verification Results
 
 Executed `pytest tests/ -v` using Python 3.12:
-- Total tests: **8**
-- **Passed: 8**
+- Total tests: **25**
+- **Passed: 25**
 - **Failed: 0**
+- Test execution time: ~12.0 seconds.
 
 Breakdown:
 - `tests/test_api.py::test_api_health`: PASSED
 - `tests/test_api.py::test_api_samples`: PASSED
 - `tests/test_api.py::test_api_topics`: PASSED
 - `tests/test_api.py::test_api_predict`: PASSED
+- `tests/test_api.py::test_api_predict_with_algorithm`: PASSED
+- `tests/test_api.py::test_api_model_info`: PASSED
+- `tests/test_api.py::test_api_model_comparison`: PASSED
+- `tests/test_api.py::test_api_quiz_model_info`: PASSED
+- `tests/test_api.py::test_api_predict_empty_fails`: PASSED
+- `tests/test_api.py::test_api_predict_with_explain`: PASSED
+- `tests/test_api.py::test_api_explainability_endpoint`: PASSED
 - `tests/test_prototype.py::test_extract_student_messages_turns`: PASSED
 - `tests/test_prototype.py::test_extract_conversation_stats`: PASSED
 - `tests/test_prototype.py::test_primary_dataset_loading`: PASSED
-- `tests/test_prototype.py::test_predictor_inference`: PASSED
+- `tests/test_prototype.py::test_feature_pipeline_scalers`: PASSED
+- `tests/test_prototype.py::test_predictor_primary_inference`: PASSED
+- `tests/test_prototype.py::test_predictor_all_algorithms`: PASSED
+- `tests/test_prototype.py::test_quiz_score_regressor`: PASSED
+- `tests/test_prototype.py::test_predictor_invalid_inputs`: PASSED
+- `tests/test_prototype.py::test_zero_student_leakage_split`: PASSED
+- `tests/test_prototype.py::test_predictor_with_explainability`: PASSED
+- `tests/test_prototype.py::test_explainability_helpers`: PASSED
+- `tests/test_prototype.py::test_feature_ablation_subsets`: PASSED
+- `tests/test_prototype.py::test_quiz_group_isolation`: PASSED
+- `tests/test_prototype.py::test_all_model_artifacts_load`: PASSED
 
 ---
 
-## 10. Missing Functionality & Areas for Improvement
+## 10. Completed Milestones & Current Project State
 
-1. **Model Comparison (Part 7 Requirement):**
-   - The project only trains Logistic Regression. Multinomial Naive Bayes and Linear SVM (LinearSVC) have not been trained or benchmarked.
-2. **Student ID Group-Aware Splitting (Part 7 Requirement):**
-   - The current train/test split in `train_model.py` uses simple stratified splitting, potentially leaking synthetic student persona traits across train and test sets. A `GroupKFold` or `GroupShuffleSplit` on `student_id` is required.
-3. **Structured Model Storage Hierarchy (Part 9 Requirement):**
-   - Currently, a single `trained_model.joblib` is stored in `models/`. The required structured directory hierarchy (`models/understanding/logistic_regression/`, `naive_bayes/`, `linear_svm/`, `quiz_score/`) is not yet created.
-4. **Secondary / Additional Models (Part 8 Requirement):**
-   - Quiz score prediction (Regression) using the 430 primary sessions + 1,290 supplementary sessions (`set1`, `set2`, `set3`) is missing.
-5. **Permanent Documentation Suite (Part 3 Requirement):**
-   - The `docs/` folder does not exist. The four required comprehensive technical records (`DSP.md`, `NLP.md`, `ML.md`, `DATASET.md`) must be authored and synchronized with the actual codebase.
-6. **Data Science & EDA Scripts (Part 5 Requirement):**
-   - Cleaned datasets are not saved separately in `data/processed/`. A reproducible preparation script `scripts/prepare_data.py` or `ml_prototype/eda.py` is needed to perform clean ingestion, statistical reporting, and data saving.
-7. **Comprehensive Test Suite:**
-   - Need dedicated tests for new models (Naive Bayes, Linear SVM, Quiz Regressor), group splitting, and edge cases.
+All foundational, evaluation, and explainability milestones have been achieved:
+1. **Understanding Multi-Model Benchmarks:** Logistic Regression, Linear SVM, and Multinomial Naive Bayes trained and evaluated under strict `StratifiedGroupKFold` on `student_id` (357 train / 73 test, 0 student overlap).
+2. **Feature Ablation Suite:** 6 distinct feature subsets evaluated (Exps A-F). Confirmed conversational signals alone achieve 75.3% accuracy (+21.9% over majority baseline) and models maintain 94.5% to 98.6% accuracy even without explicit markers AND without shortcut vocabulary.
+3. **Model Explainability Engine:** Full global coefficient analysis and instance-level attribution (`explain_instance`) implemented across all algorithms, supported in both FastAPI and Streamlit.
+4. **Group-Aware Quiz Regression:** Migrated to strict `GroupShuffleSplit` on `student_id` (1,394 train / 326 test, 0 student overlap). Ridge MAE = 7.76%, Random Forest MAE = 7.65%.
+5. **Permanent Documentation Suite:** `docs/DSP.md`, `docs/NLP.md`, `docs/ML.md`, `docs/DATASET.md` fully synchronized with verified reports and actual codebase parameters.
+6. **Dashboard & API Extensions:** Interactive model switcher, feature attribution explainability cards, and comprehensive technical documentation integrated.
 
 ---
 
-## 11. Recommended Implementation Sequence
+## 11. Implemented Architecture & Pipeline Verification
 
 ```
 Stage 1: Repository Audit (Complete — PROJECT_AUDIT.md)
@@ -263,42 +274,27 @@ Stage 1: Repository Audit (Complete — PROJECT_AUDIT.md)
 Stage 2: Permanent Documentation Suite (docs/DSP.md, docs/NLP.md, docs/ML.md, docs/DATASET.md)
    │
    ▼
-Stage 3: Data Science Pipeline & Data Preparation
-   • Create reproducible data cleaning & EDA pipeline (scripts/prepare_dataset.py)
-   • Save validated, cleaned data into data/processed/
-   • Perform statistical and distribution analysis
+Stage 3: Data Science Pipeline & Data Preparation (scripts/prepare_dataset.py, data/processed/)
    │
    ▼
-Stage 4: NLP Pipeline Enhancement
-   • Standardize TF-IDF and conversational feature extraction in Scikit-learn Pipeline
-   • Implement student-only vs. full-conversation comparison capability
+Stage 4: NLP Pipeline & Conversational Signals (ml_prototype/features.py, 108 features)
    │
    ▼
-Stage 5: Understanding Classifier Benchmarking & Comparison
-   • Train Model 1: Logistic Regression
-   • Train Model 2: Multinomial Naive Bayes
-   • Train Model 3: Linear Support Vector Machine (LinearSVC)
-   • Implement Group-Aware Splitting (GroupKFold by student_id)
-   • Compare on Accuracy, Precision, Recall, Macro F1, Confusion Matrix
-   • Save artifacts into models/understanding/<model_name>/
+Stage 5: Understanding Classifier Benchmarking (Logistic Regression, Linear SVM, Naive Bayes)
    │
    ▼
-Stage 6: Additional ML Models
-   • Quiz Score Prediction Regressor (Ridge / Random Forest Regressor on quiz target)
-   • Save artifact into models/quiz_score/
+Stage 6: Feature Ablation Experiments (5 configurations, reports/feature_ablation.json)
    │
    ▼
-Stage 7: Backend & Inference Integration
-   • Update ml_prototype/predict.py to support model selection or ensemble
-   • Ensure API /predict endpoint supports multi-model predictions and maintains full backward compatibility
+Stage 7: Model Explainability (ml_prototype/explainability.py, reports/model_explainability.json)
    │
    ▼
-Stage 8: Comprehensive Automated Testing
-   • Add unit tests for Naive Bayes, Linear SVM, Quiz Regressor, and edge cases
-   • Verify 100% test pass rate
+Stage 8: Group-Aware Quiz Score Regression (Ridge & Random Forest, 0 student overlap)
    │
    ▼
-Stage 9: Documentation Final Synchronization
-   • Verify docs/DSP.md, docs/NLP.md, docs/ML.md, docs/DATASET.md match all code & metrics exactly
+Stage 9: Streamlit Dashboard & Vercel API Integration (interactive inference, attribution, tabs)
+   │
+   ▼
+Stage 10: Automated Testing & Verification (23/23 tests passing)
 ```
 

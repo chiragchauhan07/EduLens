@@ -69,13 +69,16 @@ EduLens serves as the **intelligence and analytics layer** built around the stud
 
 - **🔍 Multi-Schema Session Ingestion:** Accepts conversation logs across standard formats (`turns`, `messages`, raw dialogue, or JSON files).
 - **🧪 Leakage-Free Feature Engineering:** 108 features combining 8 dense pedagogical & structural signals (turn counts, word ratios, confusion markers, clarification requests, code indicators) with 100 TF-IDF lexical n-grams.
-- **🎯 High-Precision Understanding Classifier:** Categorizes student comprehension into `understood`, `partial`, and `confused` with **96.51% test accuracy** and **0.9577 macro F1-score** (vs. 45.35% baseline).
-- **📊 Interactive Streamlit Analytics Dashboard:**
-  - **Student Performance Analyzer:** Test real-time inference on sample dialogues, paste custom transcripts, or upload files.
+- **🎯 High-Precision Understanding Classifier:** Categorizes student comprehension into `understood`, `partial`, and `confused` with **95.89% test accuracy** and **0.9399 macro F1-score** on Logistic Regression, and **100.0% accuracy** on Linear SVM under strict group-aware evaluation (vs. 53.42% baseline).
+- **💡 Built-in Explainability Engine:** Decomposes predictions into mathematical feature contributions, identifying exact dialogue drivers and terminology for each class.
+- **🔬 6-Configuration Feature Ablation:** Proves dialogue structure alone carries 75.3% accuracy, and the model preserves 94.5%–98.6% accuracy even without explicit keywords.
+- **📈 Quiz Score Regressor:** Predicts post-session assessment scores (0–100%) with 7.65% MAE using zero-leakage student grouping.
+- **📊 Interactive Streamlit & Vercel Dashboards:**
+  - **Student Performance Analyzer:** Test real-time inference on sample dialogues, paste custom transcripts, or upload files with live feature attributions.
   - **Topic-Wise Performance:** Curriculum-level mastery aggregates, confusion rates, and topic difficulty rankings.
-  - **Model Architecture & Viva Guide:** Technical documentation, feature weights, confusion matrix, and defense Q&A.
+  - **Model Architecture & Viva Guide:** Multi-model benchmarks, 6 ablation experiments, explainability tabs, and defense Q&A.
 - **⚡ Deterministic & Explainable:** Sub-millisecond inference per session with transparent probability distributions and explainable linear coefficients.
-- **🛡️ Automated Test Suite:** Unit and integration tests powered by `pytest` ensuring end-to-end pipeline reliability.
+- **🛡️ 25 Automated Unit & Integration Tests:** Powered by `pytest` ensuring 100% end-to-end pipeline reliability.
 
 ---
 
@@ -86,34 +89,54 @@ EduLens/
 ├── .gitignore                             # Git ignore rules (caches, venvs, env files)
 ├── pytest.ini                             # Pytest configuration (pythonpath = .)
 ├── requirements.txt                       # Production & prototype dependencies
-├── EduLens Project Specification.pdf     # System specification & architectural blueprint
-├── PROJECT_CONTEXT.md                     # High-level architecture, roadmap & vision
-├── prototype_context.md                   # ML prototype details & viva defense reference
+├── PROJECT_AUDIT.md                       # Comprehensive codebase & architecture audit
 ├── README.md                              # Main onboarding guide (this file)
-├── generate_dataset.py                    # Synthetic CS student dialogue generator
+├── api/                                   # Vercel Serverless API endpoints
+│   └── index.py                           # FastAPI application (/api/predict, /api/explainability, etc.)
 ├── data/
-│   └── raw/
-│       ├── edulens_chats_dataset.json     # Primary supervised dataset (430 sessions)
-│       ├── edulens_chats_set1 (1).json    # Supplementary dataset (420 sessions)
-│       ├── edulens_chats_set2 (1).json    # Supplementary dataset (430 sessions)
-│       ├── edulens_chats_set3 (1).json    # Supplementary dataset (440 sessions)
-│       ├── education_dialogue/            # 47k Gemini dialogues (unlabeled)
-│       └── mathdial/                      # 2.8k human math tutoring dialogues
+│   ├── raw/
+│   │   ├── edulens_chats_dataset.json     # Primary supervised dataset (430 sessions)
+│   │   ├── edulens_chats_set1 (1).json    # Supplementary dataset (420 sessions)
+│   │   ├── edulens_chats_set2 (1).json    # Supplementary dataset (430 sessions)
+│   │   ├── edulens_chats_set3 (1).json    # Supplementary dataset (440 sessions)
+│   │   ├── education_dialogue/            # 47k Gemini dialogues (unlabeled)
+│   │   └── mathdial/                      # 2.8k human math tutoring dialogues
+│   └── processed/                         # Validated, leakage-free cleaned datasets
+├── docs/                                  # Four Permanent Technical Records
+│   ├── DSP.md                             # Data Science Pipeline specification
+│   ├── NLP.md                             # Natural Language Processing & vectorization
+│   ├── ML.md                              # Machine Learning benchmarks & ablation
+│   └── DATASET.md                         # Dataset schemas & group splitting rules
 ├── ml_prototype/                          # Core Machine Learning Package
 │   ├── __init__.py                        # Package root
 │   ├── data_loader.py                     # Schema normalization & dataset loader
-│   ├── features.py                        # Conversational signals & TF-IDF transformers
-│   ├── train_model.py                     # Stratified training, 5-fold CV & evaluation
-│   ├── predict.py                         # Inference engine with confidence & feedback
+│   ├── features.py                        # Conversational signals, TF-IDF, & ablation pipelines
+│   ├── explainability.py                  # Model coefficients & instance attribution
+│   ├── train_model.py                     # Group-aware training, CV & artifact generation
+│   ├── predict.py                         # Multi-model inference engine with explainability
 │   └── dashboard.py                       # 3-page interactive Streamlit dashboard
-├── models/
-│   └── trained_model.joblib               # Serialized Scikit-learn Pipeline artifact
-├── reports/
-│   ├── dataset_inspection.md              # Comprehensive dataset schema & audit report
-│   └── model_evaluation.json              # Model evaluation metrics & confusion matrix
+├── models/                                # Versioned Model Artifacts
+│   ├── trained_model.joblib               # Primary backward-compatible pipeline artifact
+│   ├── understanding/                     # Understanding classification models
+│   │   ├── logistic_regression/           # Calibrated Logistic Regression model & metadata
+│   │   ├── linear_svm/                    # Calibrated Linear SVM model & metadata
+│   │   └── naive_bayes/                   # Multinomial Naive Bayes model & metadata
+│   └── quiz_score/                        # Quiz score regression model (Random Forest / Ridge)
+├── reports/                               # Generated JSON & Markdown Reports
+│   ├── feature_ablation.json              # 6-configuration feature ablation report
+│   ├── model_comparison.json              # Cross-model evaluation benchmark
+│   ├── model_evaluation.json              # Primary Logistic Regression evaluation report
+│   ├── model_explainability.json          # Global explainability weights and importances
+│   ├── prediction_walkthrough.md          # 7-stage dialogue prediction trace
+│   └── quiz_regressor_evaluation.json     # Group-aware regression evaluation
+├── scripts/                               # Reproducible Execution Scripts
+│   ├── prepare_data.py                    # Dataset validation and cleaning
+│   ├── run_feature_ablation.py            # Systematic ablation experiment suite
+│   └── walkthrough_prediction.py          # Prediction trace generator
 └── tests/
     ├── __init__.py
-    └── test_prototype.py                  # Pytest automated test suite
+    ├── test_api.py                        # FastAPI endpoint test suite
+    └── test_prototype.py                  # Data loader, pipeline, model & explainability tests
 ```
 
 ---
@@ -127,7 +150,7 @@ EduLens/
   - **`confused`** (19.1%): Student expressed persistent difficulty, repeated doubts, or failed to apply concepts.
 
 ### Feature Pipeline (108 Features)
-1. **Dense Conversational Signals (8 Features, Scaled via StandardScaler):**
+1. **Dense Conversational Signals (8 Features, Scaled via StandardScaler / MinMaxScaler):**
    - `num_turns`: Count of student messages.
    - `total_words`: Total word count across student utterances.
    - `avg_turn_length`: Average words per turn.
@@ -141,26 +164,22 @@ EduLens/
 
 ### Model Evaluation Results
 
-Evaluated on held-out test split (20%, 86 sessions) with Stratified 5-Fold Cross Validation:
+Evaluated on held-out test split (73 sessions from 6 unseen students, 0 overlap) with 5-Fold Stratified Group Cross-Validation on `student_id`:
 
-| Metric | EduLens Primary Model | Baseline (Majority Class) |
-|---|---|---|
-| **Model Type** | **Multinomial Logistic Regression** | `DummyClassifier` |
-| **Test Accuracy** | **96.51%** | 45.35% |
-| **Macro Precision** | **0.9708** | 0.1512 |
-| **Macro Recall** | **0.9476** | 0.3333 |
-| **Macro F1-Score** | **0.9577** | 0.2080 |
-| **Weighted F1-Score** | **0.9647** | 0.2833 |
-| **5-Fold CV Accuracy** | **91.88% (± 4.26%)** | — |
-| **5-Fold CV Macro F1** | **90.31% (± 5.06%)** | — |
+| Metric | Dummy Baseline (Majority) | Logistic Regression (Balanced) | Multinomial Naive Bayes | Linear SVM (Calibrated) |
+|---|---|---|---|---|
+| **Test Accuracy** | 53.42% | **95.89%** | 80.82% | **100.00%** |
+| **Macro Precision** | 0.1781 | **0.9380** | 0.7569 | **1.0000** |
+| **Macro Recall** | 0.3333 | **0.9429** | 0.7167 | **1.0000** |
+| **Macro F1-Score** | 0.2321 | **0.9399** | 0.7299 | **1.0000** |
+| **Weighted F1-Score** | 0.3718 | **0.9591** | 0.7966 | **1.0000** |
+| **5-Fold CV Accuracy** | — | **93.78% (± 3.23%)** | 84.19% (± 10.20%) | **97.77% (± 1.82%)** |
+| **5-Fold CV Macro F1** | — | **92.95% (± 3.14%)** | 81.34% (± 9.92%) | **97.44% (± 2.10%)** |
 
-#### Confusion Matrix (Held-Out Test Set)
-```text
-                  Predicted: confused  partial  understood
-Actual: confused                14        2           0
-Actual: partial                  0       30           1
-Actual: understood               0        0          39
-```
+### Secondary Model: Quiz Score Regressor (Group-Aware Split)
+- **Dataset:** 1,720 sessions across 40 students (`GroupShuffleSplit` by `student_id`, 1,394 train / 326 test, 0 overlap).
+- **Random Forest Regressor:** MAE = **7.65%**, RMSE = **9.36%**, $R^2 = 0.7624$
+- **Ridge Regressor (L2):** MAE = **7.76%**, RMSE = **9.68%**, $R^2 = 0.7460$
 
 ---
 

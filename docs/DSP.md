@@ -117,18 +117,45 @@ Extracted by `ConversationalFeatureExtractor`:
 7. `understanding_markers`: Frequency of comprehension confirmation regex matches (`got it`, `makes sense`, `understood`, `now i get`, `clear now`).
 8. `code_indicators`: Frequency of code/programming syntax indicators (backticks, braces, keywords like `def`, `class`, `int`, operators).
 
-*Scaling:* The 8 dense conversational features are scaled using `StandardScaler()` fitted strictly on the training partition.
+*Scaling & Non-Negativity:*
+- **Standard Scaling:** For Logistic Regression and Linear SVM, the 8 dense conversational features are centered and normalized using `StandardScaler()` fitted strictly on the training partition.
+- **MinMax Scaling:** For Multinomial Naive Bayes, all features are normalized via `MinMaxScaler(feature_range=(0, 1))` to guarantee non-negative inputs ($x_i \ge 0$), as required by the multinomial distribution.
 
 ### B. Lexical TF-IDF Vocabulary Features (100 Features)
 - Vectorizer: `TfidfVectorizer(max_features=100, stop_words="english", ngram_range=(1, 2), min_df=2)`
 - Evaluated on student-only concatenated dialogue (`full_text`).
 
+### C. Pipeline Flexibility & Ablation Support
+The factory function `build_feature_pipeline(scaler, max_tfidf_features, include_tfidf, include_convo, convo_features, custom_stop_words)` in `ml_prototype/features.py` enables:
+- **Exp A:** Lexical TF-IDF only (`include_convo=False`, 100 features).
+- **Exp B:** Dense conversational signals only (`include_tfidf=False`, 8 features).
+- **Exp C:** Full combined feature space (108 features).
+- **Exp D:** Ablated signals without explicit markers (`convo_features=[...]`, 106 features).
+- **Exp E:** Without dense conversational signals (100 features).
+- **Exp F:** Ablated markers and shortcut vocabulary filtering (`custom_stop_words=[...]`, 106 features).
+
 ---
 
-## 6. Data Science Libraries & Dependencies
+## 6. Group-Aware Splitting Methodology
+
+To eliminate synthetic student persona leakage, all cross-validation and benchmark splits enforce strict student grouping:
+1. **Understanding Classification (430 sessions, 30 students):**
+   - Partitioned via `StratifiedGroupKFold(n_splits=5, shuffle=True, random_state=42)` on `student_id`.
+   - Training partition: 357 sessions across 24 students.
+   - Held-out test partition: 73 sessions across 6 students.
+   - **Student overlap: 0 students.**
+2. **Quiz Score Regression (1,720 sessions, 40 students):**
+   - Partitioned via `GroupShuffleSplit(n_splits=1, test_size=0.20, random_state=42)` on `student_id`.
+   - Training partition: 1,394 sessions across 32 students.
+   - Held-out test partition: 326 sessions across 8 students.
+   - **Student overlap: 0 students.**
+
+---
+
+## 7. Data Science Libraries & Dependencies
 
 - **Pandas (>=2.0.0):** DataFrame normalization, aggregation, topic summary computation.
 - **NumPy (>=1.24.0):** Numerical matrix operations, feature concatenation.
-- **Scikit-learn (1.5.2):** `ColumnTransformer`, `StandardScaler`, `TfidfVectorizer`, `Pipeline`.
+- **Scikit-learn (1.5.2):** `ColumnTransformer`, `StandardScaler`, `MinMaxScaler`, `TfidfVectorizer`, `Pipeline`.
 - **Joblib (>=1.3.0):** High-efficiency pipeline serialization.
 

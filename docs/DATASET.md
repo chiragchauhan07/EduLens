@@ -66,5 +66,16 @@ EduLens maintains an explicit separation between primary supervised training dat
 1. **No Incompatible Label Mixing:** MathDial labels (`self-correctness`) represent whether an elementary arithmetic riddle was resolved. They must never be merged into EduLens CS conceptual understanding labels.
 2. **Never Supervise with Unlabeled Corpora:** The 47,234 Education Dialogue conversations contain no understanding ground truth and must not be used for supervised training.
 3. **Immutability of Raw Data:** `data/raw/` is read-only. Cleaned, aggregated, or transformed files are saved strictly to `data/processed/`.
-4. **Group-Aware Splitting:** To avoid inflated performance from persona memorization, evaluations should test generalization to unseen students using `student_id` grouping.
+4. **Group-Aware Splitting Methodology:**
+   To eliminate synthetic student persona leakage, all evaluations enforce strict group isolation by `student_id`:
+   - **Classification Partitioning (`StratifiedGroupKFold`, 5 splits):**
+     * Total Sessions: 430 across 30 students (`S01` to `S30`).
+     * Train Partition: 357 sessions across 24 students (83.02%).
+     * Test Partition: 73 sessions across 6 students (16.98%).
+     * Student Overlap: **0 students** (100% strict group isolation).
+   - **Quiz Regression Partitioning (`GroupShuffleSplit`, 80/20):**
+     * Total Sessions: 1,720 across 40 students (`S01` to `S40`).
+     * Train Partition: 1,394 sessions across 32 students (81.05%).
+     * Test Partition: 326 sessions across 8 students (18.95%).
+     * Student Overlap: **0 students** (100% strict group isolation).
 

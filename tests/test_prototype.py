@@ -17,6 +17,8 @@ from ml_prototype.features import (
 )
 from ml_prototype.predict import EduLensPredictor
 
+ROOT_DIR = Path(__file__).resolve().parent.parent
+
 
 def test_extract_student_messages_turns():
     record = {
@@ -136,3 +138,139 @@ def test_zero_student_leakage_split():
         train_students = set(groups.iloc[train_idx])
         test_students = set(groups.iloc[test_idx])
         assert len(train_students & test_students) == 0, "Student persona leakage detected across splits!"
+
+
+def test_predictor_with_explainability():
+    predictor = EduLensPredictor()
+    sample = [
+        "I don't understand pointers at all, it's so confusing.",
+        "What is the difference between * and &? I'm completely lost.",
+    ]
+    res = predictor.predict(sample, explain=True)
+    assert "feature_explanation" in res
+    exp = res["feature_explanation"]
+    assert exp["predicted_class"] == "confused"
+    assert "top_positive_features" in exp
+    assert "top_negative_features" in exp
+    assert len(exp["top_positive_features"]) > 0
+
+
+def test_explainability_helpers():
+    from ml_prototype.explainability import (
+        explain_logistic_regression,
+        explain_linear_svm,
+        explain_naive_bayes,
+        explain_quiz_regressor,
+    )
+    import joblib
+    from ml_prototype.predict import ROOT_DIR
+
+    lr_path = ROOT_DIR / "models" / "understanding" / "logistic_regression" / "model.joblib"
+    if lr_path.exists():
+        lr_pipe = joblib.load(lr_path)
+        lr_exp = explain_logistic_regression(lr_pipe)
+        assert "class_explanations" in lr_exp
+        assert "understood" in lr_exp["class_explanations"]
+
+    svm_path = ROOT_DIR / "models" / "understanding" / "linear_svm" / "model.joblib"
+    if svm_path.exists():
+        svm_pipe = joblib.load(svm_path)
+        svm_exp = explain_linear_svm(svm_pipe)
+        assert "class_explanations" in svm_exp
+
+    nb_path = ROOT_DIR / "models" / "understanding" / "naive_bayes" / "model.joblib"
+    if nb_path.exists():
+        nb_pipe = joblib.load(nb_path)
+        nb_exp = explain_naive_bayes(nb_pipe)
+        assert "class_explanations" in nb_exp
+
+    quiz_path = ROOT_DIR / "models" / "quiz_score" / "model.joblib"
+    if quiz_path.exists():
+        q_dict = joblib.load(quiz_path)
+        q_exp = explain_quiz_regressor(q_dict)
+        assert "top_features" in q_exp or "ridge_coefficients" in q_exp or "random_forest_importance" in q_exp
+
+
+def test_feature_ablation_subsets():
+    df = load_primary_dataset().head(5)
+
+    # Exp A: TF-IDF only
+    pipe_a = build_feature_pipeline(include_convo=False, max_tfidf_features=20)
+    Xa = pipe_a.fit_transform(df)
+    assert Xa.shape == (5, 20)
+
+    # Exp B: Dense only
+    pipe_b = build_feature_pipeline(include_tfidf=False)
+    Xb = pipe_b.fit_transform(df)
+    assert Xb.shape == (5, 8)
+
+    # Exp D: No explicit markers
+    pipe_d = build_feature_pipeline(
+        max_tfidf_features=20,
+        convo_features=[
+            "num_turns",
+            "total_words",
+            "avg_turn_length",
+            "question_count",
+            "clarification_markers",
+            "code_indicators",
+        ],
+    )
+    Xd = pipe_d.fit_transform(df)
+    assert Xd.shape == (5, 26)  # 20 tfidf + 6 selected dense stats
+
+    # Exp F: No explicit markers and no shortcut vocabulary
+    shortcut_words = ["confused", "understood", "clear", "got", "makes", "sense"]
+    pipe_f = build_feature_pipeline(
+        max_tfidf_features=20,
+        convo_features=["num_turns", "total_words", "avg_turn_length", "question_count", "clarification_markers", "code_indicators"],
+        custom_stop_words=shortcut_words,
+    )
+    Xf = pipe_f.fit_transform(df)
+    assert Xf.shape == (5, 26)
+
+
+def test_quiz_group_isolation():
+    """Verify strict zero student leakage in quiz regression."""
+    quiz_json = ROOT_DIR / "data" / "processed" / "edulens_clean_quiz.json"
+    if quiz_json.exists():
+        with open(quiz_json, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        df = pd.DataFrame(data)
+        from sklearn.model_selection import GroupShuffleSplit
+        gss = GroupShuffleSplit(n_splits=1, test_size=0.20, random_state=42)
+        train_idx, test_idx = next(gss.split(df, df["quiz_score_percent"], df["student_id"]))
+        train_students = set(df["student_id"].iloc[train_idx])
+        test_students = set(df["student_id"].iloc[test_idx])
+        assert len(train_students & test_students) == 0, "Student persona leakage detected in quiz regression!"
+
+    # Verify report JSON has zero overlap
+    report_path = ROOT_DIR / "reports" / "quiz_regressor_evaluation.json"
+    if report_path.exists():
+        with open(report_path, "r", encoding="utf-8") as f:
+            rep = json.load(f)
+        if "train_student_ids" in rep and "test_student_ids" in rep:
+            tr_set = set(rep["train_student_ids"])
+            te_set = set(rep["test_student_ids"])
+            assert len(tr_set & te_set) == 0, "Student overlap found in quiz evaluation report!"
+
+
+def test_all_model_artifacts_load():
+    """Verify all saved model artifacts can be loaded and executed."""
+    import joblib
+    models_to_test = [
+        ROOT_DIR / "models" / "trained_model.joblib",
+        ROOT_DIR / "models" / "understanding" / "logistic_regression" / "model.joblib",
+        ROOT_DIR / "models" / "understanding" / "linear_svm" / "model.joblib",
+        ROOT_DIR / "models" / "understanding" / "naive_bayes" / "model.joblib",
+        ROOT_DIR / "models" / "quiz_score" / "model.joblib",
+    ]
+    sample_df = pd.DataFrame([{
+        "full_text": "I understand binary search tree time complexity now. Thank you!",
+        "student_messages": ["I understand binary search tree time complexity now.", "Thank you!"],
+    }])
+    for m_path in models_to_test:
+        assert m_path.exists(), f"Model artifact missing at {m_path}"
+        loaded = joblib.load(m_path)
+        pred = loaded.predict(sample_df)
+        assert len(pred) == 1

@@ -10,7 +10,7 @@ This module extracts interpretable, leakage-free features from student learning 
 import re
 import sys
 from pathlib import Path
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, List, Optional, Union
 import numpy as np
 import pandas as pd
 from sklearn.base import BaseEstimator, TransformerMixin
@@ -98,22 +98,25 @@ def extract_conversation_stats(messages: List[str]) -> Dict[str, float]:
 
 class ConversationalFeatureExtractor(BaseEstimator, TransformerMixin):
     """
-    Scikit-Learn compatible transformer that extracts the 8 dense conversational
-    metrics from a DataFrame column of message lists.
+    Scikit-Learn compatible transformer that extracts dense conversational
+    metrics from a DataFrame column of message lists. Supports optional feature subsetting.
     """
     
-    def __init__(self, message_col: str = "student_messages"):
+    DEFAULT_FEATURES = [
+        "num_turns",
+        "total_words",
+        "avg_turn_length",
+        "question_count",
+        "confusion_markers",
+        "clarification_markers",
+        "understanding_markers",
+        "code_indicators",
+    ]
+    
+    def __init__(self, message_col: str = "student_messages", selected_features: Optional[List[str]] = None):
         self.message_col = message_col
-        self.feature_names_ = [
-            "num_turns",
-            "total_words",
-            "avg_turn_length",
-            "question_count",
-            "confusion_markers",
-            "clarification_markers",
-            "understanding_markers",
-            "code_indicators",
-        ]
+        self.selected_features = selected_features
+        self.feature_names_ = selected_features if selected_features is not None else list(self.DEFAULT_FEATURES)
         
     def fit(self, X: pd.DataFrame, y=None):
         return self
@@ -124,54 +127,84 @@ class ConversationalFeatureExtractor(BaseEstimator, TransformerMixin):
         else:
             messages_series = X
             
-        features = [
-            list(extract_conversation_stats(msgs).values())
-            for msgs in messages_series
-        ]
+        selected = getattr(self, "selected_features", None)
+        features = []
+        for msgs in messages_series:
+            stats = extract_conversation_stats(msgs)
+            if selected is not None:
+                row = [float(stats.get(k, 0.0)) for k in selected]
+            else:
+                row = list(stats.values())
+            features.append(row)
         return np.array(features, dtype=np.float32)
 
     def get_feature_names_out(self, input_features=None):
-        return np.array(self.feature_names_)
+        return np.array(getattr(self, "feature_names_", self.DEFAULT_FEATURES))
 
 
-def build_feature_pipeline(scaler: str = "standard", max_tfidf_features: int = 100) -> ColumnTransformer:
+def build_feature_pipeline(
+    scaler: str = "standard",
+    max_tfidf_features: int = 100,
+    include_tfidf: bool = True,
+    include_convo: bool = True,
+    convo_features: Optional[List[str]] = None,
+    custom_stop_words: Optional[List[str]] = None,
+) -> ColumnTransformer:
     """
     Builds the Scikit-Learn feature union / column transformer.
     
-    Combines:
-    1. 'text_tfidf': TF-IDF vectorizer (max 100 features) on full_text.
-    2. 'convo_stats': Feature scaler applied to the 8 conversational signals.
-                      Supports 'standard' (StandardScaler) or 'minmax' (MinMaxScaler,
-                      required for MultinomialNB).
+    Supports:
+    - Combined (TF-IDF + Conversational Signals)
+    - TF-IDF Only (include_convo=False)
+    - Conversational Only (include_tfidf=False)
+    - Feature ablation (convo_features subset)
+    - Shortcut vocabulary filtering (custom_stop_words)
+    - Scaler selection ('standard' or 'minmax')
     """
-    if scaler == "minmax":
-        scaler_transformer = MinMaxScaler()
-    else:
-        scaler_transformer = StandardScaler()
+    transformers = []
 
-    convo_pipeline = Pipeline([
-        ("extract", ConversationalFeatureExtractor(message_col="student_messages")),
-        ("scale", scaler_transformer),
-    ])
-    
+    if include_tfidf:
+        if custom_stop_words:
+            from sklearn.feature_extraction.text import ENGLISH_STOP_WORDS
+            effective_stop_words = list(set(ENGLISH_STOP_WORDS).union(set(w.lower() for w in custom_stop_words)))
+        else:
+            effective_stop_words = "english"
+
+        transformers.append((
+            "text_tfidf",
+            TfidfVectorizer(
+                max_features=max_tfidf_features,
+                stop_words=effective_stop_words,
+                ngram_range=(1, 2),
+                min_df=2,
+            ),
+            "full_text",
+        ))
+
+    if include_convo:
+        if scaler == "minmax":
+            scaler_transformer = MinMaxScaler()
+        else:
+            scaler_transformer = StandardScaler()
+
+        convo_pipeline = Pipeline([
+            ("extract", ConversationalFeatureExtractor(
+                message_col="student_messages",
+                selected_features=convo_features,
+            )),
+            ("scale", scaler_transformer),
+        ])
+        transformers.append((
+            "convo_stats",
+            convo_pipeline,
+            ["student_messages"],
+        ))
+
+    if not transformers:
+        raise ValueError("At least one feature transformer (TF-IDF or conversational) must be enabled.")
+
     preprocessor = ColumnTransformer(
-        transformers=[
-            (
-                "text_tfidf",
-                TfidfVectorizer(
-                    max_features=max_tfidf_features,
-                    stop_words="english",
-                    ngram_range=(1, 2),
-                    min_df=2,
-                ),
-                "full_text",
-            ),
-            (
-                "convo_stats",
-                convo_pipeline,
-                ["student_messages"],
-            ),
-        ],
+        transformers=transformers,
         remainder="drop",
     )
     return preprocessor

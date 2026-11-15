@@ -23,6 +23,7 @@ if str(ROOT_DIR) not in sys.path:
 
 from ml_prototype.data_loader import extract_student_messages
 from ml_prototype.features import extract_conversation_stats
+from ml_prototype.explainability import explain_instance
 
 DEFAULT_MODEL_PATH = ROOT_DIR / "models" / "trained_model.joblib"
 UNDERSTANDING_MODELS_DIR = ROOT_DIR / "models" / "understanding"
@@ -99,6 +100,7 @@ class EduLensPredictor:
         self,
         conversation_input: Union[Dict[str, Any], List[str], str],
         include_quiz_score: bool = True,
+        explain: bool = False,
     ) -> Dict[str, Any]:
         """
         Predicts student understanding level from a conversation.
@@ -174,7 +176,15 @@ class EduLensPredictor:
             except Exception:
                 predicted_quiz_score = None
 
-        # 6. Build structured result
+        # 6. Local Feature Attribution Explanation if requested
+        explanation_data = None
+        if explain:
+            try:
+                explanation_data = explain_instance(self.pipeline, student_msgs, top_k=5)
+            except Exception as e:
+                explanation_data = {"error": f"Failed to compute explanation: {str(e)}"}
+
+        # 7. Build structured result
         meta = CLASS_METADATA.get(predicted_class, {
             "display_name": predicted_class.capitalize(),
             "badge_color": "gray",
@@ -190,6 +200,7 @@ class EduLensPredictor:
             "conversational_signals": convo_signals,
             "pedagogical_feedback": meta["feedback"],
             "predicted_quiz_score": predicted_quiz_score,
+            "feature_explanation": explanation_data,
             "student_turn_count": len(student_msgs),
             "input_text_preview": full_text[:120] + ("..." if len(full_text) > 120 else ""),
         }

@@ -1,20 +1,67 @@
 {
   "task": "Quiz Score Prediction (0-100%)",
   "dataset_records": 1720,
-  "train_records": 1376,
-  "test_records": 344,
+  "train_records": 1394,
+  "test_records": 326,
+  "train_students": 32,
+  "test_students": 8,
+  "train_student_ids": [
+    "S01",
+    "S02",
+    "S03",
+    "S04",
+    "S06",
+    "S07",
+    "S08",
+    "S09",
+    "S10",
+    "S11",
+    "S12",
+    "S14",
+    "S15",
+    "S18",
+    "S19",
+    "S21",
+    "S22",
+    "S23",
+    "S24",
+    "S25",
+    "S26",
+    "S29",
+    "S30",
+    "S31",
+    "S32",
+    "S33",
+    "S34",
+    "S35",
+    "S36",
+    "S37",
+    "S39",
+    "S40"
+  ],
+  "test_student_ids": [
+    "S05",
+    "S13",
+    "S16",
+    "S17",
+    "S20",
+    "S27",
+    "S28",
+    "S38"
+  ],
+  "split_strategy": "GroupShuffleSplit on student_id (Zero persona leakage)",
   "models": {
     "ridge": {
       "name": "Ridge Regressor (L2)",
-      "mae": 8.013,
-      "rmse": 9.856,
-      "r2": 0.7356
+      "mae": 7.763,
+      "rmse": 9.676,
+      "r2": 0.746
     },
     "random_forest": {
       "name": "Random Forest Regressor",
-      "mae": 8.006,
-      "rmse": 9.817,
-      "r2": 0.7377
+      "mae": 7.646,
+      "rmse": 9.357,
+      "r2": 0.7624
     }
   },
   "selected_model": "random_forest"

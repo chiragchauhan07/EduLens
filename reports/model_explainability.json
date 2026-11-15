@@ -1,0 +1,630 @@
+{
+  "logistic_regression": {
+    "model_type": "LogisticRegression",
+    "classes": [
+      "confused",
+      "partial",
+      "understood"
+    ],
+    "class_explanations": {
+      "confused": {
+        "top_positive_features": [
+          {
+            "feature": "tfidf_read",
+            "weight": 1.1214
+          },
+          {
+            "feature": "tfidf_sorry",
+            "weight": 1.1017
+          },
+          {
+            "feature": "tfidf_don",
+            "weight": 0.8071
+          },
+          {
+            "feature": "tfidf_understood",
+            "weight": 0.7976
+          },
+          {
+            "feature": "tfidf_handling",
+            "weight": 0.7671
+          },
+          {
+            "feature": "tfidf_step",
+            "weight": 0.7019
+          },
+          {
+            "feature": "tfidf_time",
+            "weight": 0.6921
+          },
+          {
+            "feature": "tfidf_theorem",
+            "weight": 0.6919
+          }
+        ],
+        "top_negative_features": [
+          {
+            "feature": "signal_understanding_markers",
+            "weight": -2.4929
+          },
+          {
+            "feature": "tfidf_ok",
+            "weight": -2.2682
+          },
+          {
+            "feature": "tfidf_clear",
+            "weight": -0.795
+          },
+          {
+            "feature": "tfidf_quiz",
+            "weight": -0.5235
+          },
+          {
+            "feature": "signal_avg_turn_length",
+            "weight": -0.5093
+          },
+          {
+            "feature": "tfidf_think",
+            "weight": -0.4909
+          },
+          {
+            "feature": "signal_total_words",
+            "weight": -0.4748
+          },
+          {
+            "feature": "tfidf_prefer",
+            "weight": -0.4133
+          }
+        ]
+      },
+      "partial": {
+        "top_positive_features": [
+          {
+            "feature": "tfidf_ok",
+            "weight": 2.4263
+          },
+          {
+            "feature": "tfidf_quiz",
+            "weight": 1.3557
+          },
+          {
+            "feature": "tfidf_clear",
+            "weight": 0.8837
+          },
+          {
+            "feature": "tfidf_think need",
+            "weight": 0.8118
+          },
+          {
+            "feature": "tfidf_practice make",
+            "weight": 0.8118
+          },
+          {
+            "feature": "tfidf_problems",
+            "weight": 0.8118
+          },
+          {
+            "feature": "tfidf_need practice",
+            "weight": 0.8118
+          },
+          {
+            "feature": "tfidf_make mistakes",
+            "weight": 0.8118
+          }
+        ],
+        "top_negative_features": [
+          {
+            "feature": "tfidf_solve",
+            "weight": -1.1249
+          },
+          {
+            "feature": "tfidf_sorry",
+            "weight": -1.044
+          },
+          {
+            "feature": "tfidf_clear think",
+            "weight": -0.9649
+          },
+          {
+            "feature": "tfidf_questions",
+            "weight": -0.9649
+          },
+          {
+            "feature": "tfidf_thank",
+            "weight": -0.9649
+          },
+          {
+            "feature": "tfidf_solve questions",
+            "weight": -0.9649
+          },
+          {
+            "feature": "tfidf_think solve",
+            "weight": -0.9649
+          },
+          {
+            "feature": "tfidf_thank clear",
+            "weight": -0.9649
+          }
+        ]
+      },
+      "understood": {
+        "top_positive_features": [
+          {
+            "feature": "signal_understanding_markers",
+            "weight": 2.3114
+          },
+          {
+            "feature": "tfidf_thank clear",
+            "weight": 1.3609
+          },
+          {
+            "feature": "tfidf_thank",
+            "weight": 1.3609
+          },
+          {
+            "feature": "tfidf_think solve",
+            "weight": 1.3609
+          },
+          {
+            "feature": "tfidf_solve questions",
+            "weight": 1.3609
+          },
+          {
+            "feature": "tfidf_questions",
+            "weight": 1.3609
+          },
+          {
+            "feature": "tfidf_clear think",
+            "weight": 1.3609
+          },
+          {
+            "feature": "tfidf_solve",
+            "weight": 1.1483
+          }
+        ],
+        "top_negative_features": [
+          {
+            "feature": "tfidf_step",
+            "weight": -0.8578
+          },
+          {
+            "feature": "tfidf_quiz",
+            "weight": -0.8322
+          },
+          {
+            "feature": "tfidf_runs",
+            "weight": -0.8046
+          },
+          {
+            "feature": "tfidf_understood",
+            "weight": -0.6394
+          },
+          {
+            "feature": "tfidf_problems",
+            "weight": -0.567
+          },
+          {
+            "feature": "tfidf_practice make",
+            "weight": -0.567
+          },
+          {
+            "feature": "tfidf_need practice",
+            "weight": -0.567
+          },
+          {
+            "feature": "tfidf_make mistakes",
+            "weight": -0.567
+          }
+        ]
+      }
+    }
+  },
+  "linear_svm": {
+    "model_type": "LinearSVC (Calibrated)",
+    "classes": [
+      "confused",
+      "partial",
+      "understood"
+    ],
+    "class_explanations": {
+      "confused": {
+        "top_positive_features": [
+          {
+            "feature": "tfidf_understood",
+            "weight": 0.9756
+          },
+          {
+            "feature": "tfidf_sorry",
+            "weight": 0.9561
+          },
+          {
+            "feature": "tfidf_read",
+            "weight": 0.8176
+          },
+          {
+            "feature": "tfidf_don",
+            "weight": 0.767
+          },
+          {
+            "feature": "tfidf_explain",
+            "weight": 0.6624
+          },
+          {
+            "feature": "tfidf_time",
+            "weight": 0.6527
+          },
+          {
+            "feature": "tfidf_really understood",
+            "weight": 0.621
+          },
+          {
+            "feature": "tfidf_really",
+            "weight": 0.621
+          }
+        ],
+        "top_negative_features": [
+          {
+            "feature": "tfidf_ok",
+            "weight": -3.0116
+          },
+          {
+            "feature": "signal_understanding_markers",
+            "weight": -1.3041
+          },
+          {
+            "feature": "tfidf_clear",
+            "weight": -0.9426
+          },
+          {
+            "feature": "tfidf_quiz",
+            "weight": -0.6722
+          },
+          {
+            "feature": "tfidf_prefer",
+            "weight": -0.6609
+          },
+          {
+            "feature": "tfidf_assumed",
+            "weight": -0.5842
+          },
+          {
+            "feature": "tfidf_sort",
+            "weight": -0.4981
+          },
+          {
+            "feature": "tfidf_algorithm",
+            "weight": -0.4626
+          }
+        ]
+      },
+      "partial": {
+        "top_positive_features": [
+          {
+            "feature": "tfidf_ok",
+            "weight": 3.0041
+          },
+          {
+            "feature": "tfidf_quiz",
+            "weight": 2.5967
+          },
+          {
+            "feature": "tfidf_clear",
+            "weight": 2.409
+          },
+          {
+            "feature": "tfidf_need",
+            "weight": 0.9221
+          },
+          {
+            "feature": "tfidf_problems",
+            "weight": 0.904
+          },
+          {
+            "feature": "tfidf_make mistakes",
+            "weight": 0.904
+          },
+          {
+            "feature": "tfidf_need practice",
+            "weight": 0.904
+          },
+          {
+            "feature": "tfidf_practice make",
+            "weight": 0.904
+          }
+        ],
+        "top_negative_features": [
+          {
+            "feature": "tfidf_don",
+            "weight": -1.0988
+          },
+          {
+            "feature": "tfidf_time",
+            "weight": -1.013
+          },
+          {
+            "feature": "tfidf_check",
+            "weight": -0.9688
+          },
+          {
+            "feature": "tfidf_got quiz",
+            "weight": -0.9478
+          },
+          {
+            "feature": "tfidf_check really",
+            "weight": -0.9478
+          },
+          {
+            "feature": "tfidf_sorry",
+            "weight": -0.8984
+          },
+          {
+            "feature": "tfidf_clear think",
+            "weight": -0.8871
+          },
+          {
+            "feature": "tfidf_questions",
+            "weight": -0.8871
+          }
+        ]
+      },
+      "understood": {
+        "top_positive_features": [
+          {
+            "feature": "tfidf_solve questions",
+            "weight": 1.1766
+          },
+          {
+            "feature": "tfidf_thank clear",
+            "weight": 1.1766
+          },
+          {
+            "feature": "tfidf_thank",
+            "weight": 1.1766
+          },
+          {
+            "feature": "tfidf_think solve",
+            "weight": 1.1766
+          },
+          {
+            "feature": "tfidf_clear think",
+            "weight": 1.1766
+          },
+          {
+            "feature": "tfidf_questions",
+            "weight": 1.1766
+          },
+          {
+            "feature": "tfidf_solve",
+            "weight": 0.9867
+          },
+          {
+            "feature": "signal_understanding_markers",
+            "weight": 0.9631
+          }
+        ],
+        "top_negative_features": [
+          {
+            "feature": "tfidf_quiz",
+            "weight": -1.0571
+          },
+          {
+            "feature": "tfidf_runs",
+            "weight": -0.7796
+          },
+          {
+            "feature": "tfidf_understood",
+            "weight": -0.6636
+          },
+          {
+            "feature": "tfidf_need practice",
+            "weight": -0.6097
+          },
+          {
+            "feature": "tfidf_problems",
+            "weight": -0.6097
+          },
+          {
+            "feature": "tfidf_practice make",
+            "weight": -0.6097
+          },
+          {
+            "feature": "tfidf_think need",
+            "weight": -0.6097
+          },
+          {
+            "feature": "tfidf_make mistakes",
+            "weight": -0.6097
+          }
+        ]
+      }
+    }
+  },
+  "naive_bayes": {
+    "model_type": "MultinomialNB",
+    "classes": [
+      "confused",
+      "partial",
+      "understood"
+    ],
+    "class_explanations": {
+      "confused": {
+        "most_distinctive_terms": [
+          {
+            "feature": "tfidf_read",
+            "log_prob_class": -3.9737,
+            "distinctiveness_ratio": 1.6799
+          },
+          {
+            "feature": "tfidf_don",
+            "log_prob_class": -3.9965,
+            "distinctiveness_ratio": 1.554
+          },
+          {
+            "feature": "tfidf_sorry",
+            "log_prob_class": -4.024,
+            "distinctiveness_ratio": 1.5138
+          },
+          {
+            "feature": "tfidf_time",
+            "log_prob_class": -4.0123,
+            "distinctiveness_ratio": 0.8962
+          },
+          {
+            "feature": "tfidf_wait",
+            "log_prob_class": -4.6512,
+            "distinctiveness_ratio": 0.7362
+          },
+          {
+            "feature": "tfidf_problem",
+            "log_prob_class": -4.3693,
+            "distinctiveness_ratio": 0.6264
+          },
+          {
+            "feature": "tfidf_true",
+            "log_prob_class": -4.3477,
+            "distinctiveness_ratio": 0.6216
+          },
+          {
+            "feature": "tfidf_using",
+            "log_prob_class": -4.5425,
+            "distinctiveness_ratio": 0.5797
+          }
+        ]
+      },
+      "partial": {
+        "most_distinctive_terms": [
+          {
+            "feature": "tfidf_think need",
+            "log_prob_class": -4.5909,
+            "distinctiveness_ratio": 2.0641
+          },
+          {
+            "feature": "tfidf_thanks think",
+            "log_prob_class": -4.5909,
+            "distinctiveness_ratio": 2.0641
+          },
+          {
+            "feature": "tfidf_make mistakes",
+            "log_prob_class": -4.5909,
+            "distinctiveness_ratio": 2.0641
+          },
+          {
+            "feature": "tfidf_problems",
+            "log_prob_class": -4.5909,
+            "distinctiveness_ratio": 2.0641
+          },
+          {
+            "feature": "tfidf_practice make",
+            "log_prob_class": -4.5909,
+            "distinctiveness_ratio": 2.0641
+          },
+          {
+            "feature": "tfidf_need practice",
+            "log_prob_class": -4.5909,
+            "distinctiveness_ratio": 2.0641
+          },
+          {
+            "feature": "tfidf_ok",
+            "log_prob_class": -4.2863,
+            "distinctiveness_ratio": 1.4319
+          },
+          {
+            "feature": "tfidf_practice",
+            "log_prob_class": -4.5155,
+            "distinctiveness_ratio": 1.3175
+          }
+        ]
+      },
+      "understood": {
+        "most_distinctive_terms": [
+          {
+            "feature": "tfidf_solve questions",
+            "log_prob_class": -4.5395,
+            "distinctiveness_ratio": 2.0219
+          },
+          {
+            "feature": "tfidf_thank clear",
+            "log_prob_class": -4.5395,
+            "distinctiveness_ratio": 2.0219
+          },
+          {
+            "feature": "tfidf_thank",
+            "log_prob_class": -4.5395,
+            "distinctiveness_ratio": 2.0219
+          },
+          {
+            "feature": "tfidf_think solve",
+            "log_prob_class": -4.5395,
+            "distinctiveness_ratio": 2.0219
+          },
+          {
+            "feature": "tfidf_clear think",
+            "log_prob_class": -4.5395,
+            "distinctiveness_ratio": 2.0219
+          },
+          {
+            "feature": "tfidf_questions",
+            "log_prob_class": -4.5395,
+            "distinctiveness_ratio": 2.0219
+          },
+          {
+            "feature": "tfidf_check really",
+            "log_prob_class": -4.7794,
+            "distinctiveness_ratio": 1.782
+          },
+          {
+            "feature": "tfidf_got quiz",
+            "log_prob_class": -4.7794,
+            "distinctiveness_ratio": 1.782
+          }
+        ]
+      }
+    }
+  },
+  "quiz_regressor": {
+    "model_type": "RandomForestRegressor",
+    "importance_method": "RandomForest Gini / Variance Reduction",
+    "top_features": [
+      {
+        "feature": "signal_understanding_markers",
+        "importance": 0.5406
+      },
+      {
+        "feature": "tfidf_ok",
+        "importance": 0.1175
+      },
+      {
+        "feature": "tfidf_thank clear",
+        "importance": 0.0299
+      },
+      {
+        "feature": "tfidf_thank",
+        "importance": 0.0262
+      },
+      {
+        "feature": "tfidf_solve questions",
+        "importance": 0.0259
+      },
+      {
+        "feature": "tfidf_clear think",
+        "importance": 0.0249
+      },
+      {
+        "feature": "tfidf_questions",
+        "importance": 0.0211
+      },
+      {
+        "feature": "tfidf_understood",
+        "importance": 0.0171
+      },
+      {
+        "feature": "tfidf_think solve",
+        "importance": 0.0164
+      },
+      {
+        "feature": "tfidf_thanks think",
+        "importance": 0.0133
+      }
+    ]
+  }
+}

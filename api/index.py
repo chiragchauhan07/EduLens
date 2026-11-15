@@ -103,6 +103,10 @@ class PredictRequest(BaseModel):
         None,
         description="Optional model algorithm: 'logistic_regression', 'naive_bayes', or 'linear_svm'",
     )
+    explain: bool = Field(
+        False,
+        description="Whether to include local feature attribution drivers in the prediction response",
+    )
 
 
 SAMPLE_CONVERSATIONS = [
@@ -214,7 +218,7 @@ def predict_understanding(req: PredictRequest):
             predictor = EduLensPredictor(algorithm=req.algorithm)
         else:
             predictor = get_predictor()
-        result = predictor.predict(input_data)
+        result = predictor.predict(input_data, explain=req.explain)
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Prediction failed: {str(e)}")
@@ -341,6 +345,19 @@ def get_quiz_model_info():
             return json.load(f)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to load quiz report: {str(e)}")
+
+
+@router.get("/explainability")
+def get_explainability_report():
+    """Returns global model coefficient weights and feature importances."""
+    report_path = ROOT_DIR / "reports" / "model_explainability.json"
+    if not report_path.exists():
+        raise HTTPException(status_code=404, detail="Explainability report not found.")
+    try:
+        with open(report_path, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to load explainability report: {str(e)}")
 
 
 # Mount router on both root and /api prefixes so any Vercel rewrite configuration works!

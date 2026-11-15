@@ -1,0 +1,713 @@
+{
+  "title": "EduLens Feature Ablation Report",
+  "evaluation_protocol": "StratifiedGroupKFold on student_id (Test N=73, Train N=357, Student Overlap=0)",
+  "target_classes": [
+    "confused",
+    "partial",
+    "understood"
+  ],
+  "experiments": {
+    "Exp_A_tfidf_only": {
+      "name": "Experiment A: TF-IDF Only",
+      "description": "Lexical n-grams only (100 features); all conversational and structural metrics removed.",
+      "feature_count": 100,
+      "logistic_regression": {
+        "accuracy": 0.9041,
+        "macro_precision": 0.8585,
+        "macro_recall": 0.8619,
+        "macro_f1": 0.8597,
+        "confusion_matrix": [
+          [
+            11,
+            3,
+            0
+          ],
+          [
+            4,
+            16,
+            0
+          ],
+          [
+            0,
+            0,
+            39
+          ]
+        ],
+        "classification_report": {
+          "confused": {
+            "precision": 0.7333333333333333,
+            "recall": 0.7857142857142857,
+            "f1-score": 0.7586206896551724,
+            "support": 14.0
+          },
+          "partial": {
+            "precision": 0.8421052631578947,
+            "recall": 0.8,
+            "f1-score": 0.8205128205128205,
+            "support": 20.0
+          },
+          "understood": {
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1-score": 1.0,
+            "support": 39.0
+          },
+          "accuracy": 0.9041095890410958,
+          "macro avg": {
+            "precision": 0.8584795321637427,
+            "recall": 0.861904761904762,
+            "f1-score": 0.8597111700559976,
+            "support": 73.0
+          },
+          "weighted avg": {
+            "precision": 0.9055996154770487,
+            "recall": 0.9041095890410958,
+            "f1-score": 0.9045335077456003,
+            "support": 73.0
+          }
+        }
+      },
+      "linear_svm": {
+        "accuracy": 0.9452,
+        "macro_precision": 0.9268,
+        "macro_recall": 0.9119,
+        "macro_f1": 0.917,
+        "confusion_matrix": [
+          [
+            11,
+            3,
+            0
+          ],
+          [
+            1,
+            19,
+            0
+          ],
+          [
+            0,
+            0,
+            39
+          ]
+        ],
+        "classification_report": {
+          "confused": {
+            "precision": 0.9166666666666666,
+            "recall": 0.7857142857142857,
+            "f1-score": 0.8461538461538461,
+            "support": 14.0
+          },
+          "partial": {
+            "precision": 0.8636363636363636,
+            "recall": 0.95,
+            "f1-score": 0.9047619047619048,
+            "support": 20.0
+          },
+          "understood": {
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1-score": 1.0,
+            "support": 39.0
+          },
+          "accuracy": 0.9452054794520548,
+          "macro avg": {
+            "precision": 0.9267676767676768,
+            "recall": 0.9119047619047619,
+            "f1-score": 0.9169719169719169,
+            "support": 73.0
+          },
+          "weighted avg": {
+            "precision": 0.9466583644665837,
+            "recall": 0.9452054794520548,
+            "f1-score": 0.9444026293341362,
+            "support": 73.0
+          }
+        }
+      }
+    },
+    "Exp_B_convo_only": {
+      "name": "Experiment B: Eight Conversational Signals Only",
+      "description": "Dense dialogue structural and pedagogical metrics only (8 features); all vocabulary removed.",
+      "feature_count": 8,
+      "logistic_regression": {
+        "accuracy": 0.7534,
+        "macro_precision": 0.7256,
+        "macro_recall": 0.7659,
+        "macro_f1": 0.7391,
+        "confusion_matrix": [
+          [
+            13,
+            1,
+            0
+          ],
+          [
+            5,
+            12,
+            3
+          ],
+          [
+            0,
+            9,
+            30
+          ]
+        ],
+        "classification_report": {
+          "confused": {
+            "precision": 0.7222222222222222,
+            "recall": 0.9285714285714286,
+            "f1-score": 0.8125,
+            "support": 14.0
+          },
+          "partial": {
+            "precision": 0.5454545454545454,
+            "recall": 0.6,
+            "f1-score": 0.5714285714285714,
+            "support": 20.0
+          },
+          "understood": {
+            "precision": 0.9090909090909091,
+            "recall": 0.7692307692307693,
+            "f1-score": 0.8333333333333334,
+            "support": 39.0
+          },
+          "accuracy": 0.7534246575342466,
+          "macro avg": {
+            "precision": 0.7255892255892257,
+            "recall": 0.7659340659340659,
+            "f1-score": 0.7390873015873015,
+            "support": 73.0
+          },
+          "weighted avg": {
+            "precision": 0.7736266777362668,
+            "recall": 0.7534246575342466,
+            "f1-score": 0.7575831702544031,
+            "support": 73.0
+          }
+        }
+      },
+      "linear_svm": {
+        "accuracy": 0.7397,
+        "macro_precision": 0.7358,
+        "macro_recall": 0.6973,
+        "macro_f1": 0.7052,
+        "confusion_matrix": [
+          [
+            8,
+            6,
+            0
+          ],
+          [
+            2,
+            14,
+            4
+          ],
+          [
+            0,
+            7,
+            32
+          ]
+        ],
+        "classification_report": {
+          "confused": {
+            "precision": 0.8,
+            "recall": 0.5714285714285714,
+            "f1-score": 0.6666666666666666,
+            "support": 14.0
+          },
+          "partial": {
+            "precision": 0.5185185185185185,
+            "recall": 0.7,
+            "f1-score": 0.5957446808510638,
+            "support": 20.0
+          },
+          "understood": {
+            "precision": 0.8888888888888888,
+            "recall": 0.8205128205128205,
+            "f1-score": 0.8533333333333334,
+            "support": 39.0
+          },
+          "accuracy": 0.7397260273972602,
+          "macro avg": {
+            "precision": 0.7358024691358024,
+            "recall": 0.6973137973137972,
+            "f1-score": 0.7052482269503546,
+            "support": 73.0
+          },
+          "weighted avg": {
+            "precision": 0.7703703703703704,
+            "recall": 0.7397260273972602,
+            "f1-score": 0.7469620130185562,
+            "support": 73.0
+          }
+        }
+      }
+    },
+    "Exp_C_all_108": {
+      "name": "Experiment C: All 108 Combined Features",
+      "description": "Full feature union (100 TF-IDF + 8 scaled conversational signals).",
+      "feature_count": 108,
+      "logistic_regression": {
+        "accuracy": 0.9589,
+        "macro_precision": 0.938,
+        "macro_recall": 0.9429,
+        "macro_f1": 0.9399,
+        "confusion_matrix": [
+          [
+            13,
+            1,
+            0
+          ],
+          [
+            2,
+            18,
+            0
+          ],
+          [
+            0,
+            0,
+            39
+          ]
+        ],
+        "classification_report": {
+          "confused": {
+            "precision": 0.8666666666666667,
+            "recall": 0.9285714285714286,
+            "f1-score": 0.896551724137931,
+            "support": 14.0
+          },
+          "partial": {
+            "precision": 0.9473684210526315,
+            "recall": 0.9,
+            "f1-score": 0.9230769230769231,
+            "support": 20.0
+          },
+          "understood": {
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1-score": 1.0,
+            "support": 39.0
+          },
+          "accuracy": 0.958904109589041,
+          "macro avg": {
+            "precision": 0.9380116959064327,
+            "recall": 0.942857142857143,
+            "f1-score": 0.9398762157382846,
+            "support": 73.0
+          },
+          "weighted avg": {
+            "precision": 0.9600096130737802,
+            "recall": 0.958904109589041,
+            "f1-score": 0.9590857890338288,
+            "support": 73.0
+          }
+        }
+      },
+      "linear_svm": {
+        "accuracy": 1.0,
+        "macro_precision": 1.0,
+        "macro_recall": 1.0,
+        "macro_f1": 1.0,
+        "confusion_matrix": [
+          [
+            14,
+            0,
+            0
+          ],
+          [
+            0,
+            20,
+            0
+          ],
+          [
+            0,
+            0,
+            39
+          ]
+        ],
+        "classification_report": {
+          "confused": {
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1-score": 1.0,
+            "support": 14.0
+          },
+          "partial": {
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1-score": 1.0,
+            "support": 20.0
+          },
+          "understood": {
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1-score": 1.0,
+            "support": 39.0
+          },
+          "accuracy": 1.0,
+          "macro avg": {
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1-score": 1.0,
+            "support": 73.0
+          },
+          "weighted avg": {
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1-score": 1.0,
+            "support": 73.0
+          }
+        }
+      }
+    },
+    "Exp_D_no_explicit_markers": {
+      "name": "Experiment D: All Features Except Explicit Understanding/Confusion Markers",
+      "description": "Excludes 'confusion_markers' and 'understanding_markers' from dense signals (106 features: 100 TF-IDF + 6 structural).",
+      "feature_count": 106,
+      "logistic_regression": {
+        "accuracy": 0.863,
+        "macro_precision": 0.7976,
+        "macro_recall": 0.7976,
+        "macro_f1": 0.7976,
+        "confusion_matrix": [
+          [
+            9,
+            5,
+            0
+          ],
+          [
+            5,
+            15,
+            0
+          ],
+          [
+            0,
+            0,
+            39
+          ]
+        ],
+        "classification_report": {
+          "confused": {
+            "precision": 0.6428571428571429,
+            "recall": 0.6428571428571429,
+            "f1-score": 0.6428571428571429,
+            "support": 14.0
+          },
+          "partial": {
+            "precision": 0.75,
+            "recall": 0.75,
+            "f1-score": 0.75,
+            "support": 20.0
+          },
+          "understood": {
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1-score": 1.0,
+            "support": 39.0
+          },
+          "accuracy": 0.863013698630137,
+          "macro avg": {
+            "precision": 0.7976190476190476,
+            "recall": 0.7976190476190476,
+            "f1-score": 0.7976190476190476,
+            "support": 73.0
+          },
+          "weighted avg": {
+            "precision": 0.863013698630137,
+            "recall": 0.863013698630137,
+            "f1-score": 0.863013698630137,
+            "support": 73.0
+          }
+        }
+      },
+      "linear_svm": {
+        "accuracy": 0.9726,
+        "macro_precision": 0.9758,
+        "macro_recall": 0.9524,
+        "macro_f1": 0.962,
+        "confusion_matrix": [
+          [
+            12,
+            1,
+            1
+          ],
+          [
+            0,
+            20,
+            0
+          ],
+          [
+            0,
+            0,
+            39
+          ]
+        ],
+        "classification_report": {
+          "confused": {
+            "precision": 1.0,
+            "recall": 0.8571428571428571,
+            "f1-score": 0.9230769230769231,
+            "support": 14.0
+          },
+          "partial": {
+            "precision": 0.9523809523809523,
+            "recall": 1.0,
+            "f1-score": 0.975609756097561,
+            "support": 20.0
+          },
+          "understood": {
+            "precision": 0.975,
+            "recall": 1.0,
+            "f1-score": 0.9873417721518988,
+            "support": 39.0
+          },
+          "accuracy": 0.9726027397260274,
+          "macro avg": {
+            "precision": 0.9757936507936508,
+            "recall": 0.9523809523809524,
+            "f1-score": 0.962009483775461,
+            "support": 73.0
+          },
+          "weighted avg": {
+            "precision": 0.9735975212002609,
+            "recall": 0.9726027397260274,
+            "f1-score": 0.9718027556020848,
+            "support": 73.0
+          }
+        }
+      }
+    },
+    "Exp_E_no_convo_signals": {
+      "name": "Experiment E: All Features Except Eight Dense Conversational Signals",
+      "description": "Ablates all dense structural conversational signals, relying strictly on vocabulary context.",
+      "feature_count": 100,
+      "logistic_regression": {
+        "accuracy": 0.9041,
+        "macro_precision": 0.8585,
+        "macro_recall": 0.8619,
+        "macro_f1": 0.8597,
+        "confusion_matrix": [
+          [
+            11,
+            3,
+            0
+          ],
+          [
+            4,
+            16,
+            0
+          ],
+          [
+            0,
+            0,
+            39
+          ]
+        ],
+        "classification_report": {
+          "confused": {
+            "precision": 0.7333333333333333,
+            "recall": 0.7857142857142857,
+            "f1-score": 0.7586206896551724,
+            "support": 14.0
+          },
+          "partial": {
+            "precision": 0.8421052631578947,
+            "recall": 0.8,
+            "f1-score": 0.8205128205128205,
+            "support": 20.0
+          },
+          "understood": {
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1-score": 1.0,
+            "support": 39.0
+          },
+          "accuracy": 0.9041095890410958,
+          "macro avg": {
+            "precision": 0.8584795321637427,
+            "recall": 0.861904761904762,
+            "f1-score": 0.8597111700559976,
+            "support": 73.0
+          },
+          "weighted avg": {
+            "precision": 0.9055996154770487,
+            "recall": 0.9041095890410958,
+            "f1-score": 0.9045335077456003,
+            "support": 73.0
+          }
+        }
+      },
+      "linear_svm": {
+        "accuracy": 0.9452,
+        "macro_precision": 0.9268,
+        "macro_recall": 0.9119,
+        "macro_f1": 0.917,
+        "confusion_matrix": [
+          [
+            11,
+            3,
+            0
+          ],
+          [
+            1,
+            19,
+            0
+          ],
+          [
+            0,
+            0,
+            39
+          ]
+        ],
+        "classification_report": {
+          "confused": {
+            "precision": 0.9166666666666666,
+            "recall": 0.7857142857142857,
+            "f1-score": 0.8461538461538461,
+            "support": 14.0
+          },
+          "partial": {
+            "precision": 0.8636363636363636,
+            "recall": 0.95,
+            "f1-score": 0.9047619047619048,
+            "support": 20.0
+          },
+          "understood": {
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1-score": 1.0,
+            "support": 39.0
+          },
+          "accuracy": 0.9452054794520548,
+          "macro avg": {
+            "precision": 0.9267676767676768,
+            "recall": 0.9119047619047619,
+            "f1-score": 0.9169719169719169,
+            "support": 73.0
+          },
+          "weighted avg": {
+            "precision": 0.9466583644665837,
+            "recall": 0.9452054794520548,
+            "f1-score": 0.9444026293341362,
+            "support": 73.0
+          }
+        }
+      }
+    },
+    "Exp_F_no_explicit_markers_nor_shortcut_vocab": {
+      "name": "Experiment F: No Explicit Markers AND No Shortcut Vocabulary in TF-IDF",
+      "description": "Removes explicit dense counters (understanding_markers, confusion_markers) AND filters out all shortcut pedagogical terms from TF-IDF vocabulary (e.g. 'confused', 'understood', 'clear', 'lost', 'stuck', 'thank', 'perfect', 'sorry', 'doubt', 'unclear', 'ok', 'okay'). Tests pure topical and structural reasoning.",
+      "feature_count": 106,
+      "logistic_regression": {
+        "accuracy": 0.9452,
+        "macro_precision": 0.9361,
+        "macro_recall": 0.919,
+        "macro_f1": 0.9265,
+        "confusion_matrix": [
+          [
+            12,
+            0,
+            2
+          ],
+          [
+            2,
+            18,
+            0
+          ],
+          [
+            0,
+            0,
+            39
+          ]
+        ],
+        "classification_report": {
+          "confused": {
+            "precision": 0.8571428571428571,
+            "recall": 0.8571428571428571,
+            "f1-score": 0.8571428571428571,
+            "support": 14.0
+          },
+          "partial": {
+            "precision": 1.0,
+            "recall": 0.9,
+            "f1-score": 0.9473684210526315,
+            "support": 20.0
+          },
+          "understood": {
+            "precision": 0.9512195121951219,
+            "recall": 1.0,
+            "f1-score": 0.975,
+            "support": 39.0
+          },
+          "accuracy": 0.9452054794520548,
+          "macro avg": {
+            "precision": 0.9361207897793263,
+            "recall": 0.919047619047619,
+            "f1-score": 0.9265037593984963,
+            "support": 73.0
+          },
+          "weighted avg": {
+            "precision": 0.9465419311727363,
+            "recall": 0.9452054794520548,
+            "f1-score": 0.9448269646719539,
+            "support": 73.0
+          }
+        }
+      },
+      "linear_svm": {
+        "accuracy": 0.9863,
+        "macro_precision": 0.9917,
+        "macro_recall": 0.9762,
+        "macro_f1": 0.9834,
+        "confusion_matrix": [
+          [
+            13,
+            0,
+            1
+          ],
+          [
+            0,
+            20,
+            0
+          ],
+          [
+            0,
+            0,
+            39
+          ]
+        ],
+        "classification_report": {
+          "confused": {
+            "precision": 1.0,
+            "recall": 0.9285714285714286,
+            "f1-score": 0.9629629629629629,
+            "support": 14.0
+          },
+          "partial": {
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1-score": 1.0,
+            "support": 20.0
+          },
+          "understood": {
+            "precision": 0.975,
+            "recall": 1.0,
+            "f1-score": 0.9873417721518988,
+            "support": 39.0
+          },
+          "accuracy": 0.9863013698630136,
+          "macro avg": {
+            "precision": 0.9916666666666667,
+            "recall": 0.9761904761904763,
+            "f1-score": 0.9834349117049538,
+            "support": 73.0
+          },
+          "weighted avg": {
+            "precision": 0.9866438356164384,
+            "recall": 0.9863013698630136,
+            "f1-score": 0.9861343917178841,
+            "support": 73.0
+          }
+        }
+      }
+    }
+  }
+}
