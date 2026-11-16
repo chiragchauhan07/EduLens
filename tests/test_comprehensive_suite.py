@@ -353,33 +353,29 @@ def test_scoring_engine_composite_math():
 
 
 def test_api_new_endpoints():
-    # 1. /api/evaluate-quiz
-    payload_quiz = {
-        "questions": [{"id": 1, "question": "2+2?"}],
-        "answer_key": {1: "4"},
-        "student_answers": {1: "4"},
-    }
-    res_q = client.post("/api/evaluate-quiz", json=payload_quiz)
-    assert res_q.status_code == 200
-    assert res_q.json()["actual_score_percent"] == 100.0
+    """Verify that active production endpoints respond correctly and legacy endpoints return 404."""
+    # 1. Active health endpoint
+    res_h = client.get("/api/health")
+    assert res_h.status_code == 200
+    assert res_h.json()["status"] == "healthy"
 
-    # 2. /api/confidence
-    res_c = client.post(
-        "/api/confidence",
-        json={"text": "definitely! clearly this works. I am certain the algorithm divides the search space in half and runs in logarithmic time."},
-    )
-    assert res_c.status_code == 200
-    assert res_c.json()["classification"] == "high"
+    # 2. Active model-info endpoint
+    res_m = client.get("/api/model-info")
+    assert res_m.status_code == 200
+    assert "Logistic Regression" in res_m.json()["model_name"]
 
-    # 3. /api/pipeline
-    payload_p = {
-        "text": "what is binary search? got it, dividing in half gives O(log n).",
-        "quiz_submission": payload_quiz,
-        "algorithm": "logistic_regression",
-    }
-    res_p = client.post("/api/pipeline", json=payload_p)
-    assert res_p.status_code == 200
-    p_data = res_p.json()
-    assert p_data["status"] == "success"
-    assert len(p_data["topics"]) == 1
-    assert p_data["topics"][0]["actual_quiz_performance"]["actual_score_percent"] == 100.0
+    # 3. Active sample-conversation endpoint
+    res_s = client.get("/api/sample-conversation")
+    assert res_s.status_code == 200
+    assert "messages" in res_s.json()
+
+    # 4. Active analyze endpoint
+    res_a = client.post("/api/analyze", json=res_s.json())
+    assert res_a.status_code == 200
+    assert "understanding" in res_a.json()
+    assert "expressed_confidence" in res_a.json()
+
+    # 5. Verify removed legacy endpoints return 404 Not Found
+    assert client.post("/api/evaluate-quiz", json={}).status_code == 404
+    assert client.post("/api/confidence", json={}).status_code == 404
+    assert client.post("/api/pipeline", json={}).status_code == 404

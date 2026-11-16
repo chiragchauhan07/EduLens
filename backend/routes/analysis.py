@@ -6,11 +6,6 @@ Endpoints:
 - GET  /api/model-info
 - GET  /api/sample-conversation
 - POST /api/analyze  (Supports both multipart/form-data file upload and direct application/json body)
-
-Compatibility Endpoints (Preserved for ML Prototype verification):
-- POST /api/confidence
-- POST /api/evaluate-quiz
-- POST /api/pipeline
 """
 
 import json
@@ -20,11 +15,6 @@ from pydantic import BaseModel, Field
 
 from backend.services.conversation_parser import parse_conversation_json, ParsedConversation
 from backend.services.prediction import ModelRegistry, analyze_conversation_session
-
-# Optional ML Prototype tools
-from ml_prototype.confidence import ExpressedConfidenceEstimator
-from ml_prototype.quiz_evaluator import evaluate_quiz_submission
-from ml_prototype.unified_pipeline import EduLensUnifiedPipeline
 
 router = APIRouter(prefix="/api", tags=["Analysis"])
 
@@ -184,37 +174,4 @@ async def analyze_conversation(
         raise HTTPException(status_code=500, detail=f"Inference execution error: {str(err)}")
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# ML PROTOTYPE COMPATIBILITY ENDPOINTS
-# ─────────────────────────────────────────────────────────────────────────────
 
-@router.post("/confidence")
-async def evaluate_confidence_endpoint(request: Request) -> Dict[str, Any]:
-    """Compatibility route: estimates student expressed confidence using ML prototype."""
-    body = await request.json()
-    convo = body.get("conversation") or body.get("text") or body.get("messages") or body
-    estimator = ExpressedConfidenceEstimator()
-    return estimator.predict(convo)
-
-
-@router.post("/evaluate-quiz")
-async def evaluate_quiz_endpoint(request: Request) -> Dict[str, Any]:
-    """Compatibility route: grades a submitted post-session quiz."""
-    body = await request.json()
-    questions = body.get("questions", [])
-    answer_key = body.get("answer_key", {})
-    student_answers = body.get("student_answers", {})
-    return evaluate_quiz_submission(questions=questions, answer_key=answer_key, student_answers=student_answers)
-
-
-@router.post("/pipeline")
-async def run_unified_pipeline_endpoint(request: Request) -> Dict[str, Any]:
-    """Compatibility route: runs the multi-dimension evaluation pipeline."""
-    body = await request.json()
-    algo = body.get("algorithm", "logistic_regression")
-    quiz_sub = body.get("quiz_submission")
-    if "text" in body and "turns" not in body:
-        body["turns"] = [{"turn": 1, "student_message": body["text"]}]
-        body["full_text"] = body["text"]
-    pipe = EduLensUnifiedPipeline(algorithm=algo)
-    return pipe.process_session(body, quiz_submission=quiz_sub)

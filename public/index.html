@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>EduLens — Student Learning Intelligence</title>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin=""/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com?plugins=forms"></script>
+  <script>
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            primary: {
+              DEFAULT: "#2563eb",
+              hover: "#1d4ed8",
+              light: "#eff6ff",
+            },
+            surface: "#ffffff",
+            slatebg: "#f8fafc",
+            bordercolor: "#e2e8f0",
+            darktext: "#0f172a",
+            mutedtext: "#64748b",
+            success: {
+              DEFAULT: "#059669",
+              light: "#ecfdf5",
+              border: "#a7f3d0",
+            },
+            warning: {
+              DEFAULT: "#d97706",
+              light: "#fffbeb",
+              border: "#fde68a",
+            },
+            danger: {
+              DEFAULT: "#e11d48",
+              light: "#fff1f2",
+              border: "#fecdd3",
+            },
+          },
+          fontFamily: {
+            sans: ["Inter", "sans-serif"],
+            display: ["Plus Jakarta Sans", "sans-serif"],
+            mono: ["JetBrains Mono", "monospace"],
+          },
+        },
+      },
+    };
+  </script>
+
+  <link rel="stylesheet" href="/assets/styles.css"/>
+</head>
+<body class="bg-white text-darktext font-sans antialiased min-h-screen flex flex-col selection:bg-primary-light selection:text-primary">
+
+  <!-- TOP APP BAR -->
+  <header class="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-bordercolor shadow-sm">
+    <div class="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-16">
+      
+      <!-- Left: EduLens Brand & Subtitle -->
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-primary to-blue-500 flex items-center justify-center text-white shadow-sm shadow-primary/20">
+          <span class="material-symbols-outlined text-[20px]">psychology</span>
+        </div>
+        <div>
+          <span class="text-xl font-display font-bold tracking-tight text-darktext">EduLens</span>
+          <p class="text-[11px] text-mutedtext leading-none hidden sm:block mt-0.5">Student Learning Intelligence</p>
+        </div>
+      </div>
+
+      <!-- Center: Navigation Links -->
+      <nav class="flex items-center gap-1 sm:gap-4">
+        <button id="nav-analyze-btn" class="px-3.5 py-1.5 rounded-lg text-sm font-semibold text-primary bg-primary-light transition-all flex items-center gap-1.5">
+          <span class="material-symbols-outlined text-[17px]">analytics</span>
+          <span>Analyze</span>
+        </button>
+        <button id="nav-about-btn" class="px-3.5 py-1.5 rounded-lg text-sm font-medium text-mutedtext hover:text-darktext hover:bg-slatebg transition-all flex items-center gap-1.5">
+          <span class="material-symbols-outlined text-[17px]">info</span>
+          <span>About Model</span>
+        </button>
+      </nav>
+
+      <!-- Right: System Status Indicator -->
+      <div class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-slatebg border border-bordercolor text-xs text-mutedtext">
+        <span class="relative flex h-2 w-2">
+          <span id="status-pulse" class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-75"></span>
+          <span id="status-dot" class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+        </span>
+        <span id="status-text" class="font-medium text-darktext">Learning Analysis &bull; Ready</span>
+      </div>
+
+    </div>
+  </header>
+
+  <!-- MAIN CONTAINER -->
+  <main class="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-10">
+
+    <!-- HERO HEADER -->
+    <section class="max-w-3xl space-y-2 pt-2">
+      <h1 class="text-3xl sm:text-4xl font-display font-bold text-darktext tracking-tight">
+        Understand How Students Learn
+      </h1>
+      <p class="text-base sm:text-lg text-mutedtext leading-relaxed">
+        Analyze educational conversations to understand a student's topic comprehension and expressed learning confidence.
+      </p>
+    </section>
+
+    <!-- UPLOAD & INPUT WORKBENCH -->
+    <section id="upload-section" class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+      
+      <!-- Primary Upload Card (7 Cols on desktop, 1st on mobile) -->
+      <div class="lg:col-span-7 bg-slatebg border border-bordercolor rounded-2xl p-6 sm:p-8 shadow-sm space-y-6">
+        
+        <div class="flex items-center justify-between border-b border-bordercolor pb-4">
+          <div class="flex items-center gap-2.5">
+            <span class="w-8 h-8 rounded-lg bg-blue-100 text-primary flex items-center justify-center font-bold">
+              <span class="material-symbols-outlined text-[20px]">upload_file</span>
+            </span>
+            <h2 class="text-lg font-display font-semibold text-darktext">Upload Learning Conversation</h2>
+          </div>
+          <span class="text-xs font-mono text-mutedtext">Supported: .json</span>
+        </div>
+
+        <!-- Optional Topic Input -->
+        <div class="space-y-1.5">
+          <label for="topic-input" class="block text-sm font-semibold text-darktext">
+            Topic Name <span class="text-xs font-normal text-mutedtext">(Optional — extracted automatically if specified in JSON)</span>
+          </label>
+          <div class="relative">
+            <span class="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-mutedtext text-[18px]">menu_book</span>
+            <input
+              type="text"
+              id="topic-input"
+              placeholder="e.g., Binary Search or Friction Dynamics"
+              class="w-full bg-white border border-bordercolor rounded-xl pl-10 pr-4 py-2.5 text-sm text-darktext placeholder:text-mutedtext/70 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all shadow-sm"
+            />
+          </div>
+        </div>
+
+        <!-- Drag & Drop Upload Zone -->
+        <div class="space-y-1.5">
+          <label class="block text-sm font-semibold text-darktext">
+            Conversation File
+          </label>
+          
+          <input type="file" id="json-file-input" accept=".json,application/json" class="hidden"/>
+          
+          <div
+            id="dropzone"
+            class="group relative border-2 border-dashed border-bordercolor hover:border-primary rounded-xl p-8 bg-white transition-all duration-200 cursor-pointer text-center flex flex-col items-center justify-center gap-2 hover:bg-blue-50/30"
+          >
+            <div class="w-12 h-12 rounded-full bg-blue-50 text-primary flex items-center justify-center group-hover:scale-110 transition-transform">
+              <span class="material-symbols-outlined text-[26px]">cloud_upload</span>
+            </div>
+            <div>
+              <p class="text-sm font-semibold text-darktext">
+                Drop your JSON conversation here, or <span class="text-primary hover:underline font-bold">browse files</span>
+              </p>
+              <p class="text-xs text-mutedtext mt-0.5">
+                Standard conversation format &bull; Max file size: 5MB
+              </p>
+            </div>
+            
+            <!-- File selected badge -->
+            <div id="file-info-badge" class="hidden mt-2 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 border border-blue-200 text-xs font-medium text-primary">
+              <span class="material-symbols-outlined text-[14px]">check_circle</span>
+              <span id="file-name-display">filename.json</span>
+              <button type="button" id="clear-file-btn" class="ml-1 text-mutedtext hover:text-danger text-sm font-bold" title="Remove file">&times;</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Error Alert -->
+        <div id="error-alert" class="hidden p-4 rounded-xl bg-danger-light border border-danger-border text-danger text-sm flex items-start gap-3">
+          <span class="material-symbols-outlined text-[20px] flex-shrink-0 mt-0.5">error</span>
+          <div class="flex-1">
+            <h4 class="font-bold text-xs uppercase tracking-wider mb-0.5">Upload Error</h4>
+            <p id="error-message" class="text-sm">Unable to parse conversation file.</p>
+          </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="flex flex-wrap items-center justify-between gap-3 pt-2">
+          <button
+            type="button"
+            id="load-sample-btn"
+            class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-bordercolor bg-white text-darktext hover:bg-slatebg text-sm font-medium transition-all duration-150 shadow-sm"
+          >
+            <span class="material-symbols-outlined text-[18px] text-mutedtext">history_edu</span>
+            Load Sample
+          </button>
+
+          <button
+            type="button"
+            id="analyze-btn"
+            class="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-primary text-white hover:bg-primary-hover text-sm font-semibold transition-all duration-150 shadow-sm shadow-primary/25 active:scale-[0.98]"
+          >
+            <span class="material-symbols-outlined text-[18px]">auto_awesome</span>
+            <span>Analyze Conversation</span>
+          </button>
+        </div>
+
+      </div>
+
+      <!-- Supported Schema Card (5 Cols on desktop, 2nd on mobile) -->
+      <div id="schema-guide-card" class="lg:col-span-5 bg-slatebg border border-bordercolor rounded-2xl p-6 sm:p-8 shadow-sm space-y-4">
+        <div class="flex items-center justify-between border-b border-bordercolor pb-4">
+          <div class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-primary text-[20px]">data_object</span>
+            <h3 class="text-base font-display font-semibold text-darktext">Supported JSON Format</h3>
+          </div>
+          <button
+            type="button"
+            id="copy-schema-btn"
+            class="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium bg-white hover:bg-slate-100 border border-bordercolor text-darktext transition-colors"
+            title="Copy example JSON to clipboard"
+          >
+            <span class="material-symbols-outlined text-[14px]">content_copy</span>
+            <span id="copy-btn-text">Copy</span>
+          </button>
+        </div>
+
+        <p class="text-xs text-mutedtext leading-relaxed">
+          EduLens accepts standard educational dialogue payloads containing alternating student and tutor/assistant turns.
+        </p>
+
+        <!-- Fully Visible Code Block (no unwanted clipping) -->
+        <div class="relative bg-darktext rounded-xl p-3.5 font-mono text-xs leading-5 text-slate-200 border border-slate-700 shadow-inner">
+          <pre class="overflow-x-auto"><code id="schema-code-example">{
+  <span class="text-blue-300">"topic"</span>: <span class="text-emerald-300">"Binary Search"</span>,
+  <span class="text-blue-300">"messages"</span>: [
+    {
+      <span class="text-blue-300">"role"</span>: <span class="text-emerald-300">"assistant"</span>,
+      <span class="text-blue-300">"content"</span>: <span class="text-emerald-300">"How does binary search work?"</span>
+    },
+    {
+      <span class="text-blue-300">"role"</span>: <span class="text-emerald-300">"student"</span>,
+      <span class="text-blue-300">"content"</span>: <span class="text-emerald-300">"It repeatedly divides the search space in half!"</span>
+    }
+  ]
+}</code></pre>
+        </div>
+
+        <!-- Format Compatibility Tags -->
+        <div class="space-y-1.5 pt-1 text-xs">
+          <div class="flex items-center gap-2 text-mutedtext">
+            <span class="material-symbols-outlined text-[15px] text-emerald-600">check_circle</span>
+            <span><strong>Roles:</strong> <code class="text-darktext">student</code>, <code class="text-darktext">assistant</code>, <code class="text-darktext">tutor</code>, <code class="text-darktext">user</code></span>
+          </div>
+          <div class="flex items-center gap-2 text-mutedtext">
+            <span class="material-symbols-outlined text-[15px] text-emerald-600">check_circle</span>
+            <span><strong>Alternative keys:</strong> <code class="text-darktext">turns</code>, <code class="text-darktext">dialogue</code>, <code class="text-darktext">content</code>, <code class="text-darktext">text</code></span>
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- LOADING OVERLAY -->
+    <div id="loading-state" class="hidden py-12 flex flex-col items-center justify-center gap-4 text-center">
+      <div class="w-10 h-10 border-3 border-primary/20 border-t-primary rounded-full animate-spin"></div>
+      <div>
+        <h3 class="text-base font-display font-bold text-darktext">Analyzing Conversation...</h3>
+        <p class="text-xs text-mutedtext">Extracting conversational signals and evaluating topic understanding.</p>
+      </div>
+    </div>
+
+    <!-- REFINED RESULTS REPORT SECTION -->
+    <section id="results-section" class="hidden space-y-6 pt-2">
+      
+      <!-- 1. Topic Name and Analysis Status -->
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-bordercolor pb-4">
+        <div>
+          <div class="flex items-center gap-2 mb-1">
+            <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-success-light text-success border border-success-border">
+              Analysis Complete
+            </span>
+            <span id="results-topic-badge" class="px-2.5 py-0.5 rounded-full text-xs font-medium bg-slatebg border border-bordercolor text-darktext">
+              Topic: General
+            </span>
+          </div>
+          <h2 class="text-2xl font-display font-bold text-darktext tracking-tight">
+            Learning Performance Analysis
+          </h2>
+        </div>
+
+        <div>
+          <button
+            type="button"
+            id="analyze-another-btn"
+            class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-primary text-white hover:bg-primary-hover text-sm font-semibold transition-all shadow-sm"
+          >
+            <span class="material-symbols-outlined text-[16px]">refresh</span>
+            Analyze Another Conversation
+          </button>
+        </div>
+      </div>
+
+      <!-- Core 2-Column Analytical Cards Grid -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+        <!-- 2. Student Understanding Result Card (6 cols) -->
+        <div class="lg:col-span-6 bg-slatebg border border-bordercolor rounded-2xl p-6 shadow-sm flex flex-col justify-between space-y-5">
+          <div class="space-y-4">
+            
+            <div class="flex items-center justify-between">
+              <div>
+                <h3 class="text-xs font-bold tracking-wider text-mutedtext uppercase">
+                  Student Understanding
+                </h3>
+                <p class="text-[11px] text-mutedtext mt-0.5">Classifier prediction of topic comprehension</p>
+              </div>
+              <span class="material-symbols-outlined text-primary text-[20px]">psychology</span>
+            </div>
+
+            <!-- Main Understanding Outcome Badge & Radial Meter -->
+            <div class="flex items-center justify-between gap-4 bg-white p-4 rounded-xl border border-bordercolor">
+              <div>
+                <div id="understanding-badge" class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full font-display font-bold text-base bg-success-light text-success border border-success-border">
+                  <span class="w-2.5 h-2.5 rounded-full bg-success"></span>
+                  <span id="understanding-label">Understood</span>
+                </div>
+                <div class="mt-2 text-xs text-mutedtext">
+                  <span>Model Certainty: </span>
+                  <span id="understanding-prob-val" class="font-bold text-darktext font-mono">88%</span>
+                </div>
+              </div>
+
+              <!-- Probability Gauge Ring -->
+              <div class="relative w-16 h-16 flex-shrink-0 flex items-center justify-center">
+                <svg class="w-full h-full -rotate-90" viewBox="0 0 36 36">
+                  <circle cx="18" cy="18" r="15.9155" fill="none" stroke="#e2e8f0" stroke-width="3"></circle>
+                  <circle id="prob-ring-fill" cx="18" cy="18" r="15.9155" fill="none" stroke="#059669" stroke-width="3" stroke-dasharray="88, 100" stroke-linecap="round"></circle>
+                </svg>
+                <div class="absolute inset-0 flex flex-col items-center justify-center">
+                  <span id="understanding-prob-val-ring" class="text-sm font-display font-bold text-darktext">88%</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Plain-Language Interpretation -->
+            <div class="bg-white p-3.5 rounded-xl border border-bordercolor text-xs text-mutedtext leading-relaxed">
+              <strong class="text-darktext font-semibold">Assessment Summary: </strong>
+              <span id="understanding-explanation-text">The student demonstrated solid comprehension, articulated concepts clearly, and applied principles with minimal confusion.</span>
+            </div>
+
+          </div>
+
+          <!-- Technical Distinction Callout -->
+          <div class="text-[11px] text-mutedtext border-t border-bordercolor pt-2 flex items-center justify-between">
+            <span>Metric: Understanding Probability</span>
+            <span class="font-mono text-darktext">Statistical Classifier Posterior</span>
+          </div>
+        </div>
+
+        <!-- 3. Expressed Learning Confidence Card ("How Confident Did the Student Sound?") (6 cols) -->
+        <div class="lg:col-span-6 bg-slatebg border border-bordercolor rounded-2xl p-6 shadow-sm flex flex-col justify-between space-y-5">
+          <div class="space-y-4">
+            
+            <div>
+              <div class="flex items-center justify-between">
+                <h3 class="text-xs font-bold tracking-wider text-mutedtext uppercase">
+                  How Confident Did the Student Sound?
+                </h3>
+                <span class="px-2 py-0.5 rounded text-[10px] font-semibold bg-blue-100 text-primary uppercase tracking-wide">
+                  Linguistic Analysis
+                </span>
+              </div>
+              <p class="text-[11px] text-mutedtext mt-0.5">
+                This estimate is based on how the student expressed certainty or uncertainty during the conversation.
+              </p>
+            </div>
+
+            <!-- Level Label & Horizontal Progress Indicator -->
+            <div class="bg-white p-4 rounded-xl border border-bordercolor space-y-3">
+              <div class="flex items-center justify-between">
+                <div id="confidence-badge" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full font-display font-bold text-sm bg-success-light text-success border border-success-border">
+                  <span class="material-symbols-outlined text-[16px]">trending_up</span>
+                  <span id="confidence-label">High Confidence</span>
+                </div>
+                <div class="text-xs">
+                  <span class="text-mutedtext">Confidence Score: </span>
+                  <span id="confidence-score-val" class="text-sm font-display font-bold text-darktext font-mono">85%</span>
+                </div>
+              </div>
+
+              <!-- Horizontal Progress Meter -->
+              <div class="w-full h-2 rounded-full bg-slate-100 overflow-hidden">
+                <div id="confidence-progress-bar" class="h-full bg-success rounded-full transition-all duration-500" style="width: 85%"></div>
+              </div>
+
+              <!-- Dynamic Plain-Language Explanation -->
+              <p id="confidence-plain-description" class="text-xs text-mutedtext leading-relaxed pt-1">
+                The student generally expressed certainty, explained ideas clearly, and showed fewer signs of hesitation.
+              </p>
+            </div>
+
+            <!-- "What influenced this estimate?" Section -->
+            <div class="space-y-2">
+              <h4 class="text-xs font-semibold text-darktext">What influenced this estimate?</h4>
+              <div id="confidence-signals-container" class="flex flex-wrap gap-2 text-xs">
+                <!-- Dynamically populated chips of actually detected signals -->
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Plain Subtle Note -->
+          <div class="p-3 bg-white rounded-xl border border-bordercolor text-[11px] text-mutedtext leading-relaxed flex items-start gap-2">
+            <span class="material-symbols-outlined text-[15px] text-mutedtext flex-shrink-0 mt-0.5">info</span>
+            <span>
+              Confidence is estimated from the student's language. It does not directly measure actual knowledge or psychological confidence.
+            </span>
+          </div>
+
+        </div>
+
+      </div>
+
+      <!-- 4. Conversation Statistics & 5. Important Observations Grid -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+        <!-- 4. Conversation Statistics (5 cols) -->
+        <div class="lg:col-span-5 bg-slatebg border border-bordercolor rounded-2xl p-6 shadow-sm space-y-4">
+          <div class="flex items-center justify-between">
+            <h3 class="text-xs font-bold tracking-wider text-mutedtext uppercase">
+              Conversation Statistics
+            </h3>
+            <span class="material-symbols-outlined text-mutedtext text-[18px]">forum</span>
+          </div>
+
+          <div class="grid grid-cols-2 gap-3">
+            <div class="p-3 bg-white rounded-xl border border-bordercolor">
+              <div class="text-[11px] text-mutedtext font-medium">Student Turns</div>
+              <div id="stat-student-turns" class="text-xl font-display font-bold text-darktext mt-0.5">0</div>
+            </div>
+            <div class="p-3 bg-white rounded-xl border border-bordercolor">
+              <div class="text-[11px] text-mutedtext font-medium">Tutor / AI Turns</div>
+              <div id="stat-assistant-turns" class="text-xl font-display font-bold text-darktext mt-0.5">0</div>
+            </div>
+            <div class="p-3 bg-white rounded-xl border border-bordercolor">
+              <div class="text-[11px] text-mutedtext font-medium">Student Words</div>
+              <div id="stat-total-words" class="text-xl font-display font-bold text-darktext mt-0.5">0</div>
+            </div>
+            <div class="p-3 bg-white rounded-xl border border-bordercolor">
+              <div class="text-[11px] text-mutedtext font-medium">Questions Asked</div>
+              <div id="stat-question-count" class="text-xl font-display font-bold text-darktext mt-0.5">0</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 5. Important Observations & 6. Class Distribution (7 cols) -->
+        <div class="lg:col-span-7 bg-slatebg border border-bordercolor rounded-2xl p-6 shadow-sm space-y-4">
+          
+          <div class="flex items-center justify-between">
+            <h3 class="text-xs font-bold tracking-wider text-mutedtext uppercase">
+              Important Conversation Observations
+            </h3>
+            <span class="material-symbols-outlined text-mutedtext text-[18px]">visibility</span>
+          </div>
+
+          <div class="bg-white p-4 rounded-xl border border-bordercolor">
+            <ul id="insights-list" class="space-y-2 text-xs text-mutedtext list-disc list-inside">
+              <li>Student engaged actively with topic concepts.</li>
+            </ul>
+          </div>
+
+          <!-- 6. Class Probability Distribution -->
+          <div class="pt-2 border-t border-bordercolor space-y-2">
+            <div class="flex justify-between text-xs text-mutedtext">
+              <span>Understanding Class Probabilities</span>
+              <span class="font-mono text-darktext text-[11px]">Softmax Distribution</span>
+            </div>
+            
+            <div class="grid grid-cols-3 gap-2">
+              <div class="p-2.5 bg-white rounded-lg border border-bordercolor text-center">
+                <span class="text-[11px] text-emerald-700 block font-medium">Understood</span>
+                <span id="prob-understood-text" class="text-sm font-bold text-darktext font-mono">0%</span>
+              </div>
+              <div class="p-2.5 bg-white rounded-lg border border-bordercolor text-center">
+                <span class="text-[11px] text-amber-700 block font-medium">Partial</span>
+                <span id="prob-partial-text" class="text-sm font-bold text-darktext font-mono">0%</span>
+              </div>
+              <div class="p-2.5 bg-white rounded-lg border border-bordercolor text-center">
+                <span class="text-[11px] text-rose-700 block font-medium">Confused</span>
+                <span id="prob-confused-text" class="text-sm font-bold text-darktext font-mono">0%</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+
+    </section>
+
+    <!-- ABOUT MODEL PAGE (4 Clear Structured Sections) -->
+    <section id="about-section" class="bg-slatebg border border-bordercolor rounded-2xl p-6 sm:p-8 shadow-sm space-y-6">
+      
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-bordercolor pb-4">
+        <div>
+          <h3 class="text-xl font-display font-bold text-darktext">
+            About the Model &amp; Methodology
+          </h3>
+          <p class="text-xs sm:text-sm text-mutedtext mt-0.5">
+            Technical methodology underlying student understanding classification and linguistic confidence estimation.
+          </p>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <div class="px-3 py-1.5 rounded-xl bg-white border border-bordercolor text-xs">
+            <span class="text-mutedtext">Algorithm: </span>
+            <span class="font-bold text-darktext">Multinomial Logistic Regression</span>
+          </div>
+          <div class="px-3 py-1.5 rounded-xl bg-success-light border border-success-border text-xs font-bold text-success font-mono">
+            Test Accuracy: 95.89%
+          </div>
+        </div>
+      </div>
+
+      <!-- 4 Structured Methodology Pillars -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+        <!-- Pillar 1: Understanding Model -->
+        <div class="p-5 bg-white rounded-xl border border-bordercolor space-y-2.5">
+          <div class="flex items-center justify-between">
+            <h4 class="font-display font-bold text-sm text-darktext">1. Understanding Classification Model</h4>
+            <span class="text-[11px] font-mono px-2 py-0.5 rounded bg-blue-50 text-primary font-semibold">Supervised ML</span>
+          </div>
+          <p class="text-xs text-mutedtext leading-relaxed">
+            A Multinomial Logistic Regression model trained with balanced class weights on 430 verified student learning sessions. Input is a 108-dimensional feature vector. The model outputs posterior probabilities across three target outcomes:
+          </p>
+          <ul class="text-xs text-mutedtext space-y-1 list-disc list-inside">
+            <li><strong>Understood:</strong> Comprehensive conceptual mastery and evidence (F1: 1.00).</li>
+            <li><strong>Partially Understood:</strong> Emerging understanding with lingering gaps (F1: 0.92).</li>
+            <li><strong>Confused:</strong> Persistent difficulty or misconceptions (F1: 0.90).</li>
+          </ul>
+        </div>
+
+        <!-- Pillar 2: NLP Pipeline -->
+        <div class="p-5 bg-white rounded-xl border border-bordercolor space-y-2.5">
+          <div class="flex items-center justify-between">
+            <h4 class="font-display font-bold text-sm text-darktext">2. NLP &amp; Feature Pipeline</h4>
+            <span class="text-[11px] font-mono px-2 py-0.5 rounded bg-blue-50 text-primary font-semibold">108 Features</span>
+          </div>
+          <p class="text-xs text-mutedtext leading-relaxed">
+            The dialogue is processed in a deterministic sequence:
+          </p>
+          <div class="p-2.5 bg-slatebg rounded-lg text-[11px] font-mono text-darktext border border-bordercolor">
+            JSON Dialogue &rarr; Student Utterance Extraction &rarr; Text Normalization &rarr; TF-IDF + Conversational Union &rarr; 108-dim Vector
+          </div>
+          <p class="text-xs text-mutedtext leading-relaxed">
+            Features comprise <strong>100 lexical TF-IDF n-grams</strong> (domain vocabulary and causal markers like <em>because</em>, <em>therefore</em>) and <strong>8 scaled conversational signals</strong> (turns, word volume, questions, confusion markers, affirmations, code syntax).
+          </p>
+        </div>
+
+        <!-- Pillar 3: Confidence Estimation -->
+        <div class="p-5 bg-white rounded-xl border border-bordercolor space-y-2.5">
+          <div class="flex items-center justify-between">
+            <h4 class="font-display font-bold text-sm text-darktext">3. Expressed Confidence Estimation</h4>
+            <span class="text-[11px] font-mono px-2 py-0.5 rounded bg-amber-50 text-amber-700 font-semibold">Linguistic System</span>
+          </div>
+          <p class="text-xs text-mutedtext leading-relaxed">
+            Confidence is evaluated using a rule-calibrated discourse analysis algorithm based on explicit conversational markers:
+          </p>
+          <ul class="text-xs text-mutedtext space-y-1 list-disc list-inside">
+            <li><strong>Boosters:</strong> Assertive statements (+9), independent explanations (+7), self-corrections (+5).</li>
+            <li><strong>Dampeners:</strong> Uncertainty hedges (-8), hesitation fillers (-5), confirmation checks (-4), hint reliance (-9).</li>
+          </ul>
+          <p class="text-xs text-mutedtext leading-relaxed">
+            This is explicitly a <strong>linguistic marker estimate</strong>, not an ML classification model or psychological conviction test.
+          </p>
+        </div>
+
+        <!-- Pillar 4: Academic Limitations -->
+        <div class="p-5 bg-white rounded-xl border border-bordercolor space-y-2.5">
+          <div class="flex items-center justify-between">
+            <h4 class="font-display font-bold text-sm text-darktext">4. Limitations &amp; Boundaries</h4>
+            <span class="text-[11px] font-mono px-2 py-0.5 rounded bg-slate-100 text-darktext font-semibold">Transparency</span>
+          </div>
+          <ul class="text-xs text-mutedtext space-y-1.5 list-disc list-inside leading-relaxed">
+            <li><strong>Dialogue Evidence Only:</strong> Evaluates only what the student expressed in the provided text conversation.</li>
+            <li><strong>Vocabulary Domain:</strong> TF-IDF bank was trained primarily on Computer Science and STEM dialogue.</li>
+            <li><strong>Language vs. Truth:</strong> Expressed confidence measures conversational tone. A student can sound confident while asserting an incorrect concept.</li>
+          </ul>
+        </div>
+
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- REFINED MINIMAL FOOTER -->
+  <footer class="bg-slatebg border-t border-bordercolor mt-16">
+    <div class="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+      <div>
+        <span class="font-display font-bold text-darktext">EduLens</span>
+        <span class="text-xs text-mutedtext ml-2">&bull; Student Learning Intelligence</span>
+      </div>
+
+      <div class="flex items-center gap-6 text-xs text-mutedtext">
+        <a href="#about-section" class="hover:text-darktext transition-colors">About Model</a>
+        <a href="#schema-guide-card" class="hover:text-darktext transition-colors">Supported JSON Format</a>
+        <span class="text-slate-300 hidden sm:inline">|</span>
+        <span class="text-[11px] text-mutedtext hidden md:inline">Local execution &bull; No external data transfer</span>
+      </div>
+    </div>
+  </footer>
+
+  <script src="/assets/app.js"></script>
+</body>
+</html>

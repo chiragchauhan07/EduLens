@@ -7,8 +7,11 @@ Extracts:
 """
 
 import re
-from typing import Any, Dict, List, Tuple
+import sys
+import types
+from typing import Any, Dict, List, Optional, Tuple
 import numpy as np
+from sklearn.base import BaseEstimator, TransformerMixin
 
 # ─────────────────────────────────────────────────────────────────────────────
 # 1. PEDAGOGICAL PATTERNS (Used in ML model feature space)
@@ -111,6 +114,71 @@ def extract_conversational_stats(messages: List[str]) -> Dict[str, float]:
         "understanding_markers": float(len(UNDERSTANDING_PATTERN.findall(full_text))),
         "code_indicators": float(len(CODE_SYNTAX_PATTERN.findall(full_text))),
     }
+
+
+class ConversationalFeatureExtractor(BaseEstimator, TransformerMixin):
+    """
+    Scikit-Learn compatible transformer that extracts dense conversational
+    metrics from a DataFrame column of message lists.
+    """
+
+    DEFAULT_FEATURES = [
+        "num_turns",
+        "total_words",
+        "avg_turn_length",
+        "question_count",
+        "confusion_markers",
+        "clarification_markers",
+        "understanding_markers",
+        "code_indicators",
+    ]
+
+    def __init__(self, message_col: str = "student_messages", selected_features: Optional[List[str]] = None):
+        self.message_col = message_col
+        self.selected_features = selected_features
+        self.feature_names_ = selected_features if selected_features is not None else list(self.DEFAULT_FEATURES)
+
+    def fit(self, X: Any, y: Any = None):
+        return self
+
+    def transform(self, X: Any) -> np.ndarray:
+        if hasattr(X, "__getitem__") and hasattr(X, "columns") and self.message_col in X.columns:
+            messages_series = X[self.message_col]
+        else:
+            messages_series = X
+
+        selected = getattr(self, "selected_features", None)
+        features = []
+        for msgs in messages_series:
+            stats = extract_conversational_stats(msgs)
+            if selected is not None:
+                row = [float(stats.get(k, 0.0)) for k in selected]
+            else:
+                row = list(stats.values())
+            features.append(row)
+        return np.array(features, dtype=np.float32)
+
+    def get_feature_names_out(self, input_features: Any = None):
+        return np.array(getattr(self, "feature_names_", self.DEFAULT_FEATURES))
+
+
+# Register unpickling shim for ml_prototype.features if ml_prototype is not present on disk
+if "ml_prototype.features" not in sys.modules:
+    try:
+        import ml_prototype.features  # noqa: F401
+    except (ImportError, ModuleNotFoundError):
+        if "ml_prototype" not in sys.modules:
+            ml_proto = types.ModuleType("ml_prototype")
+            ml_proto.__path__ = []  # Mark as a package
+            sys.modules["ml_prototype"] = ml_proto
+        else:
+            ml_proto = sys.modules["ml_prototype"]
+
+        ml_proto_feat = types.ModuleType("ml_prototype.features")
+        ml_proto_feat.ConversationalFeatureExtractor = ConversationalFeatureExtractor
+        ml_proto_feat.extract_conversation_stats = extract_conversational_stats
+        ml_proto.features = ml_proto_feat
+        sys.modules["ml_prototype.features"] = ml_proto_feat
 
 
 def extract_linguistic_confidence_signals(student_messages: List[str]) -> Dict[str, float]:
