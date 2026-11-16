@@ -1,0 +1,29 @@
+{
+  "topic": "Recursion Call Stack",
+  "messages": [
+    {
+      "role": "assistant",
+      "content": "Can you trace the call stack for factorial(3)?"
+    },
+    {
+      "role": "student",
+      "content": "I understand that factorial(3) calls factorial(2)."
+    },
+    {
+      "role": "assistant",
+      "content": "Right, and what happens next?"
+    },
+    {
+      "role": "student",
+      "content": "Wait what about the base case? I'm not totally sure when it unwinds."
+    },
+    {
+      "role": "assistant",
+      "content": "When n reaches 1, it returns 1 and returns up."
+    },
+    {
+      "role": "student",
+      "content": "ah okay, so basically each frame returns its result to the caller."
+    }
+  ]
+}

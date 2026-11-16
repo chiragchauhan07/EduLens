@@ -1,221 +1,131 @@
 """
-test_api.py — Automated tests for Vercel Serverless API endpoints.
+test_api.py — API integration tests for EduLens Mini.
+
+Tests:
+- GET  /api/health
+- GET  /api/model-info
+- GET  /api/sample-conversation
+- POST /api/analyze (JSON body)
+- POST /api/analyze (Multipart file upload)
+- POST /api/analyze (Error handling: invalid JSON, empty file, non-json extension)
+- GET  / (Frontend static HTML)
 """
 
+import io
+import json
 import pytest
 from fastapi.testclient import TestClient
-from api.index import app
+
+from backend.main import app
 
 client = TestClient(app)
 
 
-def test_api_health():
-    res = client.get("/api/health")
-    assert res.status_code == 200
-    data = res.json()
+def test_api_health_endpoint():
+    resp = client.get("/api/health")
+    assert resp.status_code == 200
+    data = resp.json()
     assert data["status"] == "healthy"
-    assert "version" in data
+    assert data["service"] == "EduLens Mini"
+    assert data["model_loaded"] is True
 
 
-def test_api_samples():
-    res = client.get("/api/samples")
-    assert res.status_code == 200
-    data = res.json()
-    assert "samples" in data
-    assert len(data["samples"]) >= 3
+def test_api_model_info_endpoint():
+    resp = client.get("/api/model-info")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["model_name"] == "Logistic Regression (Balanced)"
+    assert data["features_dimension"] == 108
+    assert "Understood" in data["supported_understanding_classes"]
+    assert "Partially Understood" in data["supported_understanding_classes"]
+    assert "Confused" in data["supported_understanding_classes"]
+    assert data["status"] == "operational"
 
 
-def test_api_topics():
-    res = client.get("/api/topics")
-    assert res.status_code == 200
-    data = res.json()
-    assert "topics" in data
-    assert len(data["topics"]) > 0
+def test_api_sample_conversation_endpoint():
+    resp = client.get("/api/sample-conversation")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert "topic" in data
+    assert "messages" in data
+    assert len(data["messages"]) > 0
 
 
-def test_api_predict():
+def test_api_analyze_with_json_body():
     payload = {
-        "text": "I really don't understand how recursion works. I am lost and confused."
-    }
-    res = client.post("/api/predict", json=payload)
-    assert res.status_code == 200
-    data = res.json()
-    assert "predicted_class" in data
-    assert data["predicted_class"] in {"confused", "partial", "understood"}
-    assert "probabilities" in data
-    assert "confidence" in data
-    assert "conversational_signals" in data
-    assert "predicted_quiz_score" in data
-
-
-def test_api_predict_with_algorithm():
-    for algo in ["logistic_regression", "naive_bayes", "linear_svm"]:
-        payload = {
-            "conversation": [
-                "explain binary search tree insertion",
-                "got it, smaller goes left and larger goes right! makes complete sense now.",
-            ],
-            "algorithm": algo,
-        }
-        res = client.post("/api/predict", json=payload)
-        assert res.status_code == 200
-        data = res.json()
-        assert data["predicted_class"] in {"confused", "partial", "understood"}
-
-
-def test_api_model_info():
-    res = client.get("/api/model-info")
-    assert res.status_code == 200
-    data = res.json()
-    assert "model_name" in data
-    assert "evaluation_metrics" in data
-
-
-def test_api_model_comparison():
-    res = client.get("/api/model-comparison")
-    assert res.status_code == 200
-    data = res.json()
-    assert "models" in data
-    assert "logistic_regression" in data["models"]
-    assert "naive_bayes" in data["models"]
-    assert "linear_svm" in data["models"]
-
-
-def test_api_quiz_model_info():
-    res = client.get("/api/quiz-model-info")
-    assert res.status_code == 200
-    data = res.json()
-    assert "task" in data
-    assert "models" in data
-
-
-def test_api_predict_empty_fails():
-    res = client.post("/api/predict", json={})
-    assert res.status_code == 400
-
-
-def test_api_predict_with_explain():
-    payload = {
-        "text": "I really don't understand how recursion works. I am lost and confused.",
-        "explain": True,
-    }
-    res = client.post("/api/predict", json=payload)
-    assert res.status_code == 200
-    data = res.json()
-    assert "feature_explanation" in data
-    assert data["feature_explanation"] is not None
-    assert "top_positive_features" in data["feature_explanation"]
-    assert "top_negative_features" in data["feature_explanation"]
-
-
-def test_api_explainability_endpoint():
-    res = client.get("/api/explainability")
-    assert res.status_code == 200
-    data = res.json()
-    assert "logistic_regression" in data
-    assert "linear_svm" in data
-    assert "naive_bayes" in data
-    assert "quiz_regressor" in data
-
-
-def test_api_students():
-    res = client.get("/api/students")
-    assert res.status_code == 200
-    data = res.json()
-    assert "students" in data
-    assert "student_001" in data["students"]
-
-
-def test_api_dashboard():
-    res = client.get("/api/dashboard?student_id=student_001")
-    assert res.status_code == 200
-    data = res.json()
-    assert data["student_id"] == "student_001"
-    assert "summary" in data
-    assert "understanding_distribution" in data
-    assert "recent_sessions" in data
-    assert data["summary"]["total_sessions"] >= 0
-
-
-def test_api_dashboard_empty_student():
-    res = client.get("/api/dashboard?student_id=student_unseen_999")
-    assert res.status_code == 200
-    data = res.json()
-    assert data["summary"]["total_sessions"] == 0
-    assert data["summary"]["topics_studied_count"] == 0
-    assert data["understanding_distribution"] == {"understood": 0, "partial": 0, "confused": 0}
-    assert len(data["recent_sessions"]) == 0
-
-
-def test_api_sessions_list_and_search():
-    res = client.get("/api/sessions?student_id=student_001&limit=5")
-    assert res.status_code == 200
-    data = res.json()
-    assert "total_count" in data
-    assert "sessions" in data
-
-    # Test search
-    res_search = client.get("/api/sessions?student_id=student_001&search=Binary")
-    assert res_search.status_code == 200
-    assert "sessions" in res_search.json()
-
-
-def test_api_quizzes_list_and_submit():
-    # 1. List quizzes
-    res_list = client.get("/api/quizzes?student_id=student_001")
-    assert res_list.status_code == 200
-    data_list = res_list.json()
-    assert "total_count" in data_list
-    assert "quizzes" in data_list
-
-    # 2. Submit a quiz
-    payload = {
-        "student_id": "student_001",
-        "subject": "Computer Science",
-        "topic": "Binary Search",
-        "questions": [
-            {"question_id": "q1", "student_answer": "O(log n)", "correct_answer": "O(log n)"},
-            {"question_id": "q2", "student_answer": "sorted", "correct_answer": "sorted"},
-        ]
-    }
-    res_sub = client.post("/api/quizzes", json=payload)
-    assert res_sub.status_code == 200
-    data_sub = res_sub.json()
-    assert data_sub["actual_score_percent"] == 100.0
-    assert data_sub["correct_count"] == 2
-    assert "quiz_id" in data_sub
-
-    # 3. Retrieve specific quiz
-    quiz_id = data_sub["quiz_id"]
-    res_get = client.get(f"/api/quizzes/{quiz_id}?student_id=student_001")
-    assert res_get.status_code == 200
-    data_get = res_get.json()
-    assert data_get["quiz_id"] == quiz_id
-    assert data_get["total_questions"] == 2
-
-
-def test_api_ingest_and_session_detail():
-    payload = {
-        "student_id": "student_001",
-        "subject": "Data Structures",
-        "topic": "Hash Tables",
-        "source_agent": "chatgpt",
+        "topic": "Newton's Second Law",
         "messages": [
-            {"role": "user", "content": "How does quadratic probing resolve collisions in a hash table?"},
-            {"role": "assistant", "content": "Quadratic probing uses an open addressing scheme with polynomial steps h(k, i) = (h'(k) + c1*i + c2*i^2) mod m."},
-            {"role": "user", "content": "I understand completely! That prevents primary clustering that happens with linear probing. Thank you!"}
-        ]
+            {"role": "assistant", "content": "What is the relationship between force, mass, and acceleration?"},
+            {"role": "student", "content": "can we review Newton's laws?"},
+            {"role": "student", "content": "so basically force equals mass times acceleration F=ma?"},
+            {"role": "student", "content": "got it, that makes complete sense! Thanks!"},
+        ],
     }
-    res_ingest = client.post("/api/ingest", json=payload)
-    assert res_ingest.status_code == 200
-    data_ingest = res_ingest.json()
-    assert "session_id" in data_ingest
-    assert data_ingest["status"] in ("success", "duplicate_detected")
+    resp = client.post("/api/analyze", json=payload)
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["success"] is True
+    assert data["topic"] == "Newton's Second Law"
+    assert data["understanding"]["label"] == "Understood"
+    assert "class_probabilities" in data["understanding"]
+    assert data["expressed_confidence"]["label"] in ["High Confidence", "Moderate Confidence", "Low Confidence"]
+    assert data["conversation_stats"]["student_messages"] == 3
 
-    session_id = data_ingest["session_id"]
-    res_detail = client.get(f"/api/sessions/{session_id}?student_id=student_001")
-    assert res_detail.status_code == 200
-    data_detail = res_detail.json()
-    assert data_detail["session_id"] == session_id
-    assert len(data_detail["messages"]) >= 3
-    assert data_detail["analytics"] is not None
+
+def test_api_analyze_with_multipart_file_upload():
+    content = json.dumps({
+        "topic": "Graph Algorithms",
+        "messages": [
+            {"role": "student", "content": "i don't understand Dijkstra's algorithm, it's so confusing"},
+            {"role": "student", "content": "why does it fail with negative cycles? I'm completely lost"},
+        ],
+    }).encode("utf-8")
+
+    files = {"file": ("graph_session.json", io.BytesIO(content), "application/json")}
+    resp = client.post("/api/analyze", files=files)
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["success"] is True
+    assert data["topic"] == "Graph Algorithms"
+    assert data["understanding"]["label"] == "Confused"
+    assert data["conversation_stats"]["student_messages"] == 2
+
+
+def test_api_analyze_unsupported_file_extension():
+    files = {"file": ("notes.txt", io.BytesIO(b"random text"), "text/plain")}
+    resp = client.post("/api/analyze", files=files)
+    assert resp.status_code == 400
+    assert "Unsupported file format" in resp.json()["detail"]
+
+
+def test_api_analyze_empty_file():
+    files = {"file": ("empty.json", io.BytesIO(b""), "application/json")}
+    resp = client.post("/api/analyze", files=files)
+    assert resp.status_code == 400
+    assert "empty" in resp.json()["detail"]
+
+
+def test_api_analyze_invalid_json():
+    files = {"file": ("broken.json", io.BytesIO(b"{bad json syntax"), "application/json")}
+    resp = client.post("/api/analyze", files=files)
+    assert resp.status_code == 400
+    assert "Invalid JSON" in resp.json()["detail"]
+
+
+def test_api_analyze_missing_student_messages():
+    payload = {
+        "topic": "Empty Student Chat",
+        "messages": [
+            {"role": "assistant", "content": "Hello, is anyone there?"},
+        ],
+    }
+    resp = client.post("/api/analyze", json=payload)
+    assert resp.status_code == 400
+    assert "only assistant/tutor messages" in resp.json()["detail"]
+
+
+def test_frontend_home_served():
+    resp = client.get("/")
+    assert resp.status_code == 200
+    assert "EduLens" in resp.text
+    assert "Student Learning Understanding" in resp.text

@@ -1,149 +1,151 @@
-# EduLens — Project Context & System Architecture
+# EduLens Mini — Project Context & System Architecture
 
-> **Document Status:** Active & Aligned with Repository State  
-> **Target Audience:** Engineering Team, Data Scientists, Contributors, Reviewers  
-> **Last Updated:** November 2026  
-
----
-
-## 1. Executive Summary & Core Philosophy
-
-**EduLens** is an open, production-oriented student learning intelligence and performance analytics platform.
-
-### What EduLens Is:
-- A post-learning assessment and intelligence layer built around the student's natural learning workflow.
-- A platform that ingests learning dialogues from external LLM clients (such as ChatGPT, Claude, and Gemini) via standard protocols like Model Context Protocol (MCP).
-- A system that extracts quantifiable, interpretable linguistic and pedagogical signals from conversation transcripts to predict demonstrated comprehension, detect learning struggles, diagnose confusion, and evaluate curriculum mastery across topics.
-
-### What EduLens Is NOT:
-- **EduLens is NOT an AI tutor.** It does not attempt to replace classroom instructors or serve as another conversational chatbot answering homework questions.
-- Students continue using whatever AI assistant or tutoring tool they prefer. EduLens provides the **measurement, diagnostics, and long-term learning progression tracking** that external LLM interfaces inherently lack.
+> **Document Status:** Active & Aligned with Final ML Practical Showcase  
+> **Target Audience:** Examiners, Faculty Reviewers, Data Scientists, Contributors  
+> **Version:** 1.0.0 (EduLens Mini Showcase Edition)  
 
 ---
 
-## 2. End-to-End System Architecture & Data Flow
+## 1. Executive Summary & Purpose
 
-EduLens operates on an incremental pipeline that bridges conversational interaction with longitudinal learning analytics:
+**EduLens Mini** is a focused, lightweight Machine Learning application designed for college ML practical demonstration.
 
+It simplifies the broader EduLens vision into a single, high-reliability core workflow:
+**Analyze an uploaded student learning conversation in JSON format, extract NLP and conversational features, predict student topic understanding, and estimate expressed linguistic confidence.**
+
+### Key Principles:
+1. **Independent Evaluation Layer**: EduLens Mini is not an AI tutor. It does not generate conversational responses. It analyzes dialogues between a student and an external tutor/AI.
+2. **Local, Lightweight Inference**: Zero external AI API calls or cloud dependencies required during inference.
+3. **High Explainability**: Combines 100 domain TF-IDF vocabulary n-grams with 8 dense pedagogical conversational signals into a 108-dimensional feature vector.
+4. **Methodological Honesty**: Clearly separates supervised ML classification (understanding) from rule-calibrated discourse analysis (expressed confidence). Does not claim to measure psychological conviction.
+
+---
+
+## 2. Active Application Scope & Architecture
+
+```text
+Student Uploads JSON Conversation
+              │
+              ▼
+    [ Conversation Parser ]
+      ├─ Validates JSON syntax & file size (max 5MB)
+      ├─ Extracts Topic, Student Turns & Assistant Turns
+      └─ Rejects empty or teacher-only dialogues
+              │
+              ▼
+    [ NLP & Feature Pipeline ]
+      ├─ Normalizes & cleans utterance text
+      ├─ 100 Lexical TF-IDF N-grams (1, 2)
+      └─ 8 Conversational & Pedagogical Signals
+              │
+              ▼
+       (108-Dimensional Vector)
+              │
+     ┌────────┴──────────────────────────┐
+     ▼                                   ▼
+[ ML Understanding Classifier ]    [ Linguistic Confidence Estimator ]
+  ├─ Multinomial Logistic Reg.       ├─ Uncertainty & Hedge density
+  ├─ 95.89% Test Accuracy            ├─ Assertion & Certainty tokens
+  └─ Calibrated Softmax Probs        └─ Metacognitive self-repair score
+     │                                   │
+     └────────────────┬──────────────────┘
+                      ▼
+          [ FastAPI Analysis Route ]
+                      ▼
+         [ EduLens Mini Web Dashboard ]
+           (Apple / Google Minimalist UI)
 ```
-[Student Learns via External LLM] (ChatGPT / Claude / Local Client)
-                 │
-                 ▼
-[MCP Session Export / Direct Ingestion]
-                 │  (Canonical JSON Session Payload)
-                 ▼
-[Data Cleaning & Boundary Validation]
-                 │  (Isolate student utterances, strip secrets/PII)
-                 ▼
-[Deterministic NLP & Feature Engineering]
-                 │  (108 features: 8 conversational signals + 100 TF-IDF n-grams)
-                 ▼
-[Machine Learning Inference Pipeline]
-                 │  (Multinomial Logistic Regression: Understood / Partial / Confused)
-                 ▼
-[Diagnostic Feedback & Targeted Quiz Generation]
-                 │  (Gemini API generates focused questions on diagnosed weak topics)
-                 ▼
-[Student Learning State & Longitudinal Profiling]
-                 │  (Track mastery, confusion trends, and learning curves over time)
-                 ▼
-[Interactive Analytics Dashboard & Educator Reports]
-```
 
 ---
 
-## 3. Core Architecture Principles
+## 3. Scope Simplification for Tomorrow's Showcase
 
-1. **Deterministic Processing Where Possible:**  
-   JSON parsing, boundary validation, session storage, feature extraction, scaling, and statistical aggregation are deterministic and reproducible. We avoid routing data cleaning or basic classification through nondeterministic LLM calls.
+To ensure maximum stability, instant startup, and zero broken dependencies, the following enterprise and experimental modules have been **decoupled from the active runtime** and archived:
 
-2. **Explainable ML Over Black-Box Complexity:**  
-   Models used for educational evaluation must be transparent and explainable. For student defense, viva examinations, and instructor trust, decision drivers (e.g., specific confusion markers, turn counts, vocabulary keywords) can be directly traced back to feature coefficients and calibrated class probabilities.
+- **Archived Features**:
+  - Model Context Protocol (MCP) server, SSE transports, OAuth/token auth (`archive/mcp_server/`)
+  - Continuous external ChatGPT / Claude live stream ingestion
+  - Dynamic quiz generation and quiz score regression
+  - Multi-tenant student database management
+  - Complex multi-page analytics dashboards
 
-3. **Strategic Use of Generative AI:**  
-   Generative LLMs (e.g., Google Gemini) are reserved strictly for high-value generative tasks—specifically synthesizing dynamic, targeted 10–15 question quizzes tailored to a student's diagnosed confusion areas—not for deterministic feature calculation.
-
-4. **Privacy-by-Design & Data Minimalism:**  
-   Treat student conversations as strictly private. EduLens ingests *only* sessions explicitly submitted by the user. Raw logs and processed feature matrices are separated, credentials and tokens are secured via environment variables, and data deletion requests are honored.
-
-5. **Decoupled & Source-Agnostic Design:**  
-   Whether conversations arrive from Claude Desktop via stdio MCP, ChatGPT web via Streamable HTTP, or batch JSON files, data is normalized into a unified internal schema (`chat_id`, `student_id`, `subject`, `topic`, `student_messages`, `turns`).
-
----
-
-## 4. Current Implementation State
-
-The repository contains the fully functional, verified **Machine Learning Prototype** alongside evaluation reports and datasets:
-
-| Component | Status | Location | Description |
-|---|---|---|---|
-| **Data Loader** | ✅ Implemented | [`ml_prototype/data_loader.py`](ml_prototype/data_loader.py) | Universal parser and schema normalizer for multi-turn sessions. |
-| **Feature Extractor** | ✅ Implemented | [`ml_prototype/features.py`](ml_prototype/features.py) | Leakage-free pipeline generating 108 conversational & lexical features. |
-| **Model Training** | ✅ Implemented | [`ml_prototype/train_model.py`](ml_prototype/train_model.py) | Reproducible training script with 5-fold CV, baseline comparison, and artifact export. |
-| **Inference Engine** | ✅ Implemented | [`ml_prototype/predict.py`](ml_prototype/predict.py) | Real-time classification engine delivering confidence scores and pedagogical feedback. |
-| **Analytics Dashboard** | ✅ Implemented | [`ml_prototype/dashboard.py`](ml_prototype/dashboard.py) | 3-page interactive Streamlit app (Student Analyzer, Topic Summary, Viva Guide). |
-| **Test Suite** | ✅ Implemented | [`tests/test_prototype.py`](tests/test_prototype.py) | Automated test suite verifying loaders, feature extraction, and inference. |
-| **Datasets** | ✅ Available | [`data/raw/`](data/raw/) | 430 supervised sessions (`edulens_chats_dataset.json`), supplementary sets, and research dialogue corpora. |
-| **Model Artifact** | ✅ Serialized | [`models/trained_model.joblib`](models/trained_model.joblib) | Production-ready Scikit-learn Pipeline artifact. |
-| **Evaluation Reports** | ✅ Documented | [`reports/`](reports/) | Rigorous audit reports: `dataset_inspection.md` and `model_evaluation.json`. |
+- **Retained & Hardened Core**:
+  - Full NLP and conversational feature extraction pipeline (108 dimensions)
+  - Pre-trained Multinomial Logistic Regression classifier (95.89% accuracy)
+  - Expressed linguistic confidence estimator
+  - Multi-schema JSON conversation parser
+  - Clean FastAPI backend (`backend/main.py`, `backend/routes/analysis.py`)
+  - Stitch-designed minimalist frontend (`frontend/index.html`, `frontend/assets/app.js`)
+  - 57-test automated verification suite
 
 ---
 
-## 5. Repository Component Boundaries
+## 4. Deployed ML Pipeline Specifications
 
-```
+### A. Preprocessing & Normalization
+- Input: Multi-turn educational dialogue transcript in JSON.
+- Extraction: Isolates student utterances (`student_messages`), concatenates into `full_text`.
+- Cleaning: Normalizes unicode quotation marks, collapses whitespace, preserves pedagogical punctuation (`?`).
+
+### B. Feature Space (108 Total Dimensions)
+1. **TF-IDF Vocabulary Bank (100 Features)**:
+   - Scikit-Learn `TfidfVectorizer(max_features=100, ngram_range=(1, 2), min_df=2, stop_words='english')`.
+   - Models domain terminology, causal conjunctions (*because*, *therefore*, *which means*), and topic keywords.
+2. **Conversational Signal Matrix (8 Features)**:
+   - Scikit-Learn `StandardScaler()` applied to:
+     - `num_turns`, `total_words`, `avg_turn_length`, `question_count`
+     - `confusion_markers`, `clarification_markers`, `understanding_markers`, `code_indicators`
+
+### C. Understanding Classifier
+- **Model**: Scikit-Learn `Pipeline` containing `ColumnTransformer` + `LogisticRegression(class_weight='balanced', max_iter=1000, random_state=42)`.
+- **Classes**:
+  1. `Understood` (Index 2)
+  2. `Partially Understood` (Index 1)
+  3. `Confused` (Index 0)
+- **Metrics**: 95.89% Test Accuracy, 0.9399 Macro F1-score, 93.78% 5-fold CV accuracy.
+
+### D. Expressed Confidence Estimator
+- **Model Type**: Transparent rule-calibrated linguistic indicator (NOT an ML model).
+- **Markers**: Uncertainty hedges, certainty assertions, hesitation fillers, self-corrections, assertion-hedge ratio.
+- **Output**: High Confidence (> 68%), Moderate Confidence (40%–68%), Low Confidence (< 40%).
+
+---
+
+## 5. Active API Routes
+
+| HTTP Verb | Path | Description |
+|---|---|---|
+| `GET` | `/` | Serves the single-page application frontend |
+| `GET` | `/api/health` | Health check verifying model registry status |
+| `GET` | `/api/model-info` | Returns model architecture, metrics, classes, and pipeline specs |
+| `GET` | `/api/sample-conversation` | Returns pre-loaded Physics Friction dialogue for demo |
+| `POST` | `/api/analyze` | Accepts multipart `.json` file upload or direct JSON body; runs inference |
+
+---
+
+## 6. Directory Layout
+
+```text
 EduLens/
-├── data/                               # Dataset storage
-│   └── raw/                            # Supervised datasets and research corpora
-├── ml_prototype/                       # Core ML package
-│   ├── __init__.py                     # Package initialization
-│   ├── data_loader.py                  # Ingestion & normalization logic
-│   ├── features.py                     # Feature engineering & NLP transformers
-│   ├── train_model.py                  # Training pipeline & evaluation
-│   ├── predict.py                      # Real-time inference wrapper
-│   └── dashboard.py                    # Streamlit visual analytics app
-├── models/                             # Serialized model artifacts
-│   └── trained_model.joblib            # Trained Scikit-learn pipeline
-├── reports/                            # Experimental findings & validation
-│   ├── dataset_inspection.md           # Dataset schema & quality report
-│   └── model_evaluation.json           # Model performance benchmarks
-├── tests/                              # Automated test suite
-│   ├── __init__.py
-│   └── test_prototype.py               # Unit & integration tests
-├── EduLens Project Specification.pdf  # Foundational specification document
-├── generate_dataset.py                 # Pedagogical synthetic dataset generator
-├── PROJECT_CONTEXT.md                  # This architecture reference document
-├── prototype_context.md                # ML implementation & viva defense guide
-├── README.md                           # Main repository onboarding & quickstart
-├── requirements.txt                    # Pinned Python package dependencies
-└── pytest.ini                          # Test configuration
+├── backend/
+│   ├── main.py                     # Application entrypoint & static mounting
+│   ├── routes/
+│   │   └── analysis.py             # Active API routes
+│   ├── services/
+│   │   ├── conversation_parser.py  # Multi-schema JSON parser
+│   │   ├── preprocessing.py        # DataFrame formatter
+│   │   ├── feature_extraction.py   # Conversational signals & confidence
+│   │   └── prediction.py           # Model singleton & analysis engine
+│   └── models/
+│       ├── understanding_classifier.joblib
+│       └── metadata.json
+├── frontend/
+│   ├── index.html                  # Apple/Google aesthetic UI
+│   └── assets/
+│       ├── app.js                  # Frontend interactions
+│       └── styles.css              # Custom styling
+├── samples/                        # 8 Test conversations (understood, confused, etc.)
+├── ml_prototype/                   # Historical data loader & training scripts
+├── archive/                        # Decoupled MCP server & older tests
+└── tests/                          # 57 Passing Pytest unit and integration tests
 ```
-
----
-
-## 6. Phased Engineering Roadmap
-
-- **Phase 1: ML Prototype & Feasibility (COMPLETED)**  
-  Curated dataset, built leakage-free feature extraction, trained 96.5% accurate interpretable model, and deployed 3-page Streamlit dashboard.
-
-- **Phase 2: Automated Ingestion & MCP Integration (NEXT)**  
-  Implement the standard Model Context Protocol (MCP) server supporting `stdio` (for Claude Desktop) and `streamable-http` (for ChatGPT / web clients) to ingest conversations live.
-
-- **Phase 3: Targeted Quiz Generation & Gemini Orchestration**  
-  Integrate Google Gemini API to analyze diagnosed confusion points from Phase 1 and synthesize adaptive multiple-choice quizzes to validate comprehension empirically.
-
-- **Phase 4: Longitudinal Modeling & Student Knowledge Tracing**  
-  Persist historical sessions per `student_id` in a relational database (PostgreSQL) to construct Bayesian Knowledge Tracing (BKT) or longitudinal mastery curves across academic semesters.
-
-- **Phase 5: Full-Stack Web Platform & Educator Portal**  
-  Transition from Streamlit to a production Next.js frontend with FastAPI backend, role-based access control (students vs. instructors), and PDF cohort performance reporting.
-
----
-
-## 7. Guidelines for Collaborators
-
-When contributing to EduLens:
-1. **Maintain Determinism:** Keep feature engineering reproducible; always fix seeds (`random_state=42`) in stochastic operations.
-2. **Prevent Data Leakage:** Ensure transformers and scalers are fitted exclusively on training splits inside Scikit-learn `Pipeline` objects.
-3. **Verify Before Pushing:** Always run `pytest` and `python ml_prototype/predict.py` locally before committing.
-4. **Document Decisions:** If adjusting features or model hyperparameters, update both `reports/model_evaluation.json` and `prototype_context.md`.

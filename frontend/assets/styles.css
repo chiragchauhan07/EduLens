@@ -1,0 +1,24 @@
+/* EduLens Mini Custom Styles */
+
+.material-symbols-outlined {
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 20;
+  display: inline-block;
+  vertical-align: middle;
+  line-height: 1;
+}
+
+/* Smooth SVG Progress Ring Transition */
+#prob-ring-fill {
+  transition: stroke-dasharray 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Drag & Drop Highlight */
+.dropzone-active {
+  border-color: #2563eb !important;
+  background-color: #eff6ff !important;
+}
+
+/* Smooth Section Scrolling */
+html {
+  scroll-behavior: smooth;
+}

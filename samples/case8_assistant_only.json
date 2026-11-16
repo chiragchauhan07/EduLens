@@ -1,0 +1,13 @@
+{
+  "topic": "Teacher Monologue",
+  "messages": [
+    {
+      "role": "assistant",
+      "content": "Good morning class. Today we will cover electromagnetic fields."
+    },
+    {
+      "role": "assistant",
+      "content": "Please read chapter 4 before tomorrow's lecture."
+    }
+  ]
+}

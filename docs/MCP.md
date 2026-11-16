@@ -1,5 +1,7 @@
 # EduLens Model Context Protocol (MCP) Integration Specification
 
+> **[ARCHIVED SPECIFICATION]:** In accordance with the EduLens Mini Practical Showcase requirements, the active application runtime has been simplified to focus exclusively on local student understanding and confidence analysis. MCP integration code has been decoupled and preserved in `archive/mcp_server/`. This document is retained for historical and architectural reference.
+
 ## 1. Executive Summary & Overview
 
 EduLens is a **Student Learning Intelligence and Performance Analytics Platform**. It is intentionally **not** an AI tutor. Instead, EduLens acts as an independent learning analytics engine that receives, stores, and evaluates student-AI conversations conducted on external foundation models (e.g., ChatGPT, Claude Desktop, Google Gemini).

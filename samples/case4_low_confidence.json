@@ -1,0 +1,29 @@
+{
+  "topic": "Chemical Bonding",
+  "messages": [
+    {
+      "role": "assistant",
+      "content": "What type of bond forms between hydrogen and oxygen in water?"
+    },
+    {
+      "role": "student",
+      "content": "um... maybe it forms a covalent bond? I'm not sure at all."
+    },
+    {
+      "role": "assistant",
+      "content": "Why do you think it might be covalent?"
+    },
+    {
+      "role": "student",
+      "content": "idk... i guess the electrons are shared? is this correct?"
+    },
+    {
+      "role": "assistant",
+      "content": "Yes, they share valence electrons."
+    },
+    {
+      "role": "student",
+      "content": "i'm completely blank on why it is polar though... just give me a hint please."
+    }
+  ]
+}

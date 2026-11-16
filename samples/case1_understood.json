@@ -1,0 +1,29 @@
+{
+  "topic": "Binary Search Trees",
+  "messages": [
+    {
+      "role": "assistant",
+      "content": "Can you explain how searching in a binary search tree works?"
+    },
+    {
+      "role": "student",
+      "content": "can we review binary search trees?"
+    },
+    {
+      "role": "assistant",
+      "content": "Sure! How does the tree structure speed up search?"
+    },
+    {
+      "role": "student",
+      "content": "so basically the left child is always smaller and right child is larger?"
+    },
+    {
+      "role": "assistant",
+      "content": "Spot on. How does that affect search time?"
+    },
+    {
+      "role": "student",
+      "content": "got it, that makes complete sense! Now I see how search runs in O(log n). Thanks!"
+    }
+  ]
+}

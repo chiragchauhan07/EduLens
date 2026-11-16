@@ -171,3 +171,4 @@ def test_workflow_progress_and_topic_detail(client):
     perf_data = resp_perf.json()
     assert "total_sessions" in perf_data
     assert "topic_wise_breakdown" in perf_data
+
