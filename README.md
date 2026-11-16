@@ -5,7 +5,7 @@
 [![Python](https://img.shields.io/badge/Python-3.10%2B-blue.svg)](https://www.python.org/)
 [![scikit-learn](https://img.shields.io/badge/scikit--learn-1.3%2B-orange.svg)](https://scikit-learn.org/)
 [![MCP](https://img.shields.io/badge/MCP-Official%202.x-purple.svg)](docs/MCP.md)
-[![Tests](https://img.shields.io/badge/Tests-89%20Passing-brightgreen.svg)](#running-tests)
+[![Tests](https://img.shields.io/badge/Tests-94%20Passing-brightgreen.svg)](#running-tests)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Status](https://img.shields.io/badge/Status-MCP%20Server%20Verified-success.svg)](#run-model-context-protocol-mcp-server)
 
@@ -197,7 +197,7 @@ EduLens is fully configured for **serverless deployment on Vercel** out-of-the-b
 
 ### How It Works on Vercel
 - **Serverless API (`api/index.py`):** Fast, stateless Python functions running on Vercel Serverless Functions. Handles real-time ML inference (`/api/predict`), curriculum analytics (`/api/topics`), benchmark samples (`/api/samples`), and model health (`/api/health`).
-- **Interactive Web App (`public/index.html`):** Modern, lightweight, responsive client dashboard powered by Tailwind CSS, Chart.js, and Lucide icons.
+- **Interactive Web App (`public/index.html`):** Fast, clean, accessible vanilla JS/CSS student learning intelligence dashboard served with static assets (`public/assets/app.js`, `public/assets/styles.css`).
 - **Fast & Lightweight:** Unnecessary training datasets are excluded via `.vercelignore`, making deployment zip bundles ultra-compact (< 2MB).
 
 ### Deploy in 2 Steps:
@@ -247,20 +247,18 @@ pip install -r requirements.txt
 
 ## 💻 Running the Project
 
-### 🚀 Launch the Full EduLens Application (FastAPI + 8-Page Dashboard)
-The primary entrypoint serves both the REST API and the complete 8-page Google Stitch analytics web dashboard:
+### 🚀 Launch the Full EduLens Application (FastAPI + Modern Web Dashboard)
+The primary entrypoint serves both the REST API and the fast, accessible 6-destination student analytics web dashboard:
 ```powershell
 uvicorn api.index:app --host 127.0.0.1 --port 8000
 ```
 Open **`http://127.0.0.1:8000`** in your browser to access the live application:
-- **1. Overview Dashboard:** Longitudinal KPIs, understanding distribution donut, progression trend charts, areas of struggle.
-- **2. Learning Sessions:** Filterable, paginated session repository with composite scores and quick-inspect slide-over drawer.
-- **3. Session Analytics Detail:** 4-dimension performance breakdown, local feature attributions, pedagogical recommendations, linked quizzes.
-- **4. Topics & Curriculum:** Studied vs unstudied curriculum topics, mastery progression, and curriculum benchmarks.
-- **5. Performance Analytics:** Longitudinal score distribution, multi-agent comparison, and confusion diagnosis.
-- **6. Quiz Evaluations:** Deterministic quiz evaluation, question-by-question breakdown, and composite score recalculation.
-- **7. Agent Integration & Live Inference:** Multi-algorithm inference playground, local feature drivers, MCP connection guides.
-- **8. Settings & Student Isolation:** Local identity switcher (Dev mode) and Bearer token security diagnostics (Production mode).
+- **1. Overview:** High-level student summary, honest KPI metrics, SVG progress trendline, topics needing improvement, recently studied dialogues.
+- **2. My Sessions:** Searchable, filterable session repository with pagination, detailed transcripts, conversational signal breakdowns, and pedagogical next steps.
+- **3. My Progress:** Longitudinal understanding & quiz score trends, curriculum topic progress, and distinction between studied and unstudied topics.
+- **4. Quizzes:** Deterministic quiz evaluation history, question breakdown, and interactive quiz grading modal.
+- **5. Connect & Ingest:** Live conversation ingestion modal, curl/REST integration snippets, and Claude Desktop / MCP instructions.
+- **6. Settings:** Student profile switching, light/dark/system theme controls, backend connection health status.
 
 ### Train & Evaluate the ML Model
 To retrain the model and regenerate `models/trained_model.joblib` and `reports/model_evaluation.json`:
@@ -291,7 +289,7 @@ python -m backend.mcp_server.server --transport stdio
 See [docs/MCP.md](docs/MCP.md) for full Claude Desktop, ChatGPT, and MCP Inspector configuration guides.
 
 ### Run Automated Tests
-Verify code integrity across the full test suite (89 tests):
+Verify code integrity across the full test suite (94 tests):
 ```powershell
 pytest
 ```
