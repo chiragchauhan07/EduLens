@@ -18,7 +18,6 @@ from backend.services.prediction import ModelRegistry
 ROOT_DIR = Path(__file__).resolve().parent.parent
 FRONTEND_DIR = ROOT_DIR / "frontend"
 ASSETS_DIR = FRONTEND_DIR / "assets"
-PUBLIC_DIR = ROOT_DIR / "public"
 
 
 @asynccontextmanager
@@ -53,17 +52,14 @@ app.include_router(analysis_router)
 # Mount frontend assets
 if ASSETS_DIR.exists():
     app.mount("/assets", StaticFiles(directory=str(ASSETS_DIR)), name="assets")
-elif (PUBLIC_DIR / "assets").exists():
-    app.mount("/assets", StaticFiles(directory=str(PUBLIC_DIR / "assets")), name="assets")
 
 
 @app.get("/", include_in_schema=False)
 def serve_index():
     """Serves the EduLens single-page application."""
-    if (FRONTEND_DIR / "index.html").exists():
-        return FileResponse(FRONTEND_DIR / "index.html")
-    if (PUBLIC_DIR / "index.html").exists():
-        return FileResponse(PUBLIC_DIR / "index.html")
+    index_file = FRONTEND_DIR / "index.html"
+    if index_file.exists():
+        return FileResponse(index_file)
     return {"message": "EduLens API is running. Frontend index.html not found."}
 
 

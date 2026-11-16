@@ -1,145 +1,165 @@
-# EduLens — Student Learning Intelligence
+# EduLens
 
-> **A focused, lightweight Machine Learning application for analyzing educational conversations, predicting student topic comprehension, and estimating expressed learning confidence.**
+### Student Learning Intelligence — Understanding Classification & Expressed Confidence Analysis
 
-[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
-[![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-green.svg)](https://fastapi.tiangolo.com)
-[![Scikit-Learn](https://img.shields.io/badge/scikit--learn-1.5.2-orange.svg)](https://scikit-learn.org/)
-[![Status](https://img.shields.io/badge/Status-Production--Ready-brightgreen.svg)]()
-
----
-
-## 1. Project Introduction
-
-**EduLens** is a specialized Machine Learning application built for educational learning analytics. 
-
-Instead of functioning as an AI tutor or conversational chatbot, EduLens acts as an **independent analytical lens**. It takes an educational conversation between a student and an AI tutor (or human teacher), extracts interpretable linguistic and conversational signals, and predicts:
-
-1. **Student Topic Understanding**: Classified as <span style="color: #059669; font-weight: bold;">Understood</span>, <span style="color: #d97706; font-weight: bold;">Partially Understood</span>, or <span style="color: #e11d48; font-weight: bold;">Confused</span> using a supervised Machine Learning classifier.
-2. **Expressed Learning Confidence**: Estimated as **High Confidence**, **Moderate Confidence**, or **Low Confidence** using a transparent, rule-calibrated linguistic marker model based on hedges, assertions, and self-repair cues.
-
-EduLens runs completely locally without requiring external LLM API keys or cloud dependencies during inference.
+[![Python 3.10+](https://img.shields.io/badge/Python-3.10+-3776AB.svg?style=flat&logo=python&logoColor=white)](https://www.python.org/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-009688.svg?style=flat&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
+[![Scikit-Learn](https://img.shields.io/badge/scikit--learn-1.5.2-F7931E.svg?style=flat&logo=scikit-learn&logoColor=white)](https://scikit-learn.org/)
+[![Vercel](https://img.shields.io/badge/Vercel-Deployment--Ready-000000.svg?style=flat&logo=vercel&logoColor=white)](https://vercel.com/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 ---
 
-## 2. Problem Statement & Objectives
+## 1. Project Overview
 
-### Problem Statement
-When students learn with external AI models (such as ChatGPT, Claude, or Socratic tutors), the dialogue transcripts contain rich evidence of comprehension, misconceptions, and hesitation. However, teachers, institutions, and students lack lightweight, transparent tools to evaluate whether the student genuinely understood the material or is merely repeating answers with unresolved confusion.
+When students learn with conversational AI systems or human tutors, dialogue transcripts capture rich evidence of concept mastery, misconceptions, and hesitation. However, educators, institutions, and self-directed learners lack lightweight, transparent tools to evaluate whether a student truly understands the material or is simply repeating answers with unresolved confusion.
 
-### Project Objectives
-- **Automated Dialogue Assessment**: Process multi-turn student-tutor dialogues in standard JSON format.
-- **Interpretable NLP Signal Extraction**: Combine vocabulary n-grams (TF-IDF) with conversational markers (questions, confusion words, affirmations, code syntax).
-- **High-Accuracy Classification**: Deploy a trained Scikit-Learn classifier with zero student-persona leakage.
-- **Transparent Confidence Analysis**: Provide explicit linguistic confidence estimation distinct from classifier probabilities.
-- **Minimal, Modern Interface**: Serve an intuitive Apple/Google-inspired web dashboard designed with Google Stitch MCP.
+**EduLens** is a specialized Machine Learning application designed to analyze educational conversation transcripts in JSON format. Rather than acting as a chatbot tutor, EduLens functions as an **independent analytical lens**. It extracts interpretable linguistic, structural, and domain signals to predict:
+
+1. **Student Topic Understanding**: Classified into **Understood**, **Partially Understood**, or **Confused** using a trained Scikit-Learn Multinomial Logistic Regression pipeline operating on a 108-dimensional feature space.
+2. **Expressed Learning Confidence**: Evaluated as **High Confidence**, **Moderate Confidence**, or **Low Confidence** through transparent, rule-calibrated linguistic marker analysis that captures assertiveness, hedges, and metacognitive self-repair.
+
+EduLens runs locally without requiring external LLM API keys or cloud dependencies, and is engineered for serverless deployment on Vercel.
 
 ---
 
-## 3. System Architecture
+## 2. Key Features
+
+- **Multi-Schema JSON Parsing**: Automatically detects and parses `messages` arrays, `turns` structures, or separated student/tutor dialogues.
+- **Robust Input Validation**: Enforces payload size limits (max 5 MB), syntax integrity checks, and validation ensuring student utterances are present.
+- **108-Dimensional Feature Extraction**: Combines 100 domain lexical TF-IDF n-grams with 8 dense pedagogical and conversational signals.
+- **Supervised Understanding Classifier**: Multinomial Logistic Regression calibrated for balanced class weighting, achieving **95.89% test accuracy**.
+- **Linguistic Confidence Estimation**: Distinct discourse analysis examining hedges (*"maybe"*, *"i guess"*), certainty markers (*"definitely"*, *"clearly"*), pauses, and self-corrections.
+- **Pedagogical Insights**: Generates structured, actionable observations explaining what conversational signals influenced the assessment.
+- **Apple/Google-Inspired Web Interface**: Clean, accessible responsive frontend featuring drag-and-drop file upload, live status indicator, and dynamic signal breakdowns.
+- **Dual Deployment Ready**: Seamless execution as a local FastAPI/Uvicorn server or as a serverless application on Vercel.
+
+---
+
+## 3. Application Preview
 
 ```text
-Student Uploads JSON Conversation
-              │
-              ▼
-    [ Conversation Parser ]
-      ├─ Validates JSON syntax & file size (max 5MB)
-      ├─ Extracts Topic, Student Turns & Assistant Turns
-      └─ Rejects empty or teacher-only dialogues
-              │
-              ▼
-    [ NLP & Feature Pipeline ]
-      ├─ Normalizes & cleans utterance text
-      ├─ 100 Lexical TF-IDF N-grams (1, 2)
-      └─ 8 Conversational & Pedagogical Signals
-              │
-              ▼
-       (108-Dimensional Vector)
-              │
-     ┌────────┴──────────────────────────┐
-     ▼                                   ▼
-[ ML Understanding Classifier ]    [ Linguistic Confidence Estimator ]
-  ├─ Multinomial Logistic Reg.       ├─ Uncertainty & Hedge density
-  ├─ 95.89% Test Accuracy            ├─ Assertion & Certainty tokens
-  └─ Calibrated Softmax Probs        └─ Metacognitive self-repair score
-     │                                   │
-     └────────────────┬──────────────────┘
-                      ▼
-          [ FastAPI Analysis Route ]
-                      ▼
-         [ EduLens Web Dashboard ]
-           (Apple / Google Minimalist UI)
+┌──────────────────────────────────────────────────────────────────────────────┐
+│  EduLens   Student Learning Intelligence                 ● Learning Analysis · Ready  │
+├──────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│                        Understand How Students Learn                         │
+│   Analyze educational conversations to understand a student's comprehension   │
+│                      and expressed learning confidence.                      │
+│                                                                              │
+│   ┌──────────────────────────────────┐  ┌──────────────────────────────────┐ │
+│   │   Upload Learning Conversation   │  │       Supported JSON Format      │ │
+│   │                                  │  │                                  │ │
+│   │  [ Drop JSON file here or browse ]  │  │  {                            │ │
+│   │                                  │  │    "topic": "Binary Search",     │ │
+│   │  Load Sample: [BST] [Recursion]  │  │    "messages": [ ... ]           │ │
+│   │  [ Analyze Conversation ]        │  │  }                    [Copy JSON]│ │
+│   └──────────────────────────────────┘  └──────────────────────────────────┘ │
+│                                                                              │
+│   ── Analysis Results ───────────────────────────────────────────────────    │
+│   Topic: Binary Search Trees                                                 │
+│   Understanding: Understood (99.9% probability)                              │
+│   Expressed Confidence: High Confidence (71.0%)                              │
+│   What influenced this estimate? [Assertive Language] [Low Hesitation]       │
+└──────────────────────────────────────────────────────────────────────────────┘
+```
+
+> *Screenshots: Place UI captures here (`docs/screenshots/dashboard.png`, `docs/screenshots/results.png`).*
+
+---
+
+## 4. System Architecture
+
+```mermaid
+flowchart TD
+    A["Student Dialogue JSON"] --> B["Conversation Parser & Validator"]
+    B -->|Reject Invalid/Empty| Err["Graceful 400 Bad Request"]
+    B -->|Extract Student Utterances| C["NLP Preprocessing & Cleaning"]
+    C --> D["108-Dimensional Feature Extraction"]
+    
+    subgraph Feature_Space["Feature Space Subspaces"]
+        D1["100 Lexical TF-IDF N-grams (1, 2)"]
+        D2["8 Dense Conversational Signals"]
+    end
+    D --> D1
+    D --> D2
+    
+    D1 & D2 --> E["Multinomial Logistic Regression"]
+    D --> F["Linguistic Confidence Estimator"]
+    
+    E --> G["Topic Understanding Verdict\n(Understood / Partial / Confused)"]
+    F --> H["Expressed Confidence Score\n(High / Moderate / Low)"]
+    
+    G & H --> I["FastAPI Structured Response / Web UI"]
 ```
 
 ---
 
-## 4. Technology Stack
+## 5. Machine Learning Approach
 
-| Layer | Technologies |
-|---|---|
-| **Backend & API** | Python 3.12, FastAPI, Uvicorn, Pydantic |
-| **Machine Learning** | Scikit-Learn 1.5.2, Joblib, NumPy, Pandas |
-| **NLP & Signal Processing** | TF-IDF Vectorization, Regex Token Extractors, StandardScaler |
-| **Frontend UI** | HTML5, Tailwind CSS, Vanilla JavaScript, Google Stitch MCP Design |
-| **Testing & Quality** | Pytest, Starlette TestClient (57 automated tests passing) |
+### A. Feature Extraction (108 Dimensions)
 
----
-
-## 5. Machine Learning & NLP Architecture
-
-### A. Feature Extraction (108 Total Dimensions)
-The inference pipeline applies a Scikit-Learn `ColumnTransformer` identical to the training specification:
+The model ingests a 108-dimensional feature representation constructed via a Scikit-Learn `ColumnTransformer`:
 
 1. **Lexical Subspace (100 Features)**:
    - `TfidfVectorizer(max_features=100, ngram_range=(1, 2), min_df=2, stop_words='english')`
-   - Captures domain vocabulary, causal conjunctions (*because*, *therefore*, *which means*), and conceptual terminology.
+   - Captures domain-specific vocabulary (*"recursion"*, *"pointer"*, *"amortized"*), causal conjunctions (*"because"*, *"therefore"*), and conceptual explanations.
+2. **Conversational & Pedagogical Subspace (8 Features)**:
+   - Scaled using `StandardScaler`:
+     1. `num_turns`: Total number of student utterances.
+     2. `total_words`: Total word count across all student turns.
+     3. `avg_turn_length`: Average words per utterance (measures depth of explanation).
+     4. `question_count`: Frequency of question marks (`?`).
+     5. `confusion_markers`: Regex matches for uncertainty (*"confused"*, *"stuck"*, *"don't get"*, *"unclear"*).
+     6. `clarification_markers`: Requests for assistance (*"example"*, *"explain again"*, *"step by step"*).
+     7. `understanding_markers`: Affirmative mastery indicators (*"got it"*, *"makes sense"*, *"understood"*).
+     8. `code_indicators`: Programming tokens (*"def"*, *"return"*, backticks, syntax).
 
-2. **Conversational Subspace (8 Features)**:
-   - `ConversationalFeatureExtractor()` followed by `StandardScaler()`:
-     1. `num_turns`: Number of student turns.
-     2. `total_words`: Total student word count.
-     3. `avg_turn_length`: Average words per student utterance.
-     4. `question_count`: Count of question marks (`?`).
-     5. `confusion_markers`: Matches regex for doubt, stuck, unclear, don't get, blank.
-     6. `clarification_markers`: Matches requests for examples, repeat, step-by-step.
-     7. `understanding_markers`: Matches affirmations (*got it*, *makes sense*, *understood*).
-     8. `code_indicators`: Matches syntax markers, backticks, programming keywords.
+### B. Classification Model
 
-### B. Understanding Classifier
-- **Algorithm**: Multinomial Logistic Regression (`class_weight='balanced'`, `max_iter=1000`, `C=1.0`)
-- **Classes**:
-  - **`Understood`**: Student articulates concepts clearly, provides explanations, and exhibits high comprehension.
-  - **`Partially Understood`**: Student shows fundamental grasp but has lingering questions, asks for clarification, or struggles with edge cases.
-  - **`Confused`**: Student expresses explicit doubt, confusion, incorrect explanations, or instructional deadlock.
-
-### C. Expressed Confidence Estimation (Linguistic Evidence)
-- **Methodology**: Rule-calibrated conversational discourse analysis.
-- **Signals Extracted**:
-  - `uncertainty_count`: Hedges (*not sure*, *maybe*, *i guess*, *idk*, *i don't know*).
-  - `certainty_count`: Assertive markers (*definitely*, *clearly*, *i am certain*, *obviously*).
-  - `hesitation_count`: Hesitation tokens (*um*, *uh*, *hmm*, ellipses `...`).
-  - `self_corrections`: Metacognitive adjustments (*oh wait*, *actually it's*, *i meant*).
-  - `assertion_hedge_ratio`: Ratio of confident to hesitant markers.
-- **Score**: Bounded between 5.0% and 95.0%.
-- **Output Levels**: **High Confidence** (> 68%), **Moderate Confidence** (40%–68%), **Low Confidence** (< 40%).
-- *Important*: This is explicitly labeled as a **linguistic confidence estimate**, not an internal psychometric measurement.
+- **Algorithm**: Multinomial Logistic Regression (`LogisticRegression(class_weight='balanced', max_iter=1000, C=1.0)`)
+- **Target Classes**:
+  - `Understood`: Student articulates principles clearly, provides explanations, and exhibits high comprehension.
+  - `Partially Understood`: Student grasps foundational ideas but has lingering confusion, asks follow-up questions, or struggles with nuances.
+  - `Confused`: Student expresses deadlock, persistent misunderstandings, or fundamental confusion.
 
 ---
 
-## 6. Model Evaluation Results
+## 6. Expressed Confidence Estimation
 
-Evaluated on the primary supervised learning dataset using **5-fold Stratified Group K-Fold Cross-Validation** grouped by `student_id` to guarantee **zero persona leakage**:
+Expressed confidence evaluates conversational certainty from text dialogue rather than measuring internal psychometric state.
 
-| Metric | Result |
-|---|---|
-| **Test Accuracy** | **95.89%** |
-| **Macro Precision** | **0.9380** |
-| **Macro Recall** | **0.9429** |
-| **Macro F1-Score** | **0.9399** |
-| **Weighted F1-Score** | **0.9591** |
-| **5-Fold CV Accuracy** | **93.78% (± 3.2%)** |
+### Methodology & Signals
+- **Certainty Tokens**: Assertive adverbs and phrases (*"definitely"*, *"clearly"*, *"obviously"*, *"i am sure"*).
+- **Uncertainty & Hedges**: Tentative markers (*"maybe"*, *"i guess"*, *"not sure"*, *"possibly"*).
+- **Hesitation Markers**: Filled pauses and ellipses (*"um"*, *"uh"*, *"hmm"*, *"..."*).
+- **Self-Corrections**: Metacognitive revisions (*"wait"*, *"actually"*, *"i meant"*).
+- **Formula**:
+  $$\text{Score} = \text{clip}\left(50.0 + 15.0 \cdot \log(1 + N_{\text{certain}}) - 12.0 \cdot \log(1 + N_{\text{hedge}}) - 8.0 \cdot \log(1 + N_{\text{hesitation}}) + 5.0 \cdot N_{\text{correction}}, 5.0, 95.0\right)$$
+
+### Output Levels
+- **High Confidence**: Score $> 68\%$
+- **Moderate Confidence**: Score $40\% - 68\%$
+- **Low Confidence**: Score $< 40\%$
+
+> **Note on Methodological Transparency**: Expressed confidence is **not** a separately trained black-box model. It captures discourse assertiveness. A student may express high confidence while asserting a misconception (as captured in [`samples/case5_high_confidence.json`](samples/case5_high_confidence.json)).
+
+---
+
+## 7. Model Evaluation & Benchmark Results
+
+The understanding classifier was evaluated using **5-Fold Stratified Group K-Fold Cross-Validation** grouped by `student_id` to enforce strict zero-persona leakage across splits.
+
+| Metric | Cross-Validation (5-Fold) | Held-Out Test Set |
+|---|---|---|
+| **Accuracy** | **93.78% (± 3.2%)** | **95.89%** |
+| **Macro Precision** | 0.9240 | **0.9380** |
+| **Macro Recall** | 0.9310 | **0.9429** |
+| **Macro F1-Score** | 0.9275 | **0.9399** |
+| **Weighted F1-Score** | 0.9390 | **0.9591** |
 
 ### Confusion Matrix (Test Split)
+
 ```text
                   Predicted: Confused   Partial   Understood
 Actual: Confused            13             1           0
@@ -149,154 +169,255 @@ Actual: Understood           0             0          39
 
 ---
 
-## 7. Supported JSON Conversation Formats
+## 8. Dataset Information & Provenance
 
-EduLens supports any standard educational dialogue format.
+| Dataset | Location | Records | Role |
+|---|---|---|---|
+| **EduLens Labeled Chats** | `data/processed/edulens_clean_primary.json` | 430 sessions | **Primary Supervised Training Set** (9 STEM & CS subjects). |
+| **Education Dialogue Corpus** | `data/raw/education_dialogue/` | 47,234 conversations | Reference corpus (Google Research). Unlabeled for understanding. |
+| **MathDial** | `data/raw/mathdial/` | 3,000 dialogues | Reference tutor-student math corpus. |
 
-### Recommended Format
+*Only `data/processed/edulens_clean_primary.json` was used to train the active supervised classifier.*
+
+---
+
+## 9. Technology Stack
+
+| Layer | Component | Version |
+|---|---|---|
+| **Runtime & Language** | Python | 3.10 / 3.11 / 3.12 |
+| **Web Framework** | FastAPI | >= 0.100.0 |
+| **ASGI Server** | Uvicorn | >= 0.30.0 |
+| **Machine Learning** | Scikit-Learn | 1.5.2 |
+| **Numerical Computing** | NumPy, Pandas, Joblib | >= 1.24.0, >= 2.0.0, >= 1.3.0 |
+| **Frontend** | Vanilla HTML5, CSS3, JavaScript | Modern standard |
+| **Testing** | Pytest, Starlette TestClient | 57 automated tests passing |
+| **Deployment** | Vercel Serverless (Python Runtime) | Configuration verified |
+
+---
+
+## 10. Installation & Local Execution
+
+### Prerequisites
+- Python 3.10+ installed
+- Git
+
+### Windows PowerShell Setup
+
+```powershell
+# 1. Clone repository
+git clone https://github.com/chiragchauhan07/EduLens.git
+cd EduLens
+
+# 2. Create and activate virtual environment
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+
+# 3. Install production dependencies
+pip install -r requirements.txt
+
+# 4. Optional: Install test dependencies
+pip install -r requirements-dev.txt
+
+# 5. Run the local development server
+python -m uvicorn backend.main:app --host 127.0.0.1 --port 8000 --reload
+```
+
+Open your browser at: **[http://127.0.0.1:8000/](http://127.0.0.1:8000/)**
+
+---
+
+## 11. Usage & Example JSON Input
+
+### Standard Input Format
+
+Upload a JSON file or paste into the payload:
+
 ```json
 {
   "topic": "Binary Search",
   "messages": [
     {
       "role": "assistant",
-      "content": "Can you explain how binary search finds an element?"
+      "content": "Can you explain how binary search locates an item in a sorted array?"
     },
     {
       "role": "student",
-      "content": "It divides the sorted array in half repeatedly until the target is found."
+      "content": "It divides the search space in half each step by comparing the middle element to the target."
     },
     {
       "role": "assistant",
-      "content": "Correct! What is its time complexity?"
+      "content": "What is its time complexity?"
     },
     {
       "role": "student",
-      "content": "Got it, that makes complete sense! It runs in O(log n) time. Thanks!"
+      "content": "Got it! That makes complete sense. Because it halves the array each time, the time complexity is O(log n)."
     }
   ]
 }
 ```
 
-### Alternative Supported Schemas
-- `turns` array containing `student_message` and `assistant_message` (legacy EduLens dataset format).
-- `student_turns` and `tutor_turns` separate arrays.
-- `role` / `speaker` variations: `"student"`, `"learner"`, `"user"` vs `"assistant"`, `"ai"`, `"tutor"`, `"teacher"`.
-- Text field variations: `"content"`, `"text"`, `"message"`, `"utterance"`.
+### Steps to Analyze:
+1. Navigate to the web dashboard at `http://127.0.0.1:8000/`.
+2. Drag and drop your `.json` file, or click any sample scenario button (**BST**, **Recursion**, **C Pointers**).
+3. Optionally adjust the topic name.
+4. Click **Analyze Conversation**.
+5. Review the Understanding verdict, Expressed Confidence breakdown, and pedagogical metrics.
 
 ---
 
-## 8. Installation & Setup
+## 12. API Documentation
 
-### Prerequisites
-- Python 3.10, 3.11, or 3.12
-- Windows, macOS, or Linux
+### 1. Health Check
+- **`GET /api/health`**
+- **Response `200 OK`**:
+  ```json
+  {
+    "status": "healthy",
+    "service": "EduLens",
+    "version": "1.0.0",
+    "model_loaded": true
+  }
+  ```
 
-### 1. Clone & Navigate
-```powershell
-git clone https://github.com/chiragchauhan07/EduLens.git
-cd EduLens
-```
+### 2. Model Specifications
+- **`GET /api/model-info`**
+- **Response `200 OK`**:
+  ```json
+  {
+    "model_name": "Logistic Regression (Balanced)",
+    "algorithm": "logistic_regression",
+    "features_dim": 108,
+    "classes": ["confused", "partial", "understood"],
+    "metrics": {
+      "test_accuracy": 0.9589,
+      "macro_f1": 0.9399
+    }
+  }
+  ```
 
-### 2. Set Up Virtual Environment
-```powershell
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-```
+### 3. Sample Conversation
+- **`GET /api/sample-conversation`**
+- Returns a pre-built educational dialogue ready for testing.
 
-### 3. Install Dependencies
-```powershell
-pip install -r requirements.txt
-```
+### 4. Analyze Conversation
+- **`POST /api/analyze`**
+- **Content-Type**: `application/json` or `multipart/form-data` (file upload)
+- **Sample Response `200 OK`**:
+  ```json
+  {
+    "success": true,
+    "topic": "Binary Search Trees",
+    "understanding": {
+      "label": "Understood",
+      "raw_class": "understood",
+      "probability": 0.9997,
+      "class_probabilities": {
+        "Confused": 0.0,
+        "Partially Understood": 0.0003,
+        "Understood": 0.9997
+      },
+      "explanation": "The student demonstrated solid comprehension, articulated concepts clearly, and applied principles with minimal unresolved confusion."
+    },
+    "expressed_confidence": {
+      "label": "High Confidence",
+      "score": 71.0,
+      "method": "linguistic_estimation",
+      "explanation": "The student expressed their thoughts assertively, used definitive language, and showed minimal hesitation.",
+      "signals": {
+        "uncertainty_count": 0.0,
+        "certainty_count": 2.0,
+        "hesitation_count": 0.0,
+        "self_corrections": 0.0
+      }
+    },
+    "conversation_stats": {
+      "num_turns": 4,
+      "total_words": 87,
+      "question_count": 0,
+      "understanding_markers": 2
+    }
+  }
+  ```
 
 ---
 
-## 9. Launching the Application
+## 13. Testing Suite
 
-Start the local server with one command:
-
-```powershell
-python -m uvicorn backend.main:app --host 127.0.0.1 --port 8000 --reload
-```
-
-Open your browser at:
-**[http://127.0.0.1:8000/](http://127.0.0.1:8000/)**
-
-The application serves the clean Apple/Google-inspired web dashboard directly through FastAPI.
-
----
-
-## 10. Automated Test Suite
-
-Run the full automated test suite verifying JSON parsing, validation, ML pipeline, and API endpoints:
+Run the full automated test suite verifying JSON parsing, validation, ML inference, and API endpoints:
 
 ```powershell
 pytest tests/ -v
 ```
 
-Expected output:
+Expected result:
 ```text
-======================= 57 passed, 2 warnings in 7.80s ========================
+======================= 57 passed, 2 warnings in 6.18s ========================
 ```
 
----
+### Pre-Configured Test Scenarios in `samples/`
 
-## 11. Evaluation Test Cases
-
-Representative test JSON files are provided in the [`samples/`](file:///samples) directory:
-
-| Sample File | Scenario | Expected Understanding | Expected Confidence |
+| Sample File | Scenario | Actual Understanding | Actual Confidence |
 |---|---|---|---|
-| [`case1_understood.json`](file:///samples/case1_understood.json) | Student articulates binary search trees clearly | **Understood** (99.9%) | **High Confidence** (71.0%) |
-| [`case2_partial_understanding.json`](file:///samples/case2_partial_understanding.json) | Student grasps recursion with unwinding hesitation | **Understood / Partial** (59.9%) | **Moderate Confidence** (62.0%) |
-| [`case3_confused.json`](file:///samples/case3_confused.json) | Student expresses deadlock with C pointers | **Confused** (97.9%) | **Moderate Confidence** (55.0%) |
-| [`case4_low_confidence.json`](file:///samples/case4_low_confidence.json) | Student expresses heavy doubts and hedges | **Confused** (96.8%) | **Low Confidence** (5.0%) |
-| [`case5_high_confidence.json`](file:///samples/case5_high_confidence.json) | Student asserts kinematics formulas with certainty | Output from Model | **High Confidence** (95.0%) |
-| [`case6_invalid_syntax.json`](file:///samples/case6_invalid_syntax.json) | Syntax error in JSON payload | Rejection (**400 Invalid JSON**) | N/A |
-| [`case7_empty.json`](file:///samples/case7_empty.json) | Conversation with empty message list | Rejection (**400 No Student Messages**) | N/A |
-| [`case8_assistant_only.json`](file:///samples/case8_assistant_only.json) | Teacher monologue with zero student utterances | Rejection (**400 Only Assistant Messages**) | N/A |
+| [`case1_understood.json`](samples/case1_understood.json) | Binary search trees articulation | **Understood** (99.9%) | **High Confidence** (71.0%) |
+| [`case2_partial_understanding.json`](samples/case2_partial_understanding.json) | Recursion with unwinding doubt | **Understood** (59.9%) | **Moderate Confidence** (62.0%) |
+| [`case3_confused.json`](samples/case3_confused.json) | C pointer dereferencing deadlock | **Confused** (97.9%) | **Moderate Confidence** (55.0%) |
+| [`case4_low_confidence.json`](samples/case4_low_confidence.json) | Frequent hedges and self-doubt | **Confused** (96.8%) | **Low Confidence** (5.0%) |
+| [`case5_high_confidence.json`](samples/case5_high_confidence.json) | Assertive misconception | **Confused** (83.1%) | **High Confidence** (95.0%) |
+| [`case6_invalid_syntax.json`](samples/case6_invalid_syntax.json) | Malformed JSON syntax | Rejection (**400 Bad Request**) | N/A |
+| [`case7_empty.json`](samples/case7_empty.json) | Empty messages payload | Rejection (**400 Bad Request**) | N/A |
+| [`case8_assistant_only.json`](samples/case8_assistant_only.json) | Zero student turns | Rejection (**400 Bad Request**) | N/A |
 
 ---
 
-## 12. Project Structure
+## 14. Vercel Deployment
 
-```text
-EduLens/
-├── backend/
-│   ├── main.py                     # FastAPI application entrypoint & static mount
-│   ├── routes/
-│   │   └── analysis.py             # Health, model-info, sample, and analyze endpoints
-│   ├── services/
-│   │   ├── conversation_parser.py  # Robust multi-schema JSON parser & validator
-│   │   ├── preprocessing.py        # Utterance normalization and DataFrame assembler
-│   │   ├── feature_extraction.py   # Conversational signals & linguistic confidence
-│   │   └── prediction.py           # Model singleton & analysis orchestrator
-│   └── models/
-│       ├── understanding_classifier.joblib  # Trained Scikit-Learn Pipeline
-│       └── metadata.json           # Model specifications & CV metrics
-├── frontend/
-│   ├── index.html                  # Apple/Google minimalist UI (Stitch MCP)
-│   └── assets/
-│       ├── app.js                  # Frontend controller & dynamic rendering
-│       └── styles.css              # Custom styling & animation tokens
-├── public/                         # Mirrored static production distribution
-├── samples/                        # 8 Representative test conversations
-├── ml_prototype/                   # Core data loader, DSP, and training scripts
-├── data/                           # Training datasets & normalized session archives
-├── tests/                          # 57 Comprehensive unit and integration tests
-├── requirements.txt                # Lean production dependencies
-└── README.md                       # Documentation
+The project is configured for single-command deployment to Vercel via `vercel.json` and `api/index.py`.
+
+### Deployment Architecture
+- **Serverless API**: `api/index.py` handles `/api/*` endpoints via Python runtime.
+- **Edge Static Serving**: `frontend/` is routed directly via `vercel.json` rewrites.
+- **Bundle Optimization**: `.vercelignore` excludes raw datasets, preserving a lean deployment bundle under 150 KB.
+
+### Deploying via Vercel CLI
+
+```powershell
+# 1. Install Vercel CLI (if not already installed)
+npm install -g vercel
+
+# 2. Login to Vercel
+vercel login
+
+# 3. Deploy to preview
+vercel
+
+# 4. Deploy to production
+vercel --prod
 ```
 
----
-
-## 13. Limitations & Academic Scope
-
-1. **Dialogue Evidence Only**: EduLens evaluates what the student *expresses* in the provided text dialogue. It does not measure latent internal IQ, long-term memory, or psychometric self-efficacy.
-2. **Vocabulary Domain**: The TF-IDF sub-pipeline was trained primarily on STEM and Computer Science topics (algorithms, data structures, recursion, pointers). Non-STEM topics will rely primarily on the 8 conversational signals.
-3. **Linguistic Confidence vs. True Mastery**: Expressed confidence reflects conversational assertiveness and hedging, not necessarily factual correctness. A student can sound confident while asserting a misconception.
+### Deploying via GitHub Integration
+1. Push your repository to GitHub.
+2. In the [Vercel Dashboard](https://vercel.com/new), click **Import Project** and select `EduLens`.
+3. Keep default settings (Vercel automatically detects `vercel.json` and `requirements.txt`).
+4. Click **Deploy**.
 
 ---
 
-## 14. License
-MIT License. Developed for Student Learning Intelligence.
+## 15. Limitations & Responsible Use
+
+1. **Dialogue Evidence Only**: EduLens evaluates what the student *expresses* in the provided text transcript. It does not measure internal cognitive aptitude, long-term retention, or psychometric traits.
+2. **Vocabulary Domain**: The TF-IDF subspace was trained primarily on STEM and Computer Science topics. Non-STEM conversations will primarily be evaluated on structural and conversational markers.
+3. **Expressed Confidence vs. Truth**: Expressed confidence reflects conversational assertiveness, not factual accuracy. Students can sound confident while asserting misconceptions.
+
+---
+
+## 16. License
+
+This project is licensed under the [MIT License](LICENSE).
+
+---
+
+## 17. Author & Contributors
+
+- **Author**: Chirag Chauhan ([chirag12345chauhan@gmail.com](mailto:chirag12345chauhan@gmail.com))
+- **Repository**: [https://github.com/chiragchauhan07/EduLens](https://github.com/chiragchauhan07/EduLens)

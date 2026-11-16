@@ -21,7 +21,6 @@ from backend.services.feature_extraction import (
 
 ROOT_DIR = Path(__file__).resolve().parent.parent.parent
 MODEL_PATH = ROOT_DIR / "backend" / "models" / "understanding_classifier.joblib"
-FALLBACK_MODEL_PATH = ROOT_DIR / "models" / "trained_model.joblib"
 METADATA_PATH = ROOT_DIR / "backend" / "models" / "metadata.json"
 
 CLASS_DISPLAY_MAP = {
@@ -60,14 +59,13 @@ class ModelRegistry:
         return cls._instance
 
     def _load(self):
-        target_path = MODEL_PATH if MODEL_PATH.exists() else FALLBACK_MODEL_PATH
-        if not target_path.exists():
+        if not MODEL_PATH.exists():
             raise FileNotFoundError(
-                f"Model artifact not found at {MODEL_PATH} or {FALLBACK_MODEL_PATH}. "
+                f"Model artifact not found at {MODEL_PATH}. "
                 "Please ensure the model is trained."
             )
 
-        self.pipeline = joblib.load(target_path)
+        self.pipeline = joblib.load(MODEL_PATH)
         self.classes = getattr(self.pipeline, "classes_", ["confused", "partial", "understood"]).tolist()
 
         if METADATA_PATH.exists():

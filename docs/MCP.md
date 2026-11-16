@@ -1,6 +1,6 @@
 # EduLens Model Context Protocol (MCP) Integration Specification
 
-> **[ARCHIVED SPECIFICATION]:** In accordance with the EduLens Mini Practical Showcase requirements, the active application runtime has been simplified to focus exclusively on local student understanding and confidence analysis. MCP integration code has been decoupled and preserved in `archive/mcp_server/`. This document is retained for historical and architectural reference.
+> **[ARCHIVED SPECIFICATION]:** In accordance with the final single-purpose production architecture of EduLens, the active application runtime has been simplified to focus exclusively on local student understanding and expressed confidence analysis. MCP integration code has been decoupled and pruned from the production runtime. This document is retained for historical and architectural reference.
 
 ## 1. Executive Summary & Overview
 

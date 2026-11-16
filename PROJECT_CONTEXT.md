@@ -58,25 +58,26 @@ Student Uploads JSON Conversation
 
 ---
 
-## 3. Scope Simplification for Tomorrow's Showcase
+## 3. Production Architecture & Simplification
 
-To ensure maximum stability, instant startup, and zero broken dependencies, the following enterprise and experimental modules have been **decoupled from the active runtime** and archived:
+To ensure maximum stability, instant startup, zero broken dependencies, and seamless Vercel serverless deployment, the repository was streamlined into a dedicated single-purpose system:
 
-- **Archived Features**:
-  - Model Context Protocol (MCP) server, SSE transports, OAuth/token auth (`archive/mcp_server/`)
-  - Continuous external ChatGPT / Claude live stream ingestion
-  - Dynamic quiz generation and quiz score regression
-  - Multi-tenant student database management
-  - Complex multi-page analytics dashboards
+- **Pruned Unused Features**:
+  - Model Context Protocol (MCP) server, SSE transports, OAuth/token authentication (decoupled)
+  - Continuous external ChatGPT / Claude live stream connectors
+  - Dynamic quiz generation and 3.3MB quiz score regressor model
+  - Redundant frontend mirrors (`public/`) and legacy prototype models
+  - Untracked SQLite databases
 
-- **Retained & Hardened Core**:
+- **Retained & Production-Hardened Core**:
   - Full NLP and conversational feature extraction pipeline (108 dimensions)
   - Pre-trained Multinomial Logistic Regression classifier (95.89% accuracy)
   - Expressed linguistic confidence estimator
   - Multi-schema JSON conversation parser
   - Clean FastAPI backend (`backend/main.py`, `backend/routes/analysis.py`)
-  - Stitch-designed minimalist frontend (`frontend/index.html`, `frontend/assets/app.js`)
-  - 57-test automated verification suite
+  - Modern minimalist frontend (`frontend/index.html`, `frontend/assets/app.js`, `frontend/assets/styles.css`)
+  - Vercel Serverless configuration (`api/index.py`, `vercel.json`, `.vercelignore`)
+  - 57-test automated verification suite (`pytest tests/ -v`)
 
 ---
 
@@ -127,25 +128,40 @@ To ensure maximum stability, instant startup, and zero broken dependencies, the 
 
 ```text
 EduLens/
+├── api/
+│   └── index.py                    # Vercel serverless ASGI entrypoint
 ├── backend/
 │   ├── main.py                     # Application entrypoint & static mounting
 │   ├── routes/
-│   │   └── analysis.py             # Active API routes
+│   │   └── analysis.py             # Active API routes (/health, /model-info, /analyze)
 │   ├── services/
-│   │   ├── conversation_parser.py  # Multi-schema JSON parser
-│   │   ├── preprocessing.py        # DataFrame formatter
-│   │   ├── feature_extraction.py   # Conversational signals & confidence
+│   │   ├── conversation_parser.py  # Multi-schema JSON parser & validator
+│   │   ├── preprocessing.py        # DataFrame formatter & utterance cleaner
+│   │   ├── feature_extraction.py   # Conversational signals & confidence estimator
 │   │   └── prediction.py           # Model singleton & analysis engine
 │   └── models/
-│       ├── understanding_classifier.joblib
-│       └── metadata.json
+│       ├── understanding_classifier.joblib  # Active 108-dim trained pipeline (9.9 KB)
+│       └── metadata.json           # Model specifications & CV metrics
 ├── frontend/
-│   ├── index.html                  # Apple/Google aesthetic UI
+│   ├── index.html                  # Responsive minimalist web interface
 │   └── assets/
-│       ├── app.js                  # Frontend interactions
-│       └── styles.css              # Custom styling
-├── samples/                        # 8 Test conversations (understood, confused, etc.)
-├── ml_prototype/                   # Historical data loader & training scripts
-├── archive/                        # Decoupled MCP server & older tests
-└── tests/                          # 57 Passing Pytest unit and integration tests
+│       ├── app.js                  # Frontend interactions & signal rendering
+│       └── styles.css              # Custom styling & animation tokens
+├── samples/                        # 8 Standard test conversations
+├── ml_prototype/                   # Reproducible data loader, training, and evaluation scripts
+├── data/                           # Labeled training datasets & reference corpora
+├── tests/                          # 57 Passing Pytest unit and integration tests
+├── requirements.txt                # Lean production dependencies (8 packages)
+├── requirements-dev.txt            # Development & testing dependencies
+├── vercel.json                     # Edge rewrite configuration
+├── .vercelignore                   # Serverless bundle exclusions
+└── README.md                       # Public documentation
 ```
+
+---
+
+## 7. Current Limitations & Scope
+
+1. **Dialogue Evidence Only**: Evaluates explicit textual expressions in the provided dialogue. Does not measure latent cognitive ability or long-term retention.
+2. **Vocabulary Domain**: The 100-dimensional TF-IDF lexical bank focuses on STEM and Computer Science topics. Non-STEM conversations rely on conversational and structural markers.
+3. **Linguistic Confidence vs. Truth**: Expressed confidence evaluates conversational certainty and hedging, not factual correctness. A student can sound confident while asserting a misconception.

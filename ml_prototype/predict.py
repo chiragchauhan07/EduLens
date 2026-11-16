@@ -25,8 +25,8 @@ from ml_prototype.data_loader import extract_student_messages
 from ml_prototype.features import extract_conversation_stats
 from ml_prototype.explainability import explain_instance
 
-DEFAULT_MODEL_PATH = ROOT_DIR / "models" / "trained_model.joblib"
-UNDERSTANDING_MODELS_DIR = ROOT_DIR / "models" / "understanding"
+DEFAULT_MODEL_PATH = ROOT_DIR / "backend" / "models" / "understanding_classifier.joblib"
+UNDERSTANDING_MODELS_DIR = ROOT_DIR / "backend" / "models"
 QUIZ_MODEL_PATH = ROOT_DIR / "models" / "quiz_score" / "model.joblib"
 
 # Human-readable labels and pedagogical feedback templates

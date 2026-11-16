@@ -1,4 +1,4 @@
-# EduLens — Core Dependencies
+# EduLens — Production Runtime Dependencies
 fastapi>=0.100.0
 uvicorn>=0.30.0
 python-multipart>=0.0.9
@@ -7,5 +7,3 @@ scikit-learn==1.5.2
 pandas>=2.0.0
 numpy>=1.24.0
 joblib>=1.3.0
-httpx>=0.27.0
-pytest>=8.0.0

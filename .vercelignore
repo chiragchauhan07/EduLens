@@ -1,17 +1,37 @@
-# Large raw datasets not required for serverless runtime
-data/raw/education_dialogue/
-data/raw/mathdial/
-data/raw/edulens_chats_set1 (1).json
-data/raw/edulens_chats_set2 (1).json
-data/raw/edulens_chats_set3 (1).json
+# Vercel Deployment Ignore Rules
+# Exclude heavy datasets, training scripts, tests, and documentation from the serverless bundle
 
-# Documentation and heavy assets
-*.pdf
-.pytest_cache/
+# Raw and processed datasets
+data/
+
+# Prototyping, training, and evaluation suites
+ml_prototype/
+scripts/
+generate_dataset.py
+reports/
+
+# Tests & fixtures
 tests/
-__pycache__/
-*.py[cod]
+samples/
+pytest.ini
+.pytest_cache/
+
+# Documentation and PDF specifications
+docs/
+*.pdf
+*.md
+!README.md
+
+# Virtual environments & Git
 .venv/
 venv/
+env/
 .git/
+.gitignore
 
+# Python caches
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.ipynb_checkpoints/
