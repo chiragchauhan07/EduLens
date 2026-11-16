@@ -478,21 +478,73 @@ def get_explainability_report():
         raise HTTPException(status_code=500, detail=f"Failed to load explainability report: {str(e)}")
 
 
+def resolve_user_context(request: Request, client_student_id: Optional[str] = None):
+    """
+    Enforces student isolation and authentication across EduLens endpoints.
+    - If Authorization header is provided: validates Bearer token.
+      Ensures the authenticated user cannot access or modify another student's data (403 Forbidden).
+    - If in production mode: Bearer token is strictly mandatory (401 Unauthorized if missing).
+    - If in development mode without header: permits local identity switching scoped to the requested student.
+    """
+    from backend.mcp_server.config import settings
+    from backend.mcp_server.auth.authentication import token_manager, AuthenticationError, UserContext
+
+    auth_header = request.headers.get("Authorization")
+    if auth_header:
+        try:
+            user = token_manager.validate_token(auth_header)
+        except AuthenticationError as e:
+            raise HTTPException(status_code=401, detail=str(e))
+
+        if client_student_id and client_student_id.strip() and client_student_id != user.user_id:
+            raise HTTPException(
+                status_code=403,
+                detail=f"Access denied: authenticated user '{user.user_id}' cannot access resources for student '{client_student_id}'."
+            )
+        return user
+
+    if settings.is_production:
+        raise HTTPException(
+            status_code=401,
+            detail="Authentication required. Provide an 'Authorization: Bearer <token>' header."
+        )
+
+    effective_id = client_student_id or settings.default_dev_user
+    return UserContext(
+        user_id=effective_id,
+        username=f"Dev Student ({effective_id})",
+        client_type="dev_switcher",
+        is_authenticated=False,
+    )
+
+
 @router.get("/students")
-def list_students():
+def list_students(request: Request):
     """Returns list of distinct student identifiers present in storage."""
+    from backend.mcp_server.config import settings
     from backend.mcp_server.services.storage_service import get_storage_service
     storage = get_storage_service()
-    return {"students": storage.get_all_students()}
+    all_students = storage.get_all_students()
+    auth_header = request.headers.get("Authorization")
+    if auth_header:
+        from backend.mcp_server.auth.authentication import token_manager
+        try:
+            user = token_manager.validate_token(auth_header)
+            if settings.is_production:
+                return {"students": [user.user_id]}
+        except Exception:
+            pass
+    return {"students": all_students}
 
 
 @router.get("/dashboard")
-def get_dashboard(student_id: Optional[str] = "student_001"):
+def get_dashboard(request: Request, student_id: Optional[str] = "student_001"):
     """
     Returns aggregated KPI metrics, understanding distribution, recent sessions,
     and areas of confusion for the student learning overview dashboard.
     """
-    effective_id = student_id or "student_001"
+    user = resolve_user_context(request, student_id)
+    effective_id = user.user_id
     from backend.mcp_server.services.storage_service import get_storage_service
     storage = get_storage_service()
     summary = storage.get_student_summary(effective_id)
@@ -517,6 +569,7 @@ def get_dashboard(student_id: Optional[str] = "student_001"):
 
 @router.get("/sessions")
 def list_sessions(
+    request: Request,
     student_id: Optional[str] = "student_001",
     subject: Optional[str] = None,
     topic: Optional[str] = None,
@@ -529,7 +582,8 @@ def list_sessions(
     Returns filterable, searchable, paginated session list with understanding
     classifications, quiz statuses, and composite performance scores.
     """
-    effective_id = student_id or "student_001"
+    user = resolve_user_context(request, student_id)
+    effective_id = user.user_id
     from backend.mcp_server.services.storage_service import get_storage_service
     storage = get_storage_service()
     total, items = storage.list_sessions(
@@ -551,12 +605,13 @@ def list_sessions(
 
 
 @router.get("/sessions/{session_id}")
-def get_session_detail(session_id: str, student_id: Optional[str] = "student_001"):
+def get_session_detail(session_id: str, request: Request, student_id: Optional[str] = "student_001"):
     """
     Returns full raw conversation dialogue, 4-dimension analytics,
     feature attributions, pedagogical recommendations, and linked quiz.
     """
-    effective_id = student_id or "student_001"
+    user = resolve_user_context(request, student_id)
+    effective_id = user.user_id
     from backend.mcp_server.services.storage_service import get_storage_service
     storage = get_storage_service()
     raw = storage.get_raw_session(session_id, effective_id)
@@ -604,18 +659,20 @@ def get_session_detail(session_id: str, student_id: Optional[str] = "student_001
 
 
 @router.get("/student-performance")
-def get_student_performance(student_id: Optional[str] = "student_001"):
+def get_student_performance(request: Request, student_id: Optional[str] = "student_001"):
     """Returns longitudinal learning metrics and curriculum breakdown for the student."""
-    effective_id = student_id or "student_001"
+    user = resolve_user_context(request, student_id)
+    effective_id = user.user_id
     from backend.mcp_server.services.storage_service import get_storage_service
     storage = get_storage_service()
     return storage.get_student_summary(effective_id)
 
 
 @router.get("/topic-summary")
-def get_topic_summary_endpoint(topic: str, student_id: Optional[str] = "student_001"):
+def get_topic_summary_endpoint(topic: str, request: Request, student_id: Optional[str] = "student_001"):
     """Returns topic-specific mastery, quiz performance, and progression trend."""
-    effective_id = student_id or "student_001"
+    user = resolve_user_context(request, student_id)
+    effective_id = user.user_id
     from backend.mcp_server.services.storage_service import get_storage_service
     storage = get_storage_service()
     summary = storage.get_topic_summary(effective_id, topic)
@@ -635,9 +692,10 @@ def get_topic_summary_endpoint(topic: str, student_id: Optional[str] = "student_
 
 
 @router.get("/quizzes")
-def list_quizzes(student_id: Optional[str] = "student_001", limit: int = 20, offset: int = 0):
+def list_quizzes(request: Request, student_id: Optional[str] = "student_001", limit: int = 20, offset: int = 0):
     """Returns list of evaluated quiz submissions for the student."""
-    effective_id = student_id or "student_001"
+    user = resolve_user_context(request, student_id)
+    effective_id = user.user_id
     from backend.mcp_server.services.storage_service import get_storage_service
     storage = get_storage_service()
     count, items = storage.list_quiz_submissions(effective_id, limit=limit, offset=offset)
@@ -645,9 +703,10 @@ def list_quizzes(student_id: Optional[str] = "student_001", limit: int = 20, off
 
 
 @router.get("/quizzes/{quiz_id}")
-def get_quiz_detail(quiz_id: str, student_id: Optional[str] = "student_001"):
+def get_quiz_detail(quiz_id: str, request: Request, student_id: Optional[str] = "student_001"):
     """Returns full itemized question breakdown for a specific quiz submission."""
-    effective_id = student_id or "student_001"
+    user = resolve_user_context(request, student_id)
+    effective_id = user.user_id
     from backend.mcp_server.services.storage_service import get_storage_service
     storage = get_storage_service()
     quiz = storage.get_quiz_submission(quiz_id, effective_id)
@@ -657,17 +716,15 @@ def get_quiz_detail(quiz_id: str, student_id: Optional[str] = "student_001"):
 
 
 @router.post("/quizzes")
-def submit_quiz_endpoint(req: SubmitQuizRequest):
+def submit_quiz_endpoint(req: SubmitQuizRequest, request: Request):
     """
     Deterministically evaluates submitted student answers against an answer key,
     persists the graded submission to database, and updates session overall score.
     """
     from backend.mcp_server.services.ingestion_service import IngestionService
-    from backend.mcp_server.auth.authentication import UserContext
     from backend.mcp_server.schemas.session_schema import QuizSubmissionRequest
 
-    effective_id = req.student_id or "student_001"
-    user = UserContext(user_id=effective_id, username=effective_id)
+    user = resolve_user_context(request, req.student_id)
     svc = IngestionService()
 
     questions = req.questions or []
@@ -693,17 +750,15 @@ def submit_quiz_endpoint(req: SubmitQuizRequest):
 
 
 @router.post("/ingest")
-def ingest_session_endpoint(req: IngestRequest):
+def ingest_session_endpoint(req: IngestRequest, request: Request):
     """
     Ingests an external AI learning session (from ChatGPT, Claude, etc.),
     persists raw conversation, executes unified ML analytics pipeline, and stores results.
     """
     from backend.mcp_server.services.ingestion_service import IngestionService
-    from backend.mcp_server.auth.authentication import UserContext
     from backend.mcp_server.schemas.session_schema import SessionIngestRequest, MessageItem
 
-    effective_id = req.student_id or "student_001"
-    user = UserContext(user_id=effective_id, username=effective_id)
+    user = resolve_user_context(request, req.student_id)
     svc = IngestionService()
 
     msg_items: List[MessageItem] = []
@@ -741,9 +796,9 @@ def ingest_session_endpoint(req: IngestRequest):
 
     try:
         ingest_req = SessionIngestRequest(
-            student_id=effective_id,
-            subject=req.subject or "Computer Science",
-            topic=req.topic or "General",
+            student_id=user.user_id,
+            subject=req.subject or "Unspecified Subject",
+            topic=req.topic or "Unspecified Topic",
             source_agent=req.source_agent or "chatgpt",
             messages=msg_items,
             quiz_submission=req.quiz_submission,

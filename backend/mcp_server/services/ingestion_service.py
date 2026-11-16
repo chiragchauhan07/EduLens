@@ -124,13 +124,18 @@ class IngestionService:
         if not student_utterances:
             raise ValueError("Conversation must contain at least one valid student utterance ('user' or 'student' role).")
 
+        # Determine effective metadata without inventing false subjects or topics
+        effective_subject = request.subject.strip() if request.subject and request.subject.strip() else "Unspecified Subject"
+        effective_topic = request.topic.strip() if request.topic and request.topic.strip() else "Unspecified Topic"
+        effective_agent = request.source_agent.strip() if request.source_agent and request.source_agent.strip() else "Unspecified Agent"
+
         # Build raw storage payload
         raw_storage_payload = {
             "session_id": session_id,
             "user_id": effective_user_id,
-            "source_agent": request.source_agent,
-            "subject": request.subject or "Computer Science",
-            "topic": request.topic or "General",
+            "source_agent": effective_agent,
+            "subject": effective_subject,
+            "topic": effective_topic,
             "content_hash": content_hash,
             "turns_count": len(cleaned_turns),
             "created_at": datetime.now(timezone.utc).isoformat(),
@@ -139,9 +144,9 @@ class IngestionService:
             "raw_json": {
                 "session_id": session_id,
                 "user_id": effective_user_id,
-                "source_agent": request.source_agent,
-                "subject": request.subject,
-                "topic": request.topic,
+                "source_agent": effective_agent,
+                "subject": effective_subject,
+                "topic": effective_topic,
                 "messages": [m.model_dump() for m in request.messages],
                 "metadata": request.metadata or {},
                 "quiz_submission": request.quiz_submission,
@@ -156,8 +161,8 @@ class IngestionService:
         pipeline_input = {
             "chat_id": session_id,
             "student_id": effective_user_id,
-            "subject": request.subject or "Computer Science",
-            "topic": request.topic or "General",
+            "subject": effective_subject,
+            "topic": effective_topic,
             "turns": [
                 {
                     "turn": i + 1,
@@ -176,7 +181,7 @@ class IngestionService:
                 session_input=pipeline_input,
                 quiz_submission=request.quiz_submission,
                 explain=True,
-                topic_override=request.topic,
+                topic_override=request.topic if request.topic and request.topic.strip() else effective_topic,
             )
 
             # 4. Save Analytics to Analytics Storage
@@ -373,12 +378,15 @@ class IngestionService:
 
         quiz_id = f"QZ_{uuid.uuid4().hex[:12].upper()}"
 
+        effective_subject = request.subject.strip() if request.subject and request.subject.strip() else "Unspecified Subject"
+        effective_topic = request.topic.strip() if request.topic and request.topic.strip() else "Unspecified Topic"
+
         quiz_storage_payload = {
             "quiz_id": quiz_id,
             "session_id": request.session_id,
             "user_id": user.user_id,
-            "subject": request.subject,
-            "topic": request.topic,
+            "subject": effective_subject,
+            "topic": effective_topic,
             "total_questions": eval_result.get("total_questions", 0),
             "correct_count": eval_result.get("correct_count", 0),
             "incorrect_count": eval_result.get("incorrect_count", 0),
@@ -402,17 +410,17 @@ class IngestionService:
                 # Check whether full_json uses multi-topic format or flat format
                 if "topics" in full_json and full_json["topics"]:
                     top = full_json["topics"][0]
-                    u_score = top.get("understanding", {}).get("score_index", 60.0)
-                    c_score = top.get("expressed_confidence", {}).get("score", 50.0)
+                    u_score = top.get("understanding", {}).get("score_index") or existing_analytics.get("understanding_score") or 0.0
+                    c_score = top.get("expressed_confidence", {}).get("score") or existing_analytics.get("expressed_confidence_score") or 0.0
                 else:
-                    u_score = full_json.get("topic_understanding", {}).get("understanding_score", 60.0)
-                    c_score = full_json.get("learning_confidence", {}).get("expressed_confidence_score", 50.0)
+                    u_score = full_json.get("topic_understanding", {}).get("understanding_score") or existing_analytics.get("understanding_score") or 0.0
+                    c_score = full_json.get("learning_confidence", {}).get("expressed_confidence_score") or existing_analytics.get("expressed_confidence_score") or 0.0
                 
                 q_score = eval_result["actual_score_percent"]
 
                 scoring_engine = TopicPerformanceScoringEngine()
                 new_overall = scoring_engine.compute_topic_performance(
-                    topic=request.topic or "General",
+                    topic=effective_topic,
                     understanding_input=u_score,
                     actual_quiz_score=q_score,
                     expressed_confidence_score=c_score,

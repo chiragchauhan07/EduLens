@@ -261,7 +261,7 @@ class SQLiteStorageService(StorageService):
             q_data = top_topic.get("actual_quiz_performance") or {}
             c_data = top_topic.get("expressed_confidence", {}) or {}
             o_data = top_topic.get("overall_performance", {}) or {}
-            d_list = o_data.get("discrepancies", [])
+            d_list = o_data.get("discrepancies") or o_data.get("discrepancy_insights") or []
             pred_class = u_data.get("classification", "unknown")
             u_score = float(u_data.get("score_index", 0.0))
             conf = float(u_data.get("confidence", 0.0))
@@ -270,8 +270,8 @@ class SQLiteStorageService(StorageService):
             conf_score = float(c_data.get("score", 0.0))
             act_quiz_score = q_data.get("actual_score_percent") if q_data else None
             quiz_status = q_data.get("status", "awaiting_quiz_submission") if q_data else "awaiting_quiz_submission"
-            overall_score = o_data.get("score")
-            perf_category = o_data.get("status")
+            overall_score = o_data.get("overall_performance_score") if o_data.get("overall_performance_score") is not None else o_data.get("score")
+            perf_category = o_data.get("status") or o_data.get("performance_category")
             disc_detected = 1 if d_list else 0
             disc_details = "; ".join([str(d) for d in d_list]) if d_list else None
         else:
@@ -458,7 +458,7 @@ class SQLiteStorageService(StorageService):
                 if r.get("overall_performance_score") is not None:
                     o_scores.append(r["overall_performance_score"])
 
-                t_name = r.get("topic") or "General"
+                t_name = r.get("topic") or "Unspecified Topic"
                 if t_name not in topics_map:
                     topics_map[t_name] = {
                         "topic": t_name,
