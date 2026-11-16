@@ -1,5 +1,5 @@
 """
-prediction.py — Core inference and prediction orchestrator for EduLens Mini.
+prediction.py — Core inference and prediction orchestrator for EduLens.
 
 Loads the trained Scikit-Learn understanding classifier once at startup,
 extracts features, performs understanding classification, evaluates expressed
@@ -191,3 +191,4 @@ def analyze_conversation_session(parsed: ParsedConversation) -> Dict[str, Any]:
             "macro_f1": registry.metadata.get("metrics", {}).get("macro_f1", 0.9399),
         },
     }
+

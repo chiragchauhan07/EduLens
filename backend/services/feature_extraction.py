@@ -1,5 +1,5 @@
 """
-feature_extraction.py — Pedagogical and Conversational Feature Extraction for EduLens Mini.
+feature_extraction.py — Pedagogical and Conversational Feature Extraction for EduLens.
 
 Extracts:
 1. 8 Dense Conversational Signals for ML model features

@@ -1,4 +1,4 @@
 """
-EduLens Mini Backend Package.
+EduLens Backend Package.
 """
 __version__ = "1.0.0"

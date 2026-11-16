@@ -1,5 +1,6 @@
-/* EduLens Mini Custom Styles */
+/* EduLens Design System Styles */
 
+/* Google Material Symbols Font Rendering */
 .material-symbols-outlined {
   font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 20;
   display: inline-block;
@@ -7,18 +8,30 @@
   line-height: 1;
 }
 
-/* Smooth SVG Progress Ring Transition */
-#prob-ring-fill {
-  transition: stroke-dasharray 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+/* Smooth Progress Indicators */
+#prob-ring-fill,
+#confidence-progress-bar {
+  transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Drag & Drop Highlight */
+/* Drag & Drop Visual State */
 .dropzone-active {
   border-color: #2563eb !important;
   background-color: #eff6ff !important;
 }
 
-/* Smooth Section Scrolling */
+/* Smooth Anchor Navigation */
 html {
   scroll-behavior: smooth;
+}
+
+/* Ensure Code Block is Cleanly Scrollable without Overflowing Cards */
+pre {
+  margin: 0;
+  white-space: pre;
+}
+
+/* Focus Rings */
+input:focus {
+  outline: none;
 }

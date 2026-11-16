@@ -1,5 +1,5 @@
 """
-preprocessing.py — NLP Preprocessing for EduLens Mini.
+preprocessing.py — NLP Preprocessing for EduLens.
 
 Standardizes conversation text, cleans tokens, and formats data frames for the
 trained Scikit-Learn inference pipeline.
@@ -44,3 +44,4 @@ def prepare_inference_frame(student_messages: List[str]) -> Tuple[pd.DataFrame, 
     }])
 
     return df, full_text
+

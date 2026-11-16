@@ -1,5 +1,5 @@
 """
-main.py — EduLens Mini FastAPI Application.
+main.py — EduLens FastAPI Application.
 
 Serves the simplified machine learning inference API and static web frontend
 for student understanding and expressed confidence analysis.
@@ -24,16 +24,16 @@ PUBLIC_DIR = ROOT_DIR / "public"
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Pre-load ML model once during startup
-    print("Initializing EduLens Mini ML Model Registry...")
+    print("Initializing EduLens ML Model Registry...")
     registry = ModelRegistry.get_instance()
     print(f"Model loaded successfully: {registry.classes} ({len(registry.classes)} classes)")
     yield
-    print("Shutting down EduLens Mini.")
+    print("Shutting down EduLens.")
 
 
 app = FastAPI(
-    title="EduLens Mini",
-    description="Student Learning Understanding & Confidence Analyzer",
+    title="EduLens",
+    description="Student Learning Intelligence",
     version="1.0.0",
     lifespan=lifespan,
 )
@@ -59,14 +59,15 @@ elif (PUBLIC_DIR / "assets").exists():
 
 @app.get("/", include_in_schema=False)
 def serve_index():
-    """Serves the EduLens Mini single-page application."""
+    """Serves the EduLens single-page application."""
     if (FRONTEND_DIR / "index.html").exists():
         return FileResponse(FRONTEND_DIR / "index.html")
     if (PUBLIC_DIR / "index.html").exists():
         return FileResponse(PUBLIC_DIR / "index.html")
-    return {"message": "EduLens Mini API is running. Frontend index.html not found."}
+    return {"message": "EduLens API is running. Frontend index.html not found."}
 
 
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("backend.main:app", host="127.0.0.1", port=8000, reload=True)
+

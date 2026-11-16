@@ -1,24 +1,24 @@
-# EduLens Mini — Student Learning Understanding & Confidence Analyzer
+# EduLens — Student Learning Intelligence
 
 > **A focused, lightweight Machine Learning application for analyzing educational conversations, predicting student topic comprehension, and estimating expressed learning confidence.**
 
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-green.svg)](https://fastapi.tiangolo.com)
 [![Scikit-Learn](https://img.shields.io/badge/scikit--learn-1.5.2-orange.svg)](https://scikit-learn.org/)
-[![Status](https://img.shields.io/badge/Practical_Showcase-Ready-brightgreen.svg)]()
+[![Status](https://img.shields.io/badge/Status-Production--Ready-brightgreen.svg)]()
 
 ---
 
 ## 1. Project Introduction
 
-**EduLens Mini** is a specialized Machine Learning application built for educational learning analytics. 
+**EduLens** is a specialized Machine Learning application built for educational learning analytics. 
 
-Instead of functioning as an AI tutor or conversational chatbot, EduLens Mini acts as an **independent analytical lens**. It takes an educational conversation between a student and an AI tutor (or human teacher), extracts interpretable linguistic and conversational signals, and predicts:
+Instead of functioning as an AI tutor or conversational chatbot, EduLens acts as an **independent analytical lens**. It takes an educational conversation between a student and an AI tutor (or human teacher), extracts interpretable linguistic and conversational signals, and predicts:
 
 1. **Student Topic Understanding**: Classified as <span style="color: #059669; font-weight: bold;">Understood</span>, <span style="color: #d97706; font-weight: bold;">Partially Understood</span>, or <span style="color: #e11d48; font-weight: bold;">Confused</span> using a supervised Machine Learning classifier.
 2. **Expressed Learning Confidence**: Estimated as **High Confidence**, **Moderate Confidence**, or **Low Confidence** using a transparent, rule-calibrated linguistic marker model based on hedges, assertions, and self-repair cues.
 
-EduLens Mini runs completely locally without requiring external LLM API keys or cloud dependencies during inference.
+EduLens runs completely locally without requiring external LLM API keys or cloud dependencies during inference.
 
 ---
 
@@ -67,7 +67,7 @@ Student Uploads JSON Conversation
                       ▼
           [ FastAPI Analysis Route ]
                       ▼
-         [ EduLens Mini Web Dashboard ]
+         [ EduLens Web Dashboard ]
            (Apple / Google Minimalist UI)
 ```
 
@@ -151,7 +151,7 @@ Actual: Understood           0             0          39
 
 ## 7. Supported JSON Conversation Formats
 
-EduLens Mini supports any standard educational dialogue format.
+EduLens supports any standard educational dialogue format.
 
 ### Recommended Format
 ```json
@@ -241,7 +241,7 @@ Expected output:
 
 ---
 
-## 11. Showcase Test Cases
+## 11. Evaluation Test Cases
 
 Representative test JSON files are provided in the [`samples/`](file:///samples) directory:
 
@@ -280,7 +280,7 @@ EduLens/
 │       ├── app.js                  # Frontend controller & dynamic rendering
 │       └── styles.css              # Custom styling & animation tokens
 ├── public/                         # Mirrored static production distribution
-├── samples/                        # 8 Representative showcase test conversations
+├── samples/                        # 8 Representative test conversations
 ├── ml_prototype/                   # Core data loader, DSP, and training scripts
 ├── data/                           # Training datasets & normalized session archives
 ├── tests/                          # 57 Comprehensive unit and integration tests
@@ -292,11 +292,11 @@ EduLens/
 
 ## 13. Limitations & Academic Scope
 
-1. **Dialogue Evidence Only**: EduLens Mini evaluates what the student *expresses* in the provided text dialogue. It does not measure latent internal IQ, long-term memory, or psychometric self-efficacy.
+1. **Dialogue Evidence Only**: EduLens evaluates what the student *expresses* in the provided text dialogue. It does not measure latent internal IQ, long-term memory, or psychometric self-efficacy.
 2. **Vocabulary Domain**: The TF-IDF sub-pipeline was trained primarily on STEM and Computer Science topics (algorithms, data structures, recursion, pointers). Non-STEM topics will rely primarily on the 8 conversational signals.
 3. **Linguistic Confidence vs. True Mastery**: Expressed confidence reflects conversational assertiveness and hedging, not necessarily factual correctness. A student can sound confident while asserting a misconception.
 
 ---
 
 ## 14. License
-MIT License. Developed for Machine Learning Practical Showcase.
+MIT License. Developed for Student Learning Intelligence.

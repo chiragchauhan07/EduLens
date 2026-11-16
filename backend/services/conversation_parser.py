@@ -1,5 +1,5 @@
 """
-conversation_parser.py — Robust JSON conversation parser and validator for EduLens Mini.
+conversation_parser.py — Robust JSON conversation parser and validator for EduLens.
 
 Handles:
 - Multiple JSON schemas (standard messages list, turns array, separate student_turns/tutor_turns, raw message lists)
@@ -236,3 +236,4 @@ def _extract_from_message_list(
             _process_single_message_dict(item, student_msgs, assistant_msgs)
         elif isinstance(item, str) and _clean_str(item):
             student_msgs.append(_clean_str(item))
+

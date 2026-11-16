@@ -1,6 +1,6 @@
 # PROJECT AUDIT — EDULENS
 
-> **Notice (November 16, 2026):** For the Machine Learning practical showcase, this project has been streamlined into **EduLens Mini** (Student Learning Understanding & Confidence Analyzer). Obsolete enterprise modules (MCP server, background daemons, multi-student accounts) have been decoupled and archived into `archive/`, while the core ML/NLP pipeline, trained models, datasets, and a new minimalist Stitch frontend are active in `backend/` and `frontend/`. See [README.md](file:///c:/Users/LENOVO/OneDrive/Documents/EduLens/README.md) and [PROJECT_CONTEXT.md](file:///c:/Users/LENOVO/OneDrive/Documents/EduLens/PROJECT_CONTEXT.md) for the active showcase architecture.
+> **Notice (November 16, 2026):** For the Machine Learning practical showcase, this project has been streamlined into **EduLens** (Student Learning Understanding & Confidence Analyzer). Obsolete enterprise modules (MCP server, background daemons, multi-student accounts) have been decoupled and archived into `archive/`, while the core ML/NLP pipeline, trained models, datasets, and a new minimalist Stitch frontend are active in `backend/` and `frontend/`. See [README.md](file:///c:/Users/LENOVO/OneDrive/Documents/EduLens/README.md) and [PROJECT_CONTEXT.md](file:///c:/Users/LENOVO/OneDrive/Documents/EduLens/PROJECT_CONTEXT.md) for the active showcase architecture.
 
 **Generated:** November 15, 2026 (Updated Nov 16, 2026)  
 **Auditor:** Lead Data Scientist & ML Engineer  

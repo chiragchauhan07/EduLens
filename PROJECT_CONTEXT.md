@@ -1,20 +1,20 @@
-# EduLens Mini — Project Context & System Architecture
+# EduLens — Project Context & System Architecture
 
 > **Document Status:** Active & Aligned with Final ML Practical Showcase  
 > **Target Audience:** Examiners, Faculty Reviewers, Data Scientists, Contributors  
-> **Version:** 1.0.0 (EduLens Mini Showcase Edition)  
+> **Version:** 1.0.0 (EduLens Production Edition)  
 
 ---
 
 ## 1. Executive Summary & Purpose
 
-**EduLens Mini** is a focused, lightweight Machine Learning application designed for college ML practical demonstration.
+**EduLens** is a focused, lightweight Machine Learning application designed for college ML practical demonstration.
 
 It simplifies the broader EduLens vision into a single, high-reliability core workflow:
 **Analyze an uploaded student learning conversation in JSON format, extract NLP and conversational features, predict student topic understanding, and estimate expressed linguistic confidence.**
 
 ### Key Principles:
-1. **Independent Evaluation Layer**: EduLens Mini is not an AI tutor. It does not generate conversational responses. It analyzes dialogues between a student and an external tutor/AI.
+1. **Independent Evaluation Layer**: EduLens is not an AI tutor. It does not generate conversational responses. It analyzes dialogues between a student and an external tutor/AI.
 2. **Local, Lightweight Inference**: Zero external AI API calls or cloud dependencies required during inference.
 3. **High Explainability**: Combines 100 domain TF-IDF vocabulary n-grams with 8 dense pedagogical conversational signals into a 108-dimensional feature vector.
 4. **Methodological Honesty**: Clearly separates supervised ML classification (understanding) from rule-calibrated discourse analysis (expressed confidence). Does not claim to measure psychological conviction.
@@ -52,7 +52,7 @@ Student Uploads JSON Conversation
                       ▼
           [ FastAPI Analysis Route ]
                       ▼
-         [ EduLens Mini Web Dashboard ]
+         [ EduLens Web Dashboard ]
            (Apple / Google Minimalist UI)
 ```
 

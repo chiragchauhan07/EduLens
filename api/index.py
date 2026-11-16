@@ -1,7 +1,7 @@
 """
-api/index.py — Vercel Serverless Entrypoint for EduLens Mini.
+api/index.py — Vercel Serverless Entrypoint for EduLens.
 
-Routes incoming serverless requests to the streamlined EduLens Mini application.
+Routes incoming serverless requests to the streamlined EduLens application.
 """
 
 import sys

@@ -1,5 +1,5 @@
 """
-test_mini_pipeline.py — Comprehensive tests for EduLens Mini ML & NLP pipeline.
+test_mini_pipeline.py — Comprehensive tests for EduLens ML & NLP pipeline.
 
 Verifies:
 - JSON conversation parsing across diverse schemas
@@ -279,3 +279,4 @@ def test_showcase_case5_high_expressed_confidence():
     assert result["expressed_confidence"]["label"] == "High Confidence"
     assert result["expressed_confidence"]["score"] >= 70.0
     assert result["expressed_confidence"]["signals"]["certainty_count"] >= 2
+

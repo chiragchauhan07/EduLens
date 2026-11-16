@@ -1,5 +1,5 @@
 """
-analysis.py — FastAPI routes for EduLens Mini student understanding analyzer.
+analysis.py — FastAPI routes for EduLens student understanding analyzer.
 
 Endpoints:
 - GET  /api/health
@@ -35,7 +35,7 @@ def get_health() -> Dict[str, Any]:
     registry = ModelRegistry.get_instance()
     return {
         "status": "healthy",
-        "service": "EduLens Mini",
+        "service": "EduLens",
         "version": "1.0.0",
         "model_loaded": registry.pipeline is not None,
     }

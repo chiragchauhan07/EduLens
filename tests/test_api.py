@@ -1,5 +1,5 @@
 """
-test_api.py — API integration tests for EduLens Mini.
+test_api.py — API integration tests for EduLens.
 
 Tests:
 - GET  /api/health
@@ -26,7 +26,7 @@ def test_api_health_endpoint():
     assert resp.status_code == 200
     data = resp.json()
     assert data["status"] == "healthy"
-    assert data["service"] == "EduLens Mini"
+    assert data["service"] == "EduLens"
     assert data["model_loaded"] is True
 
 
@@ -128,4 +128,4 @@ def test_frontend_home_served():
     resp = client.get("/")
     assert resp.status_code == 200
     assert "EduLens" in resp.text
-    assert "Student Learning Understanding" in resp.text
+    assert "Student Learning Intelligence" in resp.text

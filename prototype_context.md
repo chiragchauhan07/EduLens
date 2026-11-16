@@ -1,18 +1,18 @@
-# EduLens Mini — ML Prototype Context & Practical Showcase Guide
+# EduLens — ML Prototype Context & Practical Showcase Guide
 
-> **Document Status:** Verified and synchronized with EduLens Mini Practical Implementation  
+> **Document Status:** Verified and synchronized with EduLens Practical Implementation  
 > **Target Audience:** Practical Examiners, Evaluators, Engineering Faculty, Student Presenters  
-> **Version:** EduLens Mini Final Practical Showcase  
+> **Version:** EduLens Student Learning Intelligence  
 
 ---
 
-## 1. What EduLens Mini Is
+## 1. What EduLens Is
 
-**EduLens Mini** is a specialized, lightweight student learning intelligence application for educational dialogue analysis.
+**EduLens** is a specialized, lightweight student learning intelligence application for educational dialogue analysis.
 
-- **EduLens Mini is NOT an AI tutor.** It does not teach students or answer tutoring questions.
+- **EduLens is NOT an AI tutor.** It does not teach students or answer tutoring questions.
 - Students learn using external AI assistants (ChatGPT, Claude, Socratic tutors).
-- Students submit their chat logs to EduLens Mini, which extracts quantifiable, interpretable conversational evidence to evaluate demonstrated understanding, detect learning confusion, and estimate expressed learning confidence.
+- Students submit their chat logs to EduLens, which extracts quantifiable, interpretable conversational evidence to evaluate demonstrated understanding, detect learning confusion, and estimate expressed learning confidence.
 
 ---
 
