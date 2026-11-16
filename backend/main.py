@@ -57,6 +57,18 @@ if ASSETS_DIR.exists():
     app.mount("/assets", StaticFiles(directory=str(ASSETS_DIR)), name="assets")
 
 
+@app.get("/debug-path")
+@app.get("/api/debug-path")
+def debug_path(request: Request):
+    return {
+        "url": str(request.url),
+        "path": request.url.path,
+        "scope_path": request.scope.get("path"),
+        "root_path": request.scope.get("root_path"),
+        "headers": dict(request.headers),
+    }
+
+
 @app.get("/", include_in_schema=False)
 def serve_index():
     """Serves the EduLens single-page application."""
