@@ -48,7 +48,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Include API router
+# Include API router with /api prefix and root for robust Vercel serverless routing
+app.include_router(analysis_router, prefix="/api")
 app.include_router(analysis_router)
 
 # Mount frontend assets

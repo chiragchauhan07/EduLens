@@ -16,7 +16,7 @@ from pydantic import BaseModel, Field
 from backend.services.conversation_parser import parse_conversation_json, ParsedConversation
 from backend.services.prediction import ModelRegistry, analyze_conversation_session
 
-router = APIRouter(prefix="/api", tags=["Analysis"])
+router = APIRouter(tags=["Analysis"])
 
 
 @router.get("/health")
