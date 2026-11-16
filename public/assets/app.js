@@ -39,7 +39,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
   async function checkSystemStatus() {
     try {
-      const resp = await fetch("/api/health");
+      let resp = await fetch("/api/health");
+      if (!resp.ok) {
+        resp = await fetch("/health");
+      }
       if (resp.ok) {
         const data = await resp.json();
         if (data.model_loaded) {
@@ -172,7 +175,10 @@ document.addEventListener("DOMContentLoaded", () => {
   loadSampleBtn.addEventListener("click", async () => {
     hideError();
     try {
-      const resp = await fetch("/api/sample-conversation");
+      let resp = await fetch("/api/sample-conversation");
+      if (!resp.ok) {
+        resp = await fetch("/sample-conversation");
+      }
       if (!resp.ok) throw new Error("Could not load sample conversation.");
       const sample = await resp.json();
       inMemorySample = sample;
@@ -215,6 +221,12 @@ document.addEventListener("DOMContentLoaded", () => {
           method: "POST",
           body: formData,
         });
+        if (!response.ok) {
+          response = await fetch("/analyze", {
+            method: "POST",
+            body: formData,
+          });
+        }
       } else if (inMemorySample) {
         const payload = { ...inMemorySample };
         if (topicInput.value.trim()) {
@@ -226,6 +238,13 @@ document.addEventListener("DOMContentLoaded", () => {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
         });
+        if (!response.ok) {
+          response = await fetch("/analyze", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+        }
       }
 
       const data = await response.json();

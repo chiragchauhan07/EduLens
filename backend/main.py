@@ -37,6 +37,7 @@ app = FastAPI(
     description="Student Learning Intelligence",
     version="1.0.0",
     lifespan=lifespan,
+    redirect_slashes=False,
 )
 
 # CORS configuration
@@ -48,6 +49,29 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
+class VercelPathNormalizerMiddleware:
+    """
+    ASGI middleware that restores original request paths when Vercel rewrites
+    incoming requests (such as /api/*) to the /api/index.py serverless entrypoint.
+    """
+    def __init__(self, app):
+        self.app = app
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] == "http":
+            path = scope.get("path", "")
+            headers = dict(scope.get("headers", []))
+            matched_path = headers.get(b"x-matched-path", b"").decode("utf-8")
+            forwarded_uri = headers.get(b"x-forwarded-uri", b"").decode("utf-8")
+            target = matched_path or forwarded_uri
+            if (path in ("/api/index.py", "/api/index", "/api", "/api/") or path.startswith("/api/index.py")) and target:
+                scope["path"] = target
+        await self.app(scope, receive, send)
+
+
+app.add_middleware(VercelPathNormalizerMiddleware)
+
 # Include API router with /api prefix and root for robust Vercel serverless routing
 app.include_router(analysis_router, prefix="/api")
 app.include_router(analysis_router)
@@ -56,6 +80,18 @@ app.include_router(analysis_router)
 if ASSETS_DIR.exists():
     app.mount("/assets", StaticFiles(directory=str(ASSETS_DIR)), name="assets")
 
+
+
+@app.get("/api/index.py", include_in_schema=False)
+def index_py_fallback():
+    """Serves health response if /api/index.py is accessed directly."""
+    registry = ModelRegistry.get_instance()
+    return {
+        "status": "healthy",
+        "service": "EduLens",
+        "version": "1.0.0",
+        "model_loaded": registry.pipeline is not None,
+    }
 
 
 @app.get("/", include_in_schema=False)

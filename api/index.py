@@ -14,3 +14,6 @@ if str(ROOT_DIR) not in sys.path:
 # Ensure feature extraction unpickling shim is registered
 import backend.services.feature_extraction  # noqa: F401
 from backend.main import app
+
+# Expose app and handler for maximum compatibility with Vercel serverless runtimes
+handler = app
