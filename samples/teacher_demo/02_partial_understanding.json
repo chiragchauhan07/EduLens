@@ -1,0 +1,45 @@
+{
+  "topic": "Recursion",
+  "messages": [
+    {
+      "role": "assistant",
+      "content": "Welcome! Let's explore recursion in programming today. How would you describe what a recursive function does?"
+    },
+    {
+      "role": "student",
+      "content": "A recursive function is a function that solves a problem by calling itself with smaller inputs. Like when computing factorial of n, we can compute it as n multiplied by factorial of n minus 1."
+    },
+    {
+      "role": "assistant",
+      "content": "That is the recursive step. Now suppose I write: def fact(n): return n * fact(n - 1). What happens when we run fact(3)?"
+    },
+    {
+      "role": "student",
+      "content": "It will do 3 * fact(2), which does 2 * fact(1), and then 1 * fact(0), then 0 * fact(-1)... wait, why does it keep going forever? In my Python terminal it crashed with RecursionError: maximum recursion depth exceeded. I am not completely sure why it didn't just stop at 1."
+    },
+    {
+      "role": "assistant",
+      "content": "Think about what tells the function when to finish without making another call. What essential component is missing from our code?"
+    },
+    {
+      "role": "student",
+      "content": "I know we need a base case, but I get confused about where to place it and what condition it should check. Does the base case go at the top or at the bottom of the function?"
+    },
+    {
+      "role": "assistant",
+      "content": "The base case must be checked at the very beginning of the function before any recursive calls take place. If n equals 0 or 1, what should factorial return directly?"
+    },
+    {
+      "role": "student",
+      "content": "Oh, right! If n is 0 or 1, it should just return 1 directly without calling fact again. So if n <= 1: return 1. But what if someone calls fact with a negative number like -5? Won't that bypass the condition if I only wrote n == 1?"
+    },
+    {
+      "role": "assistant",
+      "content": "Great question! That is why checking n <= 1 or validating n < 0 with an error exception is safer. So, what are the two mandatory parts of any valid recursive algorithm?"
+    },
+    {
+      "role": "student",
+      "content": "Every recursive function must have at least one base case that terminates the recursion and returns a value without further calls, and a recursive case that reduces the problem size toward that base case. I think I understand the structure now, though tracing deep nested stacks still feels a bit tricky for me."
+    }
+  ]
+}

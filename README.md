@@ -352,7 +352,7 @@ pytest tests/ -v
 
 Expected result:
 ```text
-======================= 57 passed, 2 warnings in 6.18s ========================
+======================= 83 passed, 2 warnings in 2.19s ========================
 ```
 
 ### Pre-Configured Test Scenarios in `samples/`
@@ -367,6 +367,23 @@ Expected result:
 | [`case6_invalid_syntax.json`](samples/case6_invalid_syntax.json) | Malformed JSON syntax | Rejection (**400 Bad Request**) | N/A |
 | [`case7_empty.json`](samples/case7_empty.json) | Empty messages payload | Rejection (**400 Bad Request**) | N/A |
 | [`case8_assistant_only.json`](samples/case8_assistant_only.json) | Zero student turns | Rejection (**400 Bad Request**) | N/A |
+
+### Teacher Demonstration Samples
+
+A dedicated set of eight realistic synthetic demonstration conversations is available in [`samples/teacher_demo/`](samples/teacher_demo/):
+
+| File | Topic | Demonstrated Behavior | Model Prediction | Confidence |
+|---|---|---|---|---|
+| [`01_strong_understanding.json`](samples/teacher_demo/01_strong_understanding.json) | Binary Search | Clear, independent conceptual explanation | **Understood** (99.8%) | **High Confidence** (75.0%) |
+| [`02_partial_understanding.json`](samples/teacher_demo/02_partial_understanding.json) | Recursion | Understands recursive step, struggles with base case | **Partially Understood** (53.1%) | **Moderate Confidence** (55.0%) |
+| [`03_conceptual_confusion.json`](samples/teacher_demo/03_conceptual_confusion.json) | Pointers in C | Repeated difficulty with memory addresses | **Confused** (43.6%) | **Moderate Confidence** (51.0%) |
+| [`04_low_confidence.json`](samples/teacher_demo/04_low_confidence.json) | Chemical Bonding | Strong knowledge with persistent self-doubt | **Understood** (93.4%) | **Low Confidence** (5.0%) |
+| [`05_high_confidence.json`](samples/teacher_demo/05_high_confidence.json) | Newton's Laws | Assertive reasoning applied to mechanics | **Understood** (54.1%) | **High Confidence** (95.0%) |
+| [`06_learning_improvement.json`](samples/teacher_demo/06_learning_improvement.json) | Photosynthesis | Misconception resolved through tutor guidance | **Understood** (99.0%) | **Moderate Confidence** (68.0%) |
+| [`07_misconception.json`](samples/teacher_demo/07_misconception.json) | Database Normalization | Student confidently asserts an incorrect concept | **Partially Understood** (57.5%) | **High Confidence** (95.0%) |
+| [`08_mathematical_reasoning.json`](samples/teacher_demo/08_mathematical_reasoning.json) | Probability & Combinatorics | Solves problem, self-corrects double-counting error | **Partially Understood** (51.5%) | **High Confidence** (80.0%) |
+
+To demonstrate to a teacher or reviewer, open the [EduLens Web UI](https://edu-lens-b3fq.vercel.app/), drag and drop any file from `samples/teacher_demo/`, and click **Analyze Conversation**. Refer to the [Teacher Demonstration Guide](samples/teacher_demo/README.md) for a recommended presentation sequence and pedagogical talking points.
 
 ---
 
